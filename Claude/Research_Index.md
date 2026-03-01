@@ -15,6 +15,7 @@
 | 05 | [Club Finder / Guild Finder API](Research_05_Club_Finder_API.md) | Why {guildlink} is flaky, the full API chain, fallback strategies |
 | 06 | [Addon Policy & ToS](Research_06_Addon_Policy_ToS.md) | What Blizzard allows/prohibits, risk assessment, community reception |
 | 07 | [12.0.1 API Audit (March 2026)](Research_07_12_0_1_Audit_March2026.md) | Cross-reference of ALL GRIP APIs against live 12.0.1 build — corrections to earlier research, concrete action items |
+| 08 | [Codebase Cleanup Audit (March 2026)](Research_08_Codebase_Cleanup_March2026.md) | Header bloat, dead code, comment quality — what to remove and why |
 
 ---
 
