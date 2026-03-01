@@ -22,8 +22,11 @@ The `Claude/` folder contains compiled research and API references. **Read the r
 | `Claude/HARDWARE_EVENTS.md` | Any task involving restricted APIs (SendWho, GuildInvite, CHANNEL sends) |
 | `Claude/DESIGN_DECISIONS.md` | Before refactoring or questioning "why is it done this way?" |
 | `Claude/ADDON_POLICIES.md` | Before adding features that interact with other players (whispers, invites, chat) |
+| **`Claude/Research_07_12_0_1_Audit_March2026.md`** | **READ FIRST for any 12.0.1 work — corrects errors in earlier research, has verified API status for every GRIP dependency** |
 
 See `Claude/README.md` for the full index and how to add new research files.
+
+> ⚠️ **Important (2026-03-01):** Research_02 (Midnight Changes) contains two incorrect claims — it says `GetChannelList()` and `ChatFrame_AddMessageEventFilter()` were removed in 12.0. They were NOT. Both are still available and working in 12.0.1. See Research_07 for the corrected information and full API audit.
 
 ---
 
@@ -362,14 +365,24 @@ GRIPFrame (DIALOG strata, movable, resizable, min 560×420)
 
 ## WoW API Notes
 
-- **`C_FriendList.SendWho(filter)`** — requires hardware event. Filter format: `"1-10"`, `"1-10 c-\"Warrior\""`, `"1-10 z-\"Stormwind City\""`.
+> **Updated 2026-03-01 for 12.0.1 (66192).** See `Claude/Research_07_12_0_1_Audit_March2026.md` for full audit.
+
+- **`C_FriendList.SendWho(filter [, origin])`** — requires hardware event. Filter format: `"1-10"`, `"1-10 c-\"Warrior\""`, `"1-10 z-\"Stormwind City\""`. Optional `origin` param (Enum.SocialWhoOrigin) added in 10.2.0.
 - **`C_FriendList.GetNumWhoResults()`** — returns `(numWhos, totalCount)`. Some clients swap these; `NormalizeWhoCounts()` handles it.
-- **`GuildInvite(fullName)`** — requires hardware event. Only works if you have guild invite permissions.
-- **`SendChatMessage(msg, type, langID, target)`** — CHANNEL type requires hardware event. WHISPER does not.
+- **`C_GuildInfo.Invite(name)`** — **preferred** guild invite API (replaces `GuildInvite`). Requires hardware event. Same restrictions as old API.
+- **`GuildInvite(fullName)`** — **deprecated since 10.2.6**. Still works in 12.0.1 but will be removed. Use `C_GuildInfo.Invite()` instead.
+- **`C_ChatInfo.SendChatMessage(msg, type, langID, target)`** — **preferred** chat send API (since 11.2.0). CHANNEL requires hardware event everywhere; SAY/YELL require hardware event outdoors only. WHISPER does not require hardware event.
+- **`SendChatMessage(msg, type, langID, target)`** — **deprecated since 11.2.0**. Still works in 12.0.1. Use `C_ChatInfo.SendChatMessage()` instead.
+- **`ChatFrame_AddMessageEventFilter(event, fn)`** — still available in 12.0.1. NOT deprecated. Used for whisper echo suppression.
+- **`GetChannelList()`** — still available in 12.0.1. NOT deprecated. Returns triplets: id, name, disabled.
 - **`C_Map.GetMapChildrenInfo(mapID, mapType, allDescendants)`** — used for zone gathering. Some clients return nil for root(0).
 - **`C_Club.GetGuildClubId()`** + `ClubFinderGetCurrentClubListingInfo()` + `GetClubFinderLink()` — for clickable guild finder links. Requires `Blizzard_ClubFinder` addon to be loaded.
 - **`GetTime()`** — returns session uptime in seconds (float). Used for runtime cooldowns.
 - **`time()`** — returns epoch seconds (integer). Used for persisted expiry timestamps. Wrapped as `GRIP:Now()`.
+
+### Midnight 12.0 Impact Summary
+
+GRIP is **not affected** by Midnight's major "addon disarmament" (Secret Values, combat log removal, boss mod restrictions). All of GRIP's APIs (recruitment, chat, /who, guild) remain fully functional. The only required changes are migrating from deprecated `GuildInvite()` → `C_GuildInfo.Invite()` and updating the level cap default from 80 → 90.
 
 ---
 
