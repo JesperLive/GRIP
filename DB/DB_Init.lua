@@ -132,14 +132,9 @@ end
 
 local function SeedRaces(list)
   if #list > 0 then return end
-  if not C_CharacterCreation or not C_CharacterCreation.GetAvailableRaces then return end
   if not C_CreatureInfo or not C_CreatureInfo.GetRaceInfo then return end
 
-  local races = C_CharacterCreation.GetAvailableRaces()
-  if type(races) ~= "table" then return end
-
-  for _, raceData in ipairs(races) do
-    local id = type(raceData) == "table" and raceData.raceID or raceData
+  for id = 1, 100 do
     local info = C_CreatureInfo.GetRaceInfo(id)
     if info and info.raceName and info.raceName ~= "" then
       U.EnsureInList(list, info.raceName)
