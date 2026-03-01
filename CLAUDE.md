@@ -24,10 +24,13 @@ The `Claude/` folder contains compiled research and API references. **Read the r
 | `Claude/ADDON_POLICIES.md` | Before adding features that interact with other players (whispers, invites, chat) |
 | **`Claude/Research_07_12_0_1_Audit_March2026.md`** | **READ FIRST for any 12.0.1 work — corrects errors in earlier research, has verified API status for every GRIP dependency** |
 | `Claude/Research_08_Codebase_Cleanup_March2026.md` | Codebase audit: header bloat, dead code, comment quality — what to remove and why |
+| **`Claude/Research_09_GuildName_GuildLink_Fix.md`** | **READ for guild name/link bugs — `C_GuildInfo.GetGuildInfo` doesn't exist, login timing issues, missing events, debug spam fix** |
 
 See `Claude/README.md` for the full index and how to add new research files.
 
 > ⚠️ **Important (2026-03-01):** Research_02 (Midnight Changes) contains two incorrect claims — it says `GetChannelList()` and `ChatFrame_AddMessageEventFilter()` were removed in 12.0. They were NOT. Both are still available and working in 12.0.1. See Research_07 for the corrected information and full API audit.
+
+> ⚠️ **Important (2026-03-01):** `C_GuildInfo.GetGuildInfo` is NOT a real WoW API — Utils.lua has dead code referencing it. The correct API is `GetGuildInfo("player")` (global function, returns multiple values). GRIP also needs to register for `PLAYER_GUILD_UPDATE`, `GUILD_ROSTER_UPDATE`, and `INITIAL_CLUBS_LOADED` events to warm caches. See Research_09.
 
 ---
 
@@ -338,6 +341,7 @@ GRIPFrame (DIALOG strata, movable, resizable, min 560×420)
 /grip debug on|off
 /grip debug dump [n]
 /grip debug clear
+/grip debug copy [n]
 /grip debug capture on|off [max]
 /grip debug status
 /grip zones diag|reseed|deep [maxMapID]|deep stop|export
@@ -387,7 +391,9 @@ GRIPFrame (DIALOG strata, movable, resizable, min 560×420)
 - **`ChatFrame_AddMessageEventFilter(event, fn)`** — still available in 12.0.1. NOT deprecated. Used for whisper echo suppression.
 - **`GetChannelList()`** — still available in 12.0.1. NOT deprecated. Returns triplets: id, name, disabled.
 - **`C_Map.GetMapChildrenInfo(mapID, mapType, allDescendants)`** — used for zone gathering. Some clients return nil for root(0).
-- **`C_Club.GetGuildClubId()`** + `ClubFinderGetCurrentClubListingInfo()` + `GetClubFinderLink()` — for clickable guild finder links. Requires `Blizzard_ClubFinder` addon to be loaded.
+- **`GetGuildInfo(unit)`** — returns `(guildName, guildRankName, guildRankIndex, realm)`. Returns nil for "player" during early login before `PLAYER_GUILD_UPDATE` fires. **Note:** `C_GuildInfo.GetGuildInfo` does NOT exist — the correct function is the global `GetGuildInfo()`.
+- **`IsInGuild()`** — returns boolean. Available reliably even during early login (before guild name data loads).
+- **`C_Club.GetGuildClubId()`** + `ClubFinderGetCurrentClubListingInfo()` + `GetClubFinderLink()` — for clickable guild finder links. Requires `Blizzard_ClubFinder` addon to be loaded. `GetGuildClubId()` returns nil before `INITIAL_CLUBS_LOADED` event fires.
 - **`GetTime()`** — returns session uptime in seconds (float). Used for runtime cooldowns.
 - **`time()`** — returns epoch seconds (integer). Used for persisted expiry timestamps. Wrapped as `GRIP:Now()`.
 

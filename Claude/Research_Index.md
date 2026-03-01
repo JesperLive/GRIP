@@ -16,6 +16,7 @@
 | 06 | [Addon Policy & ToS](Research_06_Addon_Policy_ToS.md) | What Blizzard allows/prohibits, risk assessment, community reception |
 | 07 | [12.0.1 API Audit (March 2026)](Research_07_12_0_1_Audit_March2026.md) | Cross-reference of ALL GRIP APIs against live 12.0.1 build — corrections to earlier research, concrete action items |
 | 08 | [Codebase Cleanup Audit (March 2026)](Research_08_Codebase_Cleanup_March2026.md) | Header bloat, dead code, comment quality — what to remove and why |
+| 09 | [Guild Name & Guild Link Fix (March 2026)](Research_09_GuildName_GuildLink_Fix.md) | Root cause: `C_GuildInfo.GetGuildInfo` doesn't exist, login timing, missing events, debug spam — full fix plan |
 
 ---
 
@@ -26,8 +27,11 @@
 ### High Priority
 - ~~**Replace `GetChannelList()`**~~ — ❌ **NOT removed.** Still available in 12.0.1. No action needed. (Research_02 was wrong.)
 - ~~**Replace `ChatFrame_AddMessageEventFilter()`**~~ — ❌ **NOT removed.** Still available, not deprecated. No action needed. (Research_02 was wrong.)
-- **Replace `GuildInvite()` with `C_GuildInfo.Invite()`** — `GuildInvite()` deprecated since 10.2.6, could be removed at any time. Used in Invite.lua and UnitPopupInvite.lua. Create compat wrapper.
-- **Fix `scanMaxLevel` fallback** — Who.lua line 352 has `or 80` but Midnight level cap is 90. Should be `or 90`.
+- ~~**Replace `GuildInvite()` with `C_GuildInfo.Invite()`**~~ — ✅ **Done.** Compat wrapper `SafeGuildInvite()` added in Utils.lua, used by Invite.lua and UnitPopupInvite.lua.
+- ~~**Fix `scanMaxLevel` fallback**~~ — ✅ **Done.** Changed `or 80` to `or 90` in Who.lua.
+- **Fix `GetGuildName()` — dead API path + login timing** — `C_GuildInfo.GetGuildInfo` doesn't exist. No event-driven cache warming. See Research_09.
+- **Fix `GetGuildFinderLink()` — spam + timing** — No cache, no throttle, spams debug on every failed call. See Research_09.
+- **Add guild data events** — GRIP doesn't listen for PLAYER_GUILD_UPDATE, GUILD_ROSTER_UPDATE, or INITIAL_CLUBS_LOADED. See Research_09.
 
 ### Medium Priority
 - **Add Midnight zones to static zone list** — Zul'Aman, Harandar, reimagined Eversong/Ghostlands.
