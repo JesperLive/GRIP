@@ -130,11 +130,18 @@ local function SeedClasses(list)
   for i = 1, #sorted do list[i] = sorted[i] end
 end
 
+local PLAYABLE_RACE_IDS = {
+  1, 2, 3, 4, 5, 6, 7, 8, 10, 11,           -- Classic
+  22, 24, 25, 26, 27, 28, 29, 30, 31, 32,    -- Allied Races
+  34, 35, 36, 37,                              -- Vulpera, Mechagnome, Dracthyr
+  52, 70, 84, 85,                              -- Earthen, Haranir
+}
+
 local function SeedRaces(list)
   if #list > 0 then return end
   if not C_CreatureInfo or not C_CreatureInfo.GetRaceInfo then return end
 
-  for id = 1, 100 do
+  for _, id in ipairs(PLAYABLE_RACE_IDS) do
     local info = C_CreatureInfo.GetRaceInfo(id)
     if info and info.raceName and info.raceName ~= "" then
       U.EnsureInList(list, info.raceName)
