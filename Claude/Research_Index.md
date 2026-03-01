@@ -14,21 +14,27 @@
 | 04 | [Chat & Channel Throttling](Research_04_Chat_Throttling.md) | Rate limits on whispers, channels, /who queries — safe intervals, Silence penalty system |
 | 05 | [Club Finder / Guild Finder API](Research_05_Club_Finder_API.md) | Why {guildlink} is flaky, the full API chain, fallback strategies |
 | 06 | [Addon Policy & ToS](Research_06_Addon_Policy_ToS.md) | What Blizzard allows/prohibits, risk assessment, community reception |
+| 07 | [12.0.1 API Audit (March 2026)](Research_07_12_0_1_Audit_March2026.md) | Cross-reference of ALL GRIP APIs against live 12.0.1 build — corrections to earlier research, concrete action items |
 
 ---
 
 ## Key Action Items (from all research)
 
+> **Updated 2026-03-01** — Research_07 corrects two false claims from Research_02. See Research_07 for full details and sources.
+
 ### High Priority
-- **Replace `GetChannelList()`** — Removed in 12.0. Used in `Recruit/Post.lua` to find Trade/General channels. Try `C_ChatInfo.GetChannelInfoFromIdentifier()` or `GetChannelName()`.
-- **Replace `ChatFrame_AddMessageEventFilter()`** — Removed in 12.0. Used in `Core/Utils.lua` for whisper echo suppression. Consider removing the feature or finding a new approach.
+- ~~**Replace `GetChannelList()`**~~ — ❌ **NOT removed.** Still available in 12.0.1. No action needed. (Research_02 was wrong.)
+- ~~**Replace `ChatFrame_AddMessageEventFilter()`**~~ — ❌ **NOT removed.** Still available, not deprecated. No action needed. (Research_02 was wrong.)
+- **Replace `GuildInvite()` with `C_GuildInfo.Invite()`** — `GuildInvite()` deprecated since 10.2.6, could be removed at any time. Used in Invite.lua and UnitPopupInvite.lua. Create compat wrapper.
+- **Fix `scanMaxLevel` fallback** — Who.lua line 352 has `or 80` but Midnight level cap is 90. Should be `or 90`.
 
 ### Medium Priority
-- **Add `C_GuildInfo.Invite()` compat wrapper** — `GuildInvite()` deprecated since 10.2.6.
+- **Add Midnight zones to static zone list** — Zul'Aman, Harandar, reimagined Eversong/Ghostlands.
 - **Byte-count messages, not char-count** — Emoji (🙂 in default templates) are multi-byte. A 250-char message with emoji can exceed the 255-byte limit.
 
 ### Low Priority
-- Add instance-content guard before sends (Midnight blocks addon comms during encounters)
+- Pass `origin` parameter to `C_FriendList.SendWho()` (optional but correct)
+- Add Haranir to any fallback race lists
 - Consider daily whisper caps to protect users from Silence penalties
 - Add `/grip link` debug command for {guildlink} troubleshooting
 - Document for users that guild must have active Guild Finder listing for {guildlink}
