@@ -42,6 +42,7 @@ function GRIP:PrintHelp()
   self:Print("Debug:")
   self:Print("  /grip debug on|off")
   self:Print("  /grip debug dump [n]        - dump last n persisted lines (if capture enabled)")
+  self:Print("  /grip debug copy [n]        - open copyable debug log window (last n lines)")
   self:Print("  /grip debug clear           - clear persisted debug log")
   self:Print("  /grip debug capture on|off [max]  - toggle saving debug lines to SavedVariables (WTF)")
   self:Print("  /grip debug status          - show capture settings + stored counts")
@@ -74,7 +75,7 @@ local function PrintPermBLUsage()
 end
 
 local function PrintDebugUsage()
-  GRIP:Print("Usage: /grip debug on|off | dump [n] | clear | capture on|off [max] | status")
+  GRIP:Print("Usage: /grip debug on|off | dump [n] | copy [n] | clear | capture on|off [max] | status")
 end
 
 local function BoolFromWord(w)
@@ -414,6 +415,15 @@ function GRIP:HandleSlash(msg)
 
     if sub == "dump" then
       DumpPersisted(tonumber(subrest) or 50)
+      return
+    end
+
+    if sub == "copy" then
+      if self.ShowDebugCopyFrame then
+        self:ShowDebugCopyFrame(tonumber(subrest) or 200)
+      else
+        self:Print("Debug copy frame unavailable.")
+      end
       return
     end
 

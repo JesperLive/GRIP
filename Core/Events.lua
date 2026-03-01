@@ -163,6 +163,9 @@ eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("WHO_LIST_UPDATE")
 eventFrame:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
 eventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
+eventFrame:RegisterEvent("PLAYER_GUILD_UPDATE")
+eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
+eventFrame:RegisterEvent("INITIAL_CLUBS_LOADED")
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
   if event == "ADDON_LOADED" then
@@ -216,6 +219,28 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     local msg, _, _, _, target = ...
     GRIP:Debug("WHISPER_INFORM to:", tostring(target), "msgLen=", msg and #msg or 0)
     GRIP:OnWhisperInform(target)
+    return
+  end
+
+  -- Guild data events: warm caches for guild name and guild finder link.
+  if event == "PLAYER_GUILD_UPDATE" or event == "GUILD_ROSTER_UPDATE" then
+    -- GetGuildInfo("player") becomes available after these events fire.
+    GRIP:GetGuildName()
+    if GRIP:IsDebugEnabled(2) then
+      GRIP:Debug("Guild cache warmed on", event, "guild=", GRIP.state._gripLastGuildName or "?")
+    end
+    return
+  end
+
+  if event == "INITIAL_CLUBS_LOADED" then
+    -- C_Club.GetGuildClubId() becomes available now; warm guild link cache.
+    GRIP:GetGuildName()
+    GRIP:GetGuildFinderLink()
+    if GRIP:IsDebugEnabled(2) then
+      GRIP:Debug("Club cache warmed on INITIAL_CLUBS_LOADED guild=",
+        GRIP.state._gripLastGuildName or "?",
+        "link=", (GRIP.state._gripGuildLinkCache and GRIP.state._gripGuildLinkCache ~= "") and "yes" or "no")
+    end
     return
   end
 
