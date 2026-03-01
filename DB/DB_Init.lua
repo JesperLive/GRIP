@@ -159,8 +159,9 @@ local function SeedRaces(list)
   local races = C_CharacterCreation.GetAvailableRaces()
   if type(races) ~= "table" then return end
 
-  for _, raceID in ipairs(races) do
-    local info = C_CreatureInfo.GetRaceInfo(raceID)
+  for _, raceData in ipairs(races) do
+    local id = type(raceData) == "table" and raceData.raceID or raceData
+    local info = C_CreatureInfo.GetRaceInfo(id)
     if info and info.raceName and info.raceName ~= "" then
       U.EnsureInList(list, info.raceName)
     end
@@ -275,6 +276,7 @@ local function MigrateLegacyBlacklistStrings(self)
   local now = NowEpochSafe(self)
 
   local moved, removedJunk = 0, 0
+  local toRemove = {}
   for name, v in pairs(GRIPDB.blacklist) do
     if type(v) == "string" then
       local reason = tostring(v or "")
@@ -295,14 +297,17 @@ local function MigrateLegacyBlacklistStrings(self)
         GRIPDB.blacklistPerm[name] = { at = now, reason = reason }
       end
 
-      GRIPDB.blacklist[name] = nil
+      toRemove[#toRemove + 1] = name
       moved = moved + 1
     elseif type(v) == "number" then
       -- keep numeric expiry entries unchanged
     else
-      GRIPDB.blacklist[name] = nil
+      toRemove[#toRemove + 1] = name
       removedJunk = removedJunk + 1
     end
+  end
+  for _, name in ipairs(toRemove) do
+    GRIPDB.blacklist[name] = nil
   end
 
   if (moved > 0 or removedJunk > 0) and self and self.Debug then
@@ -365,11 +370,15 @@ function GRIP:EnsureDB()
     local fz = GRIPDB.filters and GRIPDB.filters.zones
     if type(fz) == "table" then
       local pruned = 0
+      local badKeys = {}
       for k in pairs(fz) do
         if not self:ShouldIncludeZoneName(k) then
-          fz[k] = nil
-          pruned = pruned + 1
+          badKeys[#badKeys + 1] = k
         end
+      end
+      for _, k in ipairs(badKeys) do
+        fz[k] = nil
+        pruned = pruned + 1
       end
       if pruned > 0 and self.IsDebugEnabled and self:IsDebugEnabled(2) then
         self:Debug("Zone filter selections pruned:", pruned)

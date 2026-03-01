@@ -221,11 +221,8 @@ end
 function GRIP:ClearPermanentBlacklist()
   EnsureBlacklistTables()
 
-  local removed = 0
-  for name in pairs(GRIPDB.blacklistPerm) do
-    GRIPDB.blacklistPerm[name] = nil
-    removed = removed + 1
-  end
+  local removed = self:Count(GRIPDB.blacklistPerm)
+  wipe(GRIPDB.blacklistPerm)
 
   self:Debug("Blacklist PERM cleared:", removed)
   return removed
@@ -235,6 +232,7 @@ function GRIP:GetPermanentBlacklistNames()
   EnsureBlacklistTables()
 
   local names = {}
+  local junk = {}
   for name, v in pairs(GRIPDB.blacklistPerm) do
     local norm = NormalizePermEntry(v)
     if norm ~= nil then
@@ -244,9 +242,11 @@ function GRIP:GetPermanentBlacklistNames()
         GRIPDB.blacklistPerm[name] = norm
       end
     else
-      -- Unknown junk value; remove it
-      GRIPDB.blacklistPerm[name] = nil
+      junk[#junk + 1] = name
     end
+  end
+  for _, name in ipairs(junk) do
+    GRIPDB.blacklistPerm[name] = nil
   end
   table.sort(names)
   return names
@@ -353,11 +353,15 @@ function GRIP:PurgeBlacklist(opts)
 
   local now = self:Now()
   local removed = 0
+  local toRemove = {}
   for name, exp in pairs(GRIPDB.blacklist) do
     if type(exp) ~= "number" or exp <= now then
-      GRIPDB.blacklist[name] = nil
-      removed = removed + 1
+      toRemove[#toRemove + 1] = name
     end
+  end
+  for _, name in ipairs(toRemove) do
+    GRIPDB.blacklist[name] = nil
+    removed = removed + 1
   end
   if removed > 0 then
     self:Debug("PurgeBlacklist removed:", removed)
@@ -371,11 +375,15 @@ function GRIP:PurgeBlacklist(opts)
   then
     local pruned = 0
     local pot = GRIPDB.potential
+    local stale = {}
     for name in pairs(GRIPDB.counters.noResponse) do
       if not pot[name] then
-        GRIPDB.counters.noResponse[name] = nil
-        pruned = pruned + 1
+        stale[#stale + 1] = name
       end
+    end
+    for _, name in ipairs(stale) do
+      GRIPDB.counters.noResponse[name] = nil
+      pruned = pruned + 1
     end
     if pruned > 0 then
       self:Debug("PurgeBlacklist pruned noResponse counters:", pruned)

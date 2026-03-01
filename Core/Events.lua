@@ -207,6 +207,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     GRIP:RegisterSlashCommands()
     GRIP:CreateUI()
 
+    eventFrame:UnregisterEvent("ADDON_LOADED")
     GRIP:Debug("ADDON_LOADED complete.")
     return
   end
@@ -229,7 +230,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
   end
 
   if event == "CHAT_MSG_WHISPER_INFORM" then
-    local msg, target = ...
+    local msg, _, _, _, target = ...
     GRIP:Debug("WHISPER_INFORM to:", tostring(target), "msgLen=", msg and #msg or 0)
     GRIP:OnWhisperInform(target)
     return

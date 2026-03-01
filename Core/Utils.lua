@@ -256,9 +256,10 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
     shortName = tostring(targetFullName):match("^[^-]+") or tostring(targetFullName)
   end
 
-  tpl = tpl:gsub("{player}", shortName)
-  tpl = tpl:gsub("{name}", shortName)
-  tpl = tpl:gsub("{guild}", self:GetGuildName())
+  local safeShort = shortName:gsub("%%", "%%%%")
+  tpl = tpl:gsub("{player}", safeShort)
+  tpl = tpl:gsub("{name}", safeShort)
+  tpl = tpl:gsub("{guild}", self:GetGuildName():gsub("%%", "%%%%"))
 
   -- If the template includes {guildlink}, make sure the link (or fallback) survives truncation.
   if tpl:find("{guildlink}", 1, true) then
@@ -281,7 +282,7 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
     end
 
     -- Replace token before truncation decisions.
-    tpl = tpl:gsub("{guildlink}", link)
+    tpl = tpl:gsub("{guildlink}", link:gsub("%%", "%%%%"))
 
     -- Reserve tail space for the link so long messages don't drop it.
     -- Strategy:
@@ -391,7 +392,7 @@ function GRIP:SendChatMessageCompat(msg, chatType, languageID, target)
       if GateTraceEnabled() and self.IsDebugEnabled and self:IsDebugEnabled(3) then
         self:Trace("SEND ROUTE: GhostMode", "type=CHANNEL", "channelId=", tostring(target))
       end
-      local ok = gm:Send(msg, chatType, languageID, target)
+      local ok = gm:Send(chatType, msg, languageID, target)
       return ok and true or false
     end
   end
