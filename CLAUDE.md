@@ -274,6 +274,8 @@ Logger outputs to a dedicated chat window (default name: "Debug"). Falls back to
 
 The `{guildlink}` token gets special "non-droppable" treatment: space is reserved so truncation at 250 chars doesn't clip the link.
 
+> ⚠️ **Lua gsub gotcha:** `string.gsub()` returns TWO values (result, count). When chaining gsub inline as the last argument to another gsub, the count leaks as the `n` (max replacements) parameter. Always wrap in parentheses or store in a local: `tpl:gsub(pat, (val:gsub("%%","%%%%")))` — note the outer parens.
+
 ### Chat Send Routing
 
 All chat sends go through `GRIP:SendChatMessageCompat(msg, chatType, languageID, target)`:
