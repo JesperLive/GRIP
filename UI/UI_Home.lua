@@ -562,7 +562,7 @@ end
 -- ----------------------------
 
 local function EnsureRowMenu(home)
-  if home and home._potMenu then return end
+  if home and home._potMenu then return home._potMenu end
   local menu = CreateFrame("Frame", "GRIP_PotentialRowMenu", UIParent, "UIDropDownMenuTemplate")
   if home then home._potMenu = menu end
   return menu

@@ -585,8 +585,10 @@ function GRIP:HandleSlash(msg)
 
     if key == "hidewhispers" or key == "hidewhisper" or key == "suppresswhispers" then
       local low = (val or ""):lower()
-      cfg.suppressWhisperEcho = (low == "on" or low == "1" or low == "true" or low == "yes")
-      self:Print("Hide outgoing whispers: " .. (cfg.suppressWhisperEcho and "ON" or "OFF"))
+      local v = (low == "on" or low == "1" or low == "true" or low == "yes")
+      cfg.suppressWhisperEcho = v
+      cfg.hideOutgoingWhispers = v
+      self:Print("Hide outgoing whispers: " .. (v and "ON" or "OFF"))
       return
     end
 

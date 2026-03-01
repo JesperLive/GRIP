@@ -238,9 +238,6 @@ local function PurgeCandidateFromPipeline(self, fullName)
           changed = true
         end
       end
-      if #pot > 0 then
-        if RemoveFromArrayByName(pot, nameLower) then changed = true end
-      end
     end
   end
 
@@ -287,30 +284,19 @@ local function PurgeAllBlacklistedFromPotential(self)
 
   local purged = 0
 
+  local toPurge = {}
   for k, v in pairs(pot) do
     local n = k
     if type(v) == "table" then
       n = v.fullName or v.name or v.target or v.player or k
     end
     if type(n) == "string" and n ~= "" and IsBlacklistedName(n) then
-      if PurgeCandidateFromPipeline(self, n) then
-        purged = purged + 1
-      end
+      toPurge[#toPurge + 1] = n
     end
   end
-
-  if #pot > 0 then
-    for i = #pot, 1, -1 do
-      local v = pot[i]
-      local n = v
-      if type(v) == "table" then
-        n = v.fullName or v.name or v.target or v.player
-      end
-      if type(n) == "string" and n ~= "" and IsBlacklistedName(n) then
-        if PurgeCandidateFromPipeline(self, n) then
-          purged = purged + 1
-        end
-      end
+  for _, n in ipairs(toPurge) do
+    if PurgeCandidateFromPipeline(self, n) then
+      purged = purged + 1
     end
   end
 

@@ -53,10 +53,14 @@ function U.PruneFilterKeys(filterTbl, validList)
   if type(filterTbl) ~= "table" or type(validList) ~= "table" then return end
   local valid = {}
   for _, v in ipairs(validList) do valid[v] = true end
+  local toRemove = {}
   for k in pairs(filterTbl) do
     if not valid[k] then
-      filterTbl[k] = nil
+      toRemove[#toRemove + 1] = k
     end
+  end
+  for _, k in ipairs(toRemove) do
+    filterTbl[k] = nil
   end
 end
 

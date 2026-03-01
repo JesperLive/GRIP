@@ -104,10 +104,14 @@ local function PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
   state.whisperQueue = state.whisperQueue or {}
 
   -- Pending: remove any blocked keys (bad SV state safety).
+  local blockedPending = {}
   for name in pairs(state.pendingWhisper) do
     if IsWhisperBlocked(self, name, GateCtx("pending")) then
-      WhisperBlacklistGate(self, name, pot, cfg, GateCtx("pending"))
+      blockedPending[#blockedPending + 1] = name
     end
+  end
+  for _, name in ipairs(blockedPending) do
+    WhisperBlacklistGate(self, name, pot, cfg, GateCtx("pending"))
   end
 
   -- Queue: remove blocked names before processing.
@@ -223,8 +227,8 @@ function GRIP:WhisperTick()
 
   local name = table.remove(state.whisperQueue, 1)
   local entry = pot[name]
-  if not entry then return end
-  if entry.whisperAttempted then return end
+  if not entry then self:UpdateUI() return end
+  if entry.whisperAttempted then self:UpdateUI() return end
 
   -- Gate early (queue already popped).
   if WhisperBlacklistGate(self, name, pot, cfg, GateCtx("tick-early")) then

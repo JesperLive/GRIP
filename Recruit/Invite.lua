@@ -202,16 +202,24 @@ local function PurgeBlacklistedPending(self, pot, cfg)
   state.pendingWhisper = state.pendingWhisper or {}
   state.pendingInvite  = state.pendingInvite or {}
 
+  local blockedWhispers = {}
   for name in pairs(state.pendingWhisper) do
     if IsInviteBlocked(self, name, GateCtx("pending:whisper")) then
-      InviteBlacklistGate(self, name, pot, cfg, "whisper", GateCtx("pending:whisper"))
+      blockedWhispers[#blockedWhispers + 1] = name
     end
   end
+  for _, name in ipairs(blockedWhispers) do
+    InviteBlacklistGate(self, name, pot, cfg, "whisper", GateCtx("pending:whisper"))
+  end
 
+  local blockedInvites = {}
   for name in pairs(state.pendingInvite) do
     if IsInviteBlocked(self, name, GateCtx("pending:invite")) then
-      InviteBlacklistGate(self, name, pot, cfg, "invite", GateCtx("pending:invite"))
+      blockedInvites[#blockedInvites + 1] = name
     end
+  end
+  for _, name in ipairs(blockedInvites) do
+    InviteBlacklistGate(self, name, pot, cfg, "invite", GateCtx("pending:invite"))
   end
 end
 

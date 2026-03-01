@@ -377,6 +377,8 @@ do
   f:SetScript("OnEvent", function(_, event, arg1)
     if event == "PLAYER_LOGIN" then
       TryInstall()
+      f:UnregisterEvent("PLAYER_LOGIN")
+      if installed then f:UnregisterEvent("ADDON_LOADED") end
       return
     end
     if event == "ADDON_LOADED" then
@@ -384,6 +386,7 @@ do
       if not installed and (arg1 == "Blizzard_UnitPopup" or arg1 == "Blizzard_Menu") then
         TryInstall()
       end
+      if installed then f:UnregisterEvent("ADDON_LOADED") end
     end
   end)
 end

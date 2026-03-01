@@ -363,7 +363,7 @@ local function MakeFrameTopmostAndModal(f)
   if f.GetName then
     local name = f:GetName()
     if name and _G.UISpecialFrames then
-      _G.UISpecialFrames[name] = true
+      tinsert(_G.UISpecialFrames, name)
     end
   end
 
