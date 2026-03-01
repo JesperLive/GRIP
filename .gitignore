@@ -1,1 +1,21 @@
+# ── Development / AI research (local only) ──────────────────
+CLAUDE.md
+Claude/
+
+# ── Docs folder (internal quick-start, changelog — local only) ──
+Docs/
+
+# ── Sync tool databases ─────────────────────────────────────
 *.ffs_db
+
+# ── OS junk ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Editor / IDE ────────────────────────────────────────────
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
