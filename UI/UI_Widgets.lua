@@ -1,0 +1,387 @@
+-- Rev 5
+-- GRIP – UI Widgets / Helpers (Retail-safe)
+--
+-- Purpose:
+--   Keep UI.lua focused on layout + pages, while reusable widget code lives here.
+--   Centralizes Retail template differences and protects edit boxes from UI refresh stomping.
+--
+-- CHANGED (Rev 2):
+-- - Make multiline edit widgets resize-aware (no more hard-coded EditBox widths that break when the main frame is resized).
+-- - Make checklist widgets resize-aware (child width + label widths adjust as the container changes size).
+-- - Keep existing API the same (pages can continue calling CreateMultilineEdit(parent, w, h) / CreateChecklist(...)).
+--
+-- CHANGED (Rev 3):
+-- - Fix Settings/Ads right-side scrollbar misalignment: add proper right inset for UIPanelScrollFrameTemplate
+--   and adjust content width calculation so scrollbars don't clip/drop off when resizing.
+--
+-- CHANGED (Rev 4):
+-- - Make the right inset “boring but foolproof”: UIPanelScrollFrameTemplate’s scrollbar sits OUTSIDE the scrollframe.
+--   Reserve enough space so the scrollbar never hangs off the window border on common UI scales.
+--
+-- CHANGED (Rev 5):
+-- - Checklist: update label widths live on resize (no need to re-Render just to fix wrapping).
+-- - Checklist: keep scroll child width synced + reuse consistent label width computation.
+-- - ScrollPage: apply initial content width immediately (not only after first OnSizeChanged).
+
+local ADDON_NAME, GRIP = ...
+
+GRIP.UIW = GRIP.UIW or {}
+local W = GRIP.UIW
+
+-- UIPanelScrollFrameTemplate’s scrollbar is anchored to the RIGHT of the scrollframe (outside it).
+-- This inset ensures the scrollbar stays visually inside the window border.
+local PAGE_SCROLL_RIGHT_INSET = 32
+
+-- ---------------------------
+-- CheckBox label compatibility
+-- ---------------------------
+function W.EnsureCheckLabel(cb, fontObject)
+  if not cb then return nil end
+
+  local label = cb.Text or cb.text or cb.Label or cb.label
+  if not label then
+    label = cb:CreateFontString(nil, "OVERLAY", fontObject or "GameFontHighlightSmall")
+    label:SetPoint("LEFT", cb, "RIGHT", 4, 0)
+  else
+    if fontObject and label.SetFontObject then
+      label:SetFontObject(fontObject)
+    end
+  end
+
+  cb._gripLabel = label
+  return label
+end
+
+function W.SetCheckLabelText(cb, text)
+  local label = cb and (cb._gripLabel or cb.Text or cb.text)
+  if not (label and label.SetText) then
+    label = W.EnsureCheckLabel(cb, "GameFontHighlightSmall")
+  end
+  if label then
+    label:SetText(tostring(text or ""))
+  end
+  return label
+end
+
+-- ---------------------------------------------
+-- Dirty-aware set text helper (prevents stomping)
+-- ---------------------------------------------
+function W.SetTextIfUnfocused(editBox, text)
+  if not editBox or not editBox.SetText then return end
+  if editBox._gripDirty then return end
+  if editBox.HasFocus and editBox:HasFocus() then return end
+
+  text = tostring(text or "")
+  if editBox.GetText and editBox:GetText() == text then return end
+
+  editBox._gripProgrammatic = true
+  editBox:SetText(text)
+  editBox._gripProgrammatic = false
+end
+
+-- ---------------------------
+-- Basic widgets
+-- ---------------------------
+function W.CreateUIButton(parent, label, w, h, onClick)
+  local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+  b:SetSize(w, h)
+  b:SetText(label)
+  b:SetScript("OnClick", onClick)
+  return b
+end
+
+function W.CreateCheckbox(parent, label, onClick)
+  local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+  W.EnsureCheckLabel(cb, "GameFontHighlightSmall")
+  W.SetCheckLabelText(cb, label)
+  cb:SetScript("OnClick", onClick)
+  return cb
+end
+
+local function HookDirtyTracking(editBox)
+  if not editBox or not editBox.HookScript then return end
+  editBox._gripDirty = false
+  editBox._gripProgrammatic = false
+
+  editBox:HookScript("OnTextChanged", function(self, userInput)
+    if self._gripProgrammatic then return end
+    if userInput then
+      self._gripDirty = true
+    end
+  end)
+
+  -- Helpful defaults for single-line edits
+  if editBox.SetScript then
+    editBox:SetScript("OnEscapePressed", editBox.ClearFocus)
+    editBox:SetScript("OnEnterPressed", editBox.ClearFocus)
+  end
+end
+
+function W.CreateLabeledEdit(parent, label, width)
+  local t = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  t:SetText(label)
+
+  local e = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+  e:SetSize(width or 120, 20)
+  e:SetAutoFocus(false)
+
+  HookDirtyTracking(e)
+  return t, e
+end
+
+-- ---------------------------
+-- Multiline edit (resize-aware)
+-- ---------------------------
+local function AttachResizeAwareMultiline(sf, eb, child)
+  if not (sf and eb) then return end
+
+  local function Recalc()
+    local w = (sf.GetWidth and sf:GetWidth()) or 0
+    local h = (sf.GetHeight and sf:GetHeight()) or 0
+
+    -- InputScrollFrameTemplate uses a scrollbar; 28 is the safe padding used previously.
+    local cw = w - 28
+    if cw < 1 then cw = 1 end
+
+    if eb.SetWidth then eb:SetWidth(cw) end
+    if child and child.SetWidth then child:SetWidth(cw) end
+
+    -- For fallback frames, keeping the EditBox height aligned with the visible area helps scrolling feel right.
+    if eb.SetHeight and h and h > 0 then
+      eb:SetHeight(h)
+    end
+  end
+
+  if sf.HookScript then
+    sf:HookScript("OnSizeChanged", function() Recalc() end)
+  else
+    sf:SetScript("OnSizeChanged", function() Recalc() end)
+  end
+
+  -- Initial pass
+  Recalc()
+end
+
+function W.CreateMultilineEdit(parent, w, h)
+  local sf = CreateFrame("ScrollFrame", nil, parent, "InputScrollFrameTemplate")
+  if w and h then
+    sf:SetSize(w, h)
+  end
+
+  local eb = sf.EditBox
+  local child
+
+  if not eb then
+    -- fallback
+    sf = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
+    if w and h then
+      sf:SetSize(w, h)
+    end
+
+    child = CreateFrame("Frame", nil, sf)
+    child:SetSize(1, 1)
+    sf:SetScrollChild(child)
+
+    eb = CreateFrame("EditBox", nil, child)
+    eb:SetPoint("TOPLEFT", child, "TOPLEFT", 0, 0)
+    eb:SetPoint("BOTTOMRIGHT", child, "BOTTOMRIGHT", 0, 0)
+  end
+
+  eb:SetMultiLine(true)
+  eb:SetAutoFocus(false)
+  eb:SetFontObject("ChatFontNormal")
+  eb:SetTextInsets(6, 6, 6, 6)
+
+  eb:SetScript("OnEscapePressed", eb.ClearFocus)
+
+  -- Do NOT clear focus on Enter (ticker + focus changes caused "revert").
+  -- Insert newline.
+  eb:SetScript("OnEnterPressed", function(self)
+    if self.Insert then
+      self:Insert("\n")
+    end
+  end)
+
+  eb:EnableMouse(true)
+  if eb.HookScript then
+    eb:HookScript("OnMouseDown", function(self) self:SetFocus() end)
+  else
+    eb:SetScript("OnMouseDown", function(self) self:SetFocus() end)
+  end
+
+  HookDirtyTracking(eb)
+
+  -- Resize-aware width/height adjustments (critical for the new resizable main frame).
+  AttachResizeAwareMultiline(sf, eb, child)
+
+  return sf, eb
+end
+
+-- ---------------------------
+-- Scroll page container (for Settings/Ads)
+-- ---------------------------
+function W.CreateScrollPage(parent)
+  local sf = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
+  sf:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
+
+  -- IMPORTANT:
+  -- UIPanelScrollFrameTemplate’s scrollbar is OUTSIDE the scrollframe.
+  -- Inset enough so the scrollbar never hangs off the right edge of the main window.
+  sf:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -PAGE_SCROLL_RIGHT_INSET, 0)
+
+  local content = CreateFrame("Frame", nil, sf)
+  content:SetPoint("TOPLEFT", sf, "TOPLEFT", 0, 0)
+  content:SetHeight(1)
+  sf:SetScrollChild(content)
+
+  local function ApplyWidth(w)
+    -- Content width should track the visible scroll area.
+    -- Keep a small safety margin so widgets don’t touch the edge.
+    local cw = (w or 0) - 4
+    if cw < 1 then cw = 1 end
+    content:SetWidth(cw)
+  end
+
+  sf:SetScript("OnSizeChanged", function(self, w, h)
+    ApplyWidth(w)
+  end)
+
+  -- Initial width pass (helps first render before the next resize tick).
+  ApplyWidth((sf.GetWidth and sf:GetWidth()) or 0)
+
+  sf.content = content
+  return sf, content
+end
+
+-- ---------------------------
+-- Checklist widget (resize-aware)
+-- ---------------------------
+local function CreateChecklistFrame(parent, titleText, w, h)
+  local box = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+  box:SetSize(w, h)
+  box:SetBackdrop({
+    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+    tile = false, edgeSize = 12,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+  })
+  box:SetBackdropColor(0, 0, 0, 0.25)
+
+  local title = box:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  title:SetPoint("TOPLEFT", box, "TOPLEFT", 8, -6)
+  title:SetText(titleText)
+
+  local sf = CreateFrame("ScrollFrame", nil, box, "UIPanelScrollFrameTemplate")
+  sf:SetPoint("TOPLEFT", box, "TOPLEFT", 6, -22)
+  sf:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -26, 6)
+
+  local child = CreateFrame("Frame", nil, sf)
+  child:SetSize(1, 1)
+  sf:SetScrollChild(child)
+
+  box._sf = sf
+  box._child = child
+  box._title = title
+  box._checks = {}
+
+  local function ComputeLabelWidth()
+    local sw = (sf.GetWidth and sf:GetWidth()) or 0
+    local labelW = sw - 36 -- checkbox + padding
+    if labelW < 60 then labelW = 60 end
+    return labelW
+  end
+
+  local function RecalcChildWidthAndLabels()
+    local sw = (sf.GetWidth and sf:GetWidth()) or 0
+    local cw = sw
+    if cw < 1 then cw = 1 end
+    child:SetWidth(cw)
+
+    local labelW = ComputeLabelWidth()
+    for _, cb in ipairs(box._checks) do
+      if cb and cb.IsShown and cb:IsShown() then
+        local lbl = cb._gripLabel or cb.Text or cb.text
+        if lbl and lbl.SetWidth then
+          lbl:SetWidth(labelW)
+        end
+      end
+    end
+  end
+
+  if sf.HookScript then
+    sf:HookScript("OnSizeChanged", function() RecalcChildWidthAndLabels() end)
+  else
+    sf:SetScript("OnSizeChanged", function() RecalcChildWidthAndLabels() end)
+  end
+  RecalcChildWidthAndLabels()
+
+  box._gripComputeLabelWidth = ComputeLabelWidth
+  box._gripRecalc = RecalcChildWidthAndLabels
+
+  return box
+end
+
+function W.CreateChecklist(parent, titleText, w, h)
+  local box = CreateChecklistFrame(parent, titleText, w, h)
+
+  function box:Render(items, selectedTbl, onToggle)
+    items = items or {}
+    selectedTbl = selectedTbl or {}
+
+    for _, cb in ipairs(self._checks) do
+      cb:Hide()
+    end
+
+    local labelW = (self._gripComputeLabelWidth and self._gripComputeLabelWidth()) or 120
+
+    local y = -2
+    local idx = 0
+    for _, name in ipairs(items) do
+      local key = name -- avoid closure capture bug
+      idx = idx + 1
+
+      local cb = self._checks[idx]
+      if not cb then
+        cb = CreateFrame("CheckButton", nil, self._child, "UICheckButtonTemplate")
+        local lbl = W.EnsureCheckLabel(cb, "GameFontHighlightSmall")
+        if lbl then
+          lbl:SetJustifyH("LEFT")
+        end
+        self._checks[idx] = cb
+      end
+
+      cb:ClearAllPoints()
+      cb:SetPoint("TOPLEFT", self._child, "TOPLEFT", 0, y)
+
+      local lbl = W.SetCheckLabelText(cb, key)
+      if lbl and lbl.SetWidth then
+        lbl:SetWidth(labelW)
+      end
+
+      cb:SetChecked(selectedTbl[key] == true)
+      cb:Show()
+
+      cb:SetScript("OnClick", function(btn)
+        local checked = btn:GetChecked()
+        if checked then
+          selectedTbl[key] = true
+        else
+          selectedTbl[key] = nil
+        end
+        if onToggle then onToggle(key, checked) end
+        GRIP:UpdateUI()
+      end)
+
+      y = y - 20
+    end
+
+    self._child:SetHeight(math.max(1, idx * 20 + 8))
+
+    -- One more sizing pass after render (covers first render before layout settles).
+    if self._gripRecalc then
+      self._gripRecalc()
+    end
+  end
+
+  return box
+end
