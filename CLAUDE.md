@@ -23,6 +23,7 @@ The `Claude/` folder contains compiled research and API references. **Read the r
 | `Claude/DESIGN_DECISIONS.md` | Before refactoring or questioning "why is it done this way?" |
 | `Claude/ADDON_POLICIES.md` | Before adding features that interact with other players (whispers, invites, chat) |
 | **`Claude/Research_07_12_0_1_Audit_March2026.md`** | **READ FIRST for any 12.0.1 work — corrects errors in earlier research, has verified API status for every GRIP dependency** |
+| `Claude/Research_08_Codebase_Cleanup_March2026.md` | Codebase audit: header bloat, dead code, comment quality — what to remove and why |
 
 See `Claude/README.md` for the full index and how to add new research files.
 
@@ -218,6 +219,16 @@ When changing one, always set both, or call `NormalizeConfigAliases`.
 ---
 
 ## Coding Conventions
+
+### File Header Standard
+
+Every `.lua` file should have a **2-line** header only:
+```lua
+-- GRIP: <Module Name>
+-- <One-line description of what this module does>
+```
+
+No revision changelogs in source files — that's what git is for. No `-- Retail (Midnight)` lines — that's in the TOC. No `-- CHANGED (Rev N):` blocks.
 
 ### Nil-Safety First
 
