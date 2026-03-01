@@ -192,3 +192,74 @@ function GRIP:UpdateDebugCapture()
     EnsurePersistTables()
   end
 end
+
+-- ------------------------------------------------------------
+-- Copyable debug output frame (/grip debug copy)
+-- ------------------------------------------------------------
+function GRIP:ShowDebugCopyFrame(n)
+  n = tonumber(n) or 200
+  n = self:Clamp(n, 1, 2000)
+
+  local lines = self:GetPersistedDebugLines()
+  if type(lines) ~= "table" or #lines == 0 then
+    self:Print("Debug log is empty (enable: /grip debug capture on, and /grip debug on).")
+    return
+  end
+
+  local total = #lines
+  local start = math.max(1, total - n + 1)
+  local parts = {}
+  for i = start, total do
+    parts[#parts + 1] = lines[i]
+  end
+  local text = table.concat(parts, "\n")
+
+  -- Reuse or create the copy frame.
+  local f = self._debugCopyFrame
+  if not f then
+    f = CreateFrame("Frame", "GRIPDebugCopyFrame", UIParent, "BackdropTemplate")
+    f:SetSize(600, 400)
+    f:SetPoint("CENTER")
+    f:SetFrameStrata("DIALOG")
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetBackdrop({
+      bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+      edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+      tile = true, tileSize = 32, edgeSize = 32,
+      insets = { left = 8, right = 8, top = 8, bottom = 8 },
+    })
+
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOP", 0, -12)
+    title:SetText("GRIP Debug Log")
+    f._title = title
+
+    local closeBtn = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+    closeBtn:SetPoint("TOPRIGHT", -4, -4)
+
+    local scroll = CreateFrame("ScrollFrame", "GRIPDebugCopyScroll", f, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 12, -36)
+    scroll:SetPoint("BOTTOMRIGHT", -30, 12)
+
+    local eb = CreateFrame("EditBox", nil, scroll)
+    eb:SetMultiLine(true)
+    eb:SetAutoFocus(false)
+    eb:SetFontObject(GameFontHighlightSmall)
+    eb:SetWidth(540)
+    eb:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    scroll:SetScrollChild(eb)
+    f._editBox = eb
+
+    self._debugCopyFrame = f
+  end
+
+  f._title:SetText(("GRIP Debug Log (%d of %d lines)"):format(#parts, total))
+  f._editBox:SetText(text)
+  f._editBox:HighlightText()
+  f._editBox:SetCursorPosition(0)
+  f:Show()
+end

@@ -83,38 +83,25 @@ end
 function GRIP:GetGuildName()
   state._gripLastGuildName = state._gripLastGuildName or ""
 
-  -- If the client can tell us we're not in a guild, don't reuse cached data.
+  -- If the client can tell us we're not in a guild, invalidate cache.
   if IsInGuild and not IsInGuild() then
     state._gripLastGuildName = ""
     return ""
   end
 
-  local name = ""
-
-  -- Prefer modern Retail API when available.
-  if C_GuildInfo and C_GuildInfo.GetGuildInfo then
-    local ok, info = pcall(C_GuildInfo.GetGuildInfo, "player")
-    if ok and type(info) == "table" and type(info.guildName) == "string" then
-      name = info.guildName
-    end
-  end
-
-  -- Fallback to legacy global API.
-  if name == "" and GetGuildInfo then
-    local g = GetGuildInfo("player")
-    if type(g) == "string" then
-      name = g
-    end
-  end
-
-  -- Cache last known good value to survive transient empty returns.
-  if type(name) == "string" and name ~= "" then
-    state._gripLastGuildName = name
-    return name
-  end
-
+  -- Return cache immediately if we have one (GetGuildInfo returns nil during early login).
   if state._gripLastGuildName ~= "" then
     return state._gripLastGuildName
+  end
+
+  -- Primary source: GetGuildInfo("player") — the only guild-name API in 12.0.1.
+  -- Returns nil before PLAYER_GUILD_UPDATE fires; the event handler will warm this cache.
+  if GetGuildInfo then
+    local g = GetGuildInfo("player")
+    if type(g) == "string" and g ~= "" then
+      state._gripLastGuildName = g
+      return g
+    end
   end
 
   return ""
@@ -163,12 +150,17 @@ function GRIP:_TryLoadClubFinder()
 end
 
 -- Clickable Guild Finder link (if available)
--- Uses ClubFinder listing APIs when present.
+-- Uses ClubFinder listing APIs when present. Cached for 5 minutes.
 function GRIP:GetGuildFinderLink()
-  if not C_Club or not C_Club.GetGuildClubId then
-    if self:IsDebugEnabled(3) then
-      self:Trace("GetGuildFinderLink: missing C_Club.GetGuildClubId")
+  -- Return cached link if still fresh.
+  local now = GetTime()
+  if state._gripGuildLinkCache and state._gripGuildLinkCacheAt then
+    if (now - state._gripGuildLinkCacheAt) < 300 then
+      return state._gripGuildLinkCache
     end
+  end
+
+  if not C_Club or not C_Club.GetGuildClubId then
     return ""
   end
 
@@ -178,42 +170,35 @@ function GRIP:GetGuildFinderLink()
   end
 
   if not ClubFinderGetCurrentClubListingInfo or not GetClubFinderLink then
-    if self:IsDebugEnabled(3) then
-      self:Trace("GetGuildFinderLink: ClubFinder link APIs unavailable (Blizzard_ClubFinder not loaded?)")
-    end
     return ""
   end
 
   local ok, clubId = pcall(C_Club.GetGuildClubId)
   if not ok or not clubId then
-    if self:IsDebugEnabled(3) then
-      self:Trace("GetGuildFinderLink: no clubId from C_Club.GetGuildClubId")
-    end
     return ""
   end
 
   local ok2, listing = pcall(ClubFinderGetCurrentClubListingInfo, clubId)
   if not ok2 or not listing then
-    if self:IsDebugEnabled(3) then
+    -- Log once per session to avoid spam.
+    if self:IsDebugEnabled(3) and not state._gripGuildLinkTraced then
+      state._gripGuildLinkTraced = true
       self:Trace("GetGuildFinderLink: no listing info (guild listing may not be published or not cached yet)")
     end
     return ""
   end
   if not listing.clubFinderGUID or not listing.name then
-    if self:IsDebugEnabled(3) then
-      self:Trace("GetGuildFinderLink: listing missing clubFinderGUID/name")
-    end
     return ""
   end
 
   local ok3, link = pcall(GetClubFinderLink, listing.clubFinderGUID, listing.name)
   if ok3 and type(link) == "string" and link ~= "" then
+    state._gripGuildLinkCache = link
+    state._gripGuildLinkCacheAt = now
+    state._gripGuildLinkTraced = nil  -- reset trace flag on success
     return link
   end
 
-  if self:IsDebugEnabled(3) then
-    self:Trace("GetGuildFinderLink: GetClubFinderLink failed or returned empty")
-  end
   return ""
 end
 
