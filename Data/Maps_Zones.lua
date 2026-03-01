@@ -207,6 +207,8 @@ GRIP.STATIC_ZONES = {
   "Zereth Mortis",
   "Zul'Aman",
   "Zul'Drak",
+  -- Midnight (12.0)
+  "Harandar",
   "Zuldazar",
 }
 

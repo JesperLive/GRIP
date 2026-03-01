@@ -349,7 +349,7 @@ function GRIP:BuildWhoQueue()
   end
 
   local minL = self:Clamp(cfg.scanMinLevel or 1, 1, 100)
-  local maxL = self:Clamp(cfg.scanMaxLevel or 80, minL, 100)
+  local maxL = self:Clamp(cfg.scanMaxLevel or 90, minL, 100)
   local step = self:Clamp(cfg.scanStep or 5, 1, 20)
 
   local zoneFilter = ""
@@ -431,7 +431,7 @@ function GRIP:SendNextWho()
   end
 
   self:Debug("SendWho:", filter)
-  C_FriendList.SendWho(filter)
+  C_FriendList.SendWho(filter, Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
 
   C_Timer.After(10, function()
     if state.pendingWho and (GetTime() - state.pendingWho.sentAt) >= 10 then
