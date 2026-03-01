@@ -1,10 +1,5 @@
--- Rev 2
--- GRIP – Static shipped zone list (seeded first)
--- Generated from SavedVariables zonesExportLua.
--- NOTE: This list may include non-recruitment locations; GRIP filters them out everywhere via DB_Zones.lua.
---
--- CHANGED (Rev 2):
--- - Fix missing closing braces at end of file (STATIC_ZONE_EXCLUDE_EXACT table).
+-- GRIP: Zone Data
+-- Static shipped zone list + exclude patterns (used by DB_Zones.lua at init).
 
 local ADDON_NAME, GRIP = ...
 
@@ -210,11 +205,6 @@ GRIP.STATIC_ZONES = {
   -- Midnight (12.0)
   "Harandar",
   "Zuldazar",
-}
-
--- Optional scaffolding for future: categorizing zones (e.g. by expansion). Not used yet.
-GRIP.STATIC_ZONES_BY_GROUP = GRIP.STATIC_ZONES_BY_GROUP or {
-  -- ["The War Within"] = { "Isle of Dorn", "The Ringing Deeps", "Hallowfall", "Azj-Kahet" },
 }
 
 -- Optional: simple string patterns to exclude obvious junk zones (used by DB_Zones.lua).

@@ -1,15 +1,5 @@
--- Rev 3
--- GRIP – Potential list helpers (add/remove/finalize)
---
--- CHANGED (Rev 2):
--- - Harden nil-safety: ensure GRIPDB.potential table exists before use.
--- - Finalize logic now respects pending whisper + pending invite (runtime state), to avoid removing entries
---   before confirmation/system outcomes are processed.
---
--- CHANGED (Rev 3):
--- - Make RemovePotential(fullName) return a boolean:
---     true if an entry was removed, false otherwise.
---   (Fixes call sites that track "changed" state during purge/cleanup paths.)
+-- GRIP: DB Potential
+-- Potential candidate list: add, remove, finalize lifecycle.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

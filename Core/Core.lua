@@ -1,50 +1,5 @@
--- Rev 8
--- GRIP – Core
--- Retail (Midnight) 12.0.1+ / Interface 120001
---
--- NOTE: Some actions are restricted (#hwevent):
--- - C_FriendList.SendWho()
--- - C_GuildInfo.Invite() (compat: GuildInvite deprecated 10.2.6)
--- - SendChatMessage(..., "CHANNEL", ...)
--- This addon queues/organizes, and uses click/keybind/slash for restricted calls.
---
--- CHANGED (Rev 2):
--- - Debug/logging code is now wrapped behind GRIP.Logger (so we can fully move it into Debug.lua later).
--- - Core keeps only thin wrappers + a fallback Logger implementation (Debug.lua can override/extend).
---
--- CHANGED (Rev 3):
--- - Fallback Logger now supports "debug capture" to SavedVariables:
---     GRIPDB.config.debugCapture = true|false
---     GRIPDB.config.debugCaptureMax = number (default 800)
---   Captured lines go to GRIPDB.debugLog (persisted in WTF/SavedVariables/GRIP.lua).
--- - Adds fallback GRIP:DumpDebugLog / GRIP:ClearDebugLog / GRIP:UpdateDebugCapture for slash command hooks.
---   (A future Debug.lua can override these and/or replace Logger.Capture.)
---
--- CHANGED (Rev 4):
--- - Persisted debug capture now stores PLAIN TEXT (no color codes) to keep SavedVariables clean/readable.
---   Chat output remains colored as before.
---
--- CHANGED (Rev 5):
--- - Add binding header string for the Bindings.xml header token "GRIP_BINDINGS"
---   (so it shows as a proper subgroup label in the Key Bindings UI).
---
--- CHANGED (Rev 6):
--- - Add startup reconciliation for “zombie pending” invite states after /reload:
---   - Clear runtime pending tables (who/whisper/invite) since they do not persist.
---   - Normalize GRIPDB.potential entries that were mid-invite:
---       * If invitePending=true and inviteSuccess is unknown, clear invitePending.
---       * If the last invite attempt is older than a short grace window, allow retry by clearing inviteAttempted too.
---   This prevents entries from getting stuck as “pending” forever after a reload/UI restart.
---
--- CHANGED (Rev 7):
--- - Remove Core.lua's internal ADDON_LOADED/PLAYER_LOGIN event hook for ReconcileAfterReload().
---   Reconciliation is still defined here, but should be invoked from Events.lua (ADDON_LOADED) to avoid
---   ordering races with scheduler startup (e.g., postTicker being cleared after StartPostScheduler()).
---
--- CHANGED (Rev 8):
--- - Add GRIP:GateTrace(...) helper: opt-in diagnostics that print when
---   GRIPDB.config.traceExecutionGate == true, even if debug logging is OFF.
---   (Default behavior unchanged when traceExecutionGate is false.)
+-- GRIP: Core
+-- Bootstrap, version, shared state, logger wrapper, keybind entry points.
 
 local ADDON_NAME, GRIP = ...
 GRIP.ADDON_NAME = ADDON_NAME
@@ -75,7 +30,6 @@ function GRIP_PostNext()
   if GRIP and GRIP.PostNext then GRIP:PostNext() end
 end
 
--- Shared runtime state (safe across files via the same addon table)
 GRIP.state = GRIP.state or {
   -- /who scanning
   whoQueue = {},

@@ -1,23 +1,5 @@
--- Rev 6
--- GRIP – Slash commands
---
--- Changed (Rev 4):
--- - Align debug commands with the upcoming Debug module split:
---   /grip debug dump|clear|capture now uses persisted SavedVariables capture (WTF) when available.
--- - Align "hidewhispers" toggle with Utils.lua (suppress outgoing whisper echo lines):
---   /grip set hidewhispers on|off -> GRIPDB.config.suppressWhisperEcho
---
--- CHANGED (Rev 5):
--- - Add GRIPDB/config nil-safety throughout.
--- - Debug capture toggles now sync debugPersist<->debugCapture and debugPersistMax<->debugCaptureMax.
--- - /grip clear no longer risks wipe(nil) crashes; ensures state tables exist.
--- - /grip set now reports unknown keys.
---
--- CHANGED (Rev 6):
--- - Add Gate Trace Mode toggle:
---     /grip tracegate on|off|toggle
---     /grip gatetrace on|off|toggle
---   Controls: GRIPDB.config.traceExecutionGate (default off).
+-- GRIP: Slash
+-- /grip command handler and all subcommands.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

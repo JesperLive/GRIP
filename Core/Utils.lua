@@ -1,31 +1,5 @@
--- Rev 10
--- GRIP – Utilities (shared helpers)
---
--- CHANGED (Rev 5):
--- - SendChatMessageCompat now sanitizes via SafeTruncateChat and skips blank/whitespace-only messages.
--- - Whisper echo suppression buffer now stores the sanitized message (so matching stays consistent).
---
--- CHANGED (Rev 6):
--- - Integrate Ghost Mode: route eligible chat sends through GRIP.GhostMode when enabled.
---   This preserves existing behavior when Ghost Mode is OFF, and keeps whisper echo suppression intact.
---
--- CHANGED (Rev 7):
--- - Make {guildlink} "non-droppable": when templates include {guildlink}, reserve space so the link/fallback
---   survives truncation. This prevents long preview/whispers/posts from losing the guild link at the tail.
--- - Only attempt clickable Guild Finder link if you're actually in a guild; otherwise use a clear fallback.
---
--- CHANGED (Rev 8):
--- - Make GetGuildName() more robust on Retail: prefer C_GuildInfo.GetGuildInfo("player") and cache the last
---   known non-empty guild name to avoid transient empty returns during login/UI timing (fixes "join ?" cases).
---
--- CHANGED (Rev 9):
--- - Phase 1 Ghost Mode scope: ONLY route CHANNEL sends through Ghost Mode.
---   (Whispers/SAY/YELL/etc. remain direct, preserving existing behavior and avoiding surprises.)
---
--- CHANGED (Rev 10):
--- - Gate Trace Mode diagnostics: opt-in "attempted send" trace logging in SendChatMessageCompat.
---   Enabled only when GRIPDB.config.traceExecutionGate=true AND debug verbosity allows TRACE (IsDebugEnabled(3)).
---   (No gating added here; call sites must still use BL_ExecutionGate.)
+-- GRIP: Utils
+-- Shared helpers: template engine, chat compat, whisper echo suppression, pattern matching.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

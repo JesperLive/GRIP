@@ -1,13 +1,5 @@
--- Rev 3
--- GRIP – Zones (static list, exclusions, deep scan, export)
---
--- CHANGED (Rev 2):
--- - Fix deep-scan stop command hint to match Slash.lua: "/grip zones deep stop".
--- - Harden deep-scan lifecycle: prevent starting when already running; StopDeepZoneScan fully resets + optional messaging.
---
--- CHANGED (Rev 3):
--- - Fix Lua syntax error in GetBestZonesListForUI() (#GRIPDB.lists.zonesAll had an extra ')'), which prevented this file
---   from loading and caused downstream nil-method errors (e.g. ShouldIncludeZoneName missing during EnsureDB).
+-- GRIP: DB Zones
+-- Zone gathering, deep scan, exclusion building, export.
 
 local ADDON_NAME, GRIP = ...
 local U = GRIP.DBUtil

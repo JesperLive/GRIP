@@ -1,30 +1,5 @@
--- Rev 8
--- GRIP – /who scanning module
---
--- Changed:
--- - Hard clamp /who send interval to at least 15s (safety).
--- - If a /who query returns the max (50/50), auto-expand that same level bracket into class-filtered queries
---   (c-"Class") to reduce saturation and improve coverage.
--- - When the /who queue reaches the end, it wraps back to the beginning automatically.
---
--- CHANGED (Rev 4):
--- - Add GRIPDB/config nil-safety guards to prevent edge-case errors if called before EnsureDB().
--- - Add basic API presence checks for C_FriendList.SendWho / C_FriendList.GetNumWhoResults / GetWhoInfo.
---
--- CHANGED (Rev 5):
--- - Reduce redundant UI refreshes (avoid UpdateUI() inside MaybeExpandWhoByClass; caller already refreshes).
--- - Throttle spammy "Waiting..." / "Please wait..." chat prints to avoid flood-click noise.
---
--- CHANGED (Rev 6):
--- - Enforce blacklist at WHO ingestion: blacklisted names are never added to Potential.
--- - Secondary defense: purge blacklisted names from Potential (and best-effort clear queued/pending action state).
---
--- CHANGED (Rev 7):
--- - Ensure file begins with valid Lua (no patch/diff/codefence artifacts).
--- - No behavioral changes intended vs Rev 6.
---
--- CHANGED (Rev 8):
--- - Deduplicate blacklist decisions: route WHO-path blacklist checks through GRIP:BL_ExecutionGate().
+-- GRIP: Who Scanner
+-- /who queue builder, bracket expansion, result ingestion, blacklist enforcement at scan time.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state
@@ -105,7 +80,7 @@ local function ThrottlePrint(key, seconds)
   return true
 end
 
--- ---------- Blacklist enforcement helpers (Rev 6/8) ----------
+-- ---------- Blacklist enforcement helpers ----------
 
 local function Trim(s)
   if type(s) ~= "string" then return "" end

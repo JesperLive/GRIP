@@ -1,27 +1,5 @@
--- Rev 7
--- GRIP – Whisper module
---
--- CHANGED (Rev 3):
--- - Add GRIPDB/config/potential nil-safety guards.
--- - Ensure pending tables exist before use.
--- - Skip sending if whisper template resolves to blank/whitespace.
--- - Stop ticker cleanly if whisperEnabled is turned off while running.
---
--- CHANGED (Rev 4):
--- - Reduce redundant UpdateUI() calls (coalesce per action/tick; avoid multiple refreshes in early-return paths).
--- - Avoid extra UI churn in inform/failed handlers (single refresh at end).
---
--- CHANGED (Rev 5):
--- - Blacklist execution gate (last-line defense): if target is blacklisted, never attempt whisper send.
--- - Purge/skip blacklisted names found in pending/queue (handles bad SavedVariables state after /reload).
--- - Inform/failed handlers hard-stop on blacklisted targets (clear pending + finalize; no further processing).
---
--- CHANGED (Rev 6):
--- - Deduplicate blacklist gating: route all whisper-path blacklist decisions through GRIP:BL_ExecutionGate().
---
--- CHANGED (Rev 7):
--- - Gate Trace Mode plumbing: pass structured context tables to BL_ExecutionGate() so trace logs
---   show action + phase + module when trace is enabled (default trace remains off).
+-- GRIP: Whisper Queue
+-- Whisper queue management, template rendering, rate-limited sending.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

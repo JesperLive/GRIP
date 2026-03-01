@@ -1,23 +1,5 @@
--- Rev 12
--- GRIP – UI: Settings page
---
--- CHANGED (Rev 11):
--- - Fix Lua syntax error that prevented the file from loading:
---   use DOT for existence checks + COLON only for method calls (e.g., GRIP.GetGuildName and GRIP:GetGuildName()).
--- - Compress prior revision notes into one short summary list.
---
--- Summary of Rev 1–10:
--- - Added DB nil-safety + init locking to prevent early-open errors.
--- - Hardened callbacks and reduced UI churn during initialization.
--- - Whisper editor: cursor-aware token insertion, multiple tokens allowed, layout fixes.
--- - Whisper editor: expansion-aware 255-byte budgeting with live counter, typing enforcement, and all-or-nothing token insertion.
--- - Added responsive Settings layout hook for resizable main window.
---
--- CHANGED (Rev 12):
--- - Make layout truly width-driven using real scrollframe width; avoid overlap at narrow sizes via reflow.
--- - Anchor whisper editor to both left+right edges (natural resize; less hard-coded width dependence).
--- - Reflow filter columns + action buttons when narrow (stack vertically instead of overlapping).
--- - Auto-size scroll content height from bottom-most widget (prevents clipping on short heights / UI scale differences).
+-- GRIP: UI Settings Page
+-- Level range, filter checklists, whisper editor with byte-budget enforcement.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

@@ -1,9 +1,5 @@
--- Rev 2
--- GRIP – DB utilities (shared helpers)
---
--- CHANGED (Rev 2):
--- - Harden Merge against accidental self-referential tables (cycle guard).
--- - Add minimal type safety for list helpers to avoid SV-corruption crashes.
+-- GRIP: DB Utilities
+-- Table merge, list helpers, filter pruning.
 
 local ADDON_NAME, GRIP = ...
 
@@ -62,12 +58,4 @@ function U.PruneFilterKeys(filterTbl, validList)
   for _, k in ipairs(toRemove) do
     filterTbl[k] = nil
   end
-end
-
-function U.AnySelected(t)
-  if type(t) ~= "table" then return false end
-  for _, v in pairs(t) do
-    if v == true then return true end
-  end
-  return false
 end
