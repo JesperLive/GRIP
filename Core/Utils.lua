@@ -403,6 +403,19 @@ function GRIP:SendChatMessageCompat(msg, chatType, languageID, target)
   return SendChatMessage(msg, chatType, languageID, target)
 end
 
+-- Guild invite compat: prefer C_GuildInfo.Invite (12.0+), fall back to GuildInvite (deprecated 10.2.6)
+function GRIP:SafeGuildInvite(name)
+  if C_GuildInfo and C_GuildInfo.Invite then
+    C_GuildInfo.Invite(name)
+  elseif GuildInvite then
+    GuildInvite(name)
+  else
+    self:Print("No guild invite API available.")
+    return false
+  end
+  return true
+end
+
 function GRIP:GlobalStringToPattern(gs)
   if type(gs) ~= "string" or gs == "" then return nil end
   local pat = gs:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")

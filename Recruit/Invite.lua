@@ -337,7 +337,7 @@ function GRIP:InviteNext()
     return
   end
 
-  GuildInvite(name)
+  self:SafeGuildInvite(name)
   self:Debug("GuildInvite ->", name)
 
   C_Timer.After(NO_RESPONSE_TIMEOUT, function()

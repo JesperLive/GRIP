@@ -124,8 +124,8 @@ local function CanAttemptGuildInvite()
     return false, "You don't have permission to invite to the guild."
   end
 
-  if not GuildInvite then
-    return false, "GuildInvite() is unavailable."
+  if not (C_GuildInfo and C_GuildInfo.Invite) and not GuildInvite then
+    return false, "Guild invite API is unavailable."
   end
 
   return true, "ok"
@@ -190,7 +190,7 @@ local function TryGuildInvite(targetName, ctx)
     return
   end
 
-  GuildInvite(targetName)
+  GRIP:SafeGuildInvite(targetName)
 end
 
 -- ------------------------------------------------------------

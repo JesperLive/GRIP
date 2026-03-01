@@ -4,7 +4,7 @@
 --
 -- NOTE: Some actions are restricted (#hwevent):
 -- - C_FriendList.SendWho()
--- - GuildInvite()
+-- - C_GuildInfo.Invite() (compat: GuildInvite deprecated 10.2.6)
 -- - SendChatMessage(..., "CHANNEL", ...)
 -- This addon queues/organizes, and uses click/keybind/slash for restricted calls.
 --
