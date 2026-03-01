@@ -1,0 +1,26 @@
+<!-- Rev 3 -->
+<Bindings>
+  <!--
+    NOTE:
+    - Do NOT use <BindingHeader> (unknown node type in modern clients).
+    - Use a category string that does NOT resolve to a global (_G[category] should be nil),
+      otherwise it may taint / warn.
+    - "GRIP Keybinds" is intentionally unlikely to exist as a global.
+  -->
+
+  <Binding name="GRIP_TOGGLE" category="GRIP Keybinds">
+    GRIP_ToggleUI();
+  </Binding>
+
+  <Binding name="GRIP_WHO_NEXT" category="GRIP Keybinds">
+    GRIP_WhoNext();
+  </Binding>
+
+  <Binding name="GRIP_INVITE_NEXT" category="GRIP Keybinds">
+    GRIP_InviteNext();
+  </Binding>
+
+  <Binding name="GRIP_POST_NEXT" category="GRIP Keybinds">
+    GRIP_PostNext();
+  </Binding>
+</Bindings>
