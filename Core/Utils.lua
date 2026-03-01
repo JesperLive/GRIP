@@ -218,7 +218,7 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
   local safeShort = shortName:gsub("%%", "%%%%")
   tpl = tpl:gsub("{player}", safeShort)
   tpl = tpl:gsub("{name}", safeShort)
-  tpl = tpl:gsub("{guild}", self:GetGuildName():gsub("%%", "%%%%"))
+  tpl = tpl:gsub("{guild}", (self:GetGuildName():gsub("%%", "%%%%")))
 
   -- If the template includes {guildlink}, make sure the link (or fallback) survives truncation.
   if tpl:find("{guildlink}", 1, true) then
@@ -241,7 +241,7 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
     end
 
     -- Replace token before truncation decisions.
-    tpl = tpl:gsub("{guildlink}", link:gsub("%%", "%%%%"))
+    tpl = tpl:gsub("{guildlink}", (link:gsub("%%", "%%%%")))
 
     -- Reserve tail space for the link so long messages don't drop it.
     -- Strategy:
