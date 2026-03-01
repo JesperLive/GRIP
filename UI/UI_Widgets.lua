@@ -1,27 +1,5 @@
--- Rev 5
--- GRIP – UI Widgets / Helpers (Retail-safe)
---
--- Purpose:
---   Keep UI.lua focused on layout + pages, while reusable widget code lives here.
---   Centralizes Retail template differences and protects edit boxes from UI refresh stomping.
---
--- CHANGED (Rev 2):
--- - Make multiline edit widgets resize-aware (no more hard-coded EditBox widths that break when the main frame is resized).
--- - Make checklist widgets resize-aware (child width + label widths adjust as the container changes size).
--- - Keep existing API the same (pages can continue calling CreateMultilineEdit(parent, w, h) / CreateChecklist(...)).
---
--- CHANGED (Rev 3):
--- - Fix Settings/Ads right-side scrollbar misalignment: add proper right inset for UIPanelScrollFrameTemplate
---   and adjust content width calculation so scrollbars don't clip/drop off when resizing.
---
--- CHANGED (Rev 4):
--- - Make the right inset “boring but foolproof”: UIPanelScrollFrameTemplate’s scrollbar sits OUTSIDE the scrollframe.
---   Reserve enough space so the scrollbar never hangs off the window border on common UI scales.
---
--- CHANGED (Rev 5):
--- - Checklist: update label widths live on resize (no need to re-Render just to fix wrapping).
--- - Checklist: keep scroll child width synced + reuse consistent label width computation.
--- - ScrollPage: apply initial content width immediately (not only after first OnSizeChanged).
+-- GRIP: UI Widgets
+-- Reusable constructors: checkboxes, multiline edits, checklists, scroll pages.
 
 local ADDON_NAME, GRIP = ...
 

@@ -1,10 +1,5 @@
--- Rev 9
--- GRIP – Minimap Button (no external libraries)
---
--- CHANGED (Rev 9):
--- - Fix ring/chrome visual offset: anchor MiniMap-TrackingBorder like LibDBIcon (TOPLEFT + 53x53), not CENTER.
--- - Drag math uses Minimap:GetEffectiveScale() (more accurate when Minimap/cluster is scaled).
--- - Prefer parenting the button to Minimap (reduces scale/anchor weirdness from MinimapCluster).
+-- GRIP: Minimap Button
+-- Minimap ring button with drag-to-reposition and click shortcuts.
 
 local ADDON_NAME, GRIP = ...
 local btn

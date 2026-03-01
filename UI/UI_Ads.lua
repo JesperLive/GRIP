@@ -1,26 +1,5 @@
--- Rev 5
--- GRIP – UI: Ads page
---
--- Changed (Rev 2):
--- - Add GRIPDB/config nil-safety guards (avoid edge-case errors if UI is opened before EnsureDB()).
--- - Disable controls gracefully until config is available.
--- - Mirror a short UI-local post cooldown after "Post Next" to reduce spam-clicking.
---
--- CHANGED (Rev 3):
--- - Use the same “Initializing…” hint + lock/unlock pattern as UI_Settings.lua (less UI churn than retitling).
--- - Harden all callbacks consistently (early-return when DB/config missing).
--- - Add a small optional polish: Post Next button shows a countdown label during UI-local cooldown.
---
--- CHANGED (Rev 4):
--- - Make layout responsive to the resizable main frame (no hard-coded 512px editor widths).
--- - Add GRIP:UI_LayoutAds() hook used by UI.lua on resize/tab switch.
--- - Avoid horizontal button overlap on narrow widths by splitting actions into two rows.
--- - Move "Apply" to its own row to prevent overlap in smaller window sizes.
---
--- CHANGED (Rev 5):
--- - Anchor multiline editors to both LEFT and RIGHT edges (natural resize, less width micromanagement).
--- - Add narrow-width button reflow (stack Save/Post Next under their left partner when needed).
--- - Auto-size scroll child height from content (prevents clipping at the bottom on various window sizes).
+-- GRIP: UI Ads Page
+-- Trade/General message editors, post scheduler config, queue/post buttons.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

@@ -1,29 +1,5 @@
--- Rev 6
--- GRIP – Trade/General posting module
--- NOTE: Sending to "CHANNEL" is restricted (#hwevent). This module queues posts and provides PostNext().
---
--- CHANGED (Rev 2):
--- - Add GRIPDB/config nil-safety guards for scheduler and enqueue.
--- - Clamp minPostInterval to a sane minimum to avoid click-spam.
--- - Skip enqueue when template resolves to empty/whitespace.
--- - Guard GetChannelList() return shape.
---
--- CHANGED (Rev 3):
--- - Reduce redundant UpdateUI() calls (update once when something actually changed).
--- - QueuePostCycle only refreshes UI if it enqueued at least one message.
--- - PostNext avoids extra UpdateUI() on early returns; refreshes once when queue state changes.
---
--- CHANGED (Rev 4):
--- - Blacklist execution gate (last-line defense): if ad target (player name) is blacklisted, never post to them.
--- - Purge/skip blacklisted names in post queue/pending states (handles bad SavedVariables state after /reload).
--- - Enforce InCombatLockdown() guard for the protected "CHANNEL" post execution.
---
--- CHANGED (Rev 5):
--- - Deduplicate blacklist gating: route post-path blacklist decisions through GRIP:BL_ExecutionGate().
---
--- CHANGED (Rev 6):
--- - Gate Trace Mode plumbing: pass structured context tables to BL_ExecutionGate() so trace logs
---   show action + phase + module when trace is enabled (default trace remains off).
+-- GRIP: Post Scheduler
+-- Trade/General channel post queue, scheduler, hardware-event gated sending.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

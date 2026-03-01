@@ -1,30 +1,5 @@
--- Rev 8
--- GRIP – Blacklist helpers
---
--- CHANGED (Rev 4):
--- - Added no-response counter helpers (Get/Reset) for consistency with Invite flow.
--- - PurgeBlacklist now optionally prunes stale noResponse counters when entries are no longer relevant.
--- - Harden permanent blacklist shape: tolerate legacy boolean entries and normalize on write.
---
--- CHANGED (Rev 5):
--- - Harden IsPermanentlyBlacklisted(): normalize legacy boolean entries and ignore/remove junk values.
--- - Make PurgeBlacklist(pruneNoResponse) safe: only prune counters when Potential table exists (prevents
---   accidental full counter wipe during early init / missing DB).
---
--- CHANGED (Rev 6):
--- - Centralize "last-line defense" execution gate helper:
---   GRIP:BL_ExecutionGate(fullName, context) returns (ok:boolean, reason:string).
---   This is intended to be called immediately before any whisper/invite/recruit/post-to execution,
---   so blacklisted names can never slip through any pipeline. (No Blizzard-restricted actions here.)
---
--- CHANGED (Rev 7):
--- - Add opt-in Gate Trace Mode for BL_ExecutionGate():
---   When enabled, logs context, which key variant matched, perm vs temp, and remaining seconds for temp.
---   Default behavior unchanged (trace off).
---
--- CHANGED (Rev 8):
--- - Route Gate Trace Mode output through GRIP:GateTrace(...) when available so trace diagnostics
---   can appear even when normal debug logging is OFF. (Still logs to Debug() when debug is enabled.)
+-- GRIP: DB Blacklist
+-- Temp/perm blacklist, BL_ExecutionGate (last-line defense), no-response counters.
 
 local ADDON_NAME, GRIP = ...
 

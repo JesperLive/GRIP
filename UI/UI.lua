@@ -1,28 +1,5 @@
--- Rev 10
--- GRIP – UI Controller (frame, tabs, page routing)
--- Pages are implemented in UI_Home.lua / UI_Settings.lua / UI_Ads.lua
---
--- CHANGED (Rev 7):
--- - Make Escape ALWAYS close GRIP UI without opening the Game Menu (even while typing in EditBoxes):
---   - Consume ESC at the main frame level (SetPropagateKeyboardInput(false)).
---   - Also hook ALL EditBoxes under the UI so ESC closes the UI and is swallowed there too.
--- - Keep GRIP UI on top (DIALOG strata + toplevel) + standard UISpecialFrames close behavior.
---
--- CHANGED (Rev 8):
--- - Make GRIP UI truly “modal”: while it is shown, swallow ALL keystrokes so the game does not
---   move/open menus/etc (WASD, C, bindings, etc.).
--- - Do not re-enable keyboard propagation until the UI is hidden.
--- - Keep ESC-to-close behavior (and swallow ESC so the Game Menu never opens).
---
--- CHANGED (Rev 9):
--- - Throttle page layout hooks during resize (coalesce spammy OnSizeChanged bursts).
--- - Prefer f._activePage when choosing which layout hook to run (more deterministic on tab switches).
--- - Use throttled layout calls on show/resize to reduce redundant layout churn.
---
--- CHANGED (Rev 10):
--- - Coalesce GRIP:UpdateUI() calls (reduce refresh storms from tickers/events/button spam).
--- - Keep a hard "force now" path for immediate updates when needed.
--- - Preserve behavior: UI still updates promptly; it just avoids redundant same-tick work.
+-- GRIP: UI Controller
+-- Main frame, tabs, page routing, resize handling, UpdateUI coalescing.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

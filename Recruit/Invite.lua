@@ -1,44 +1,5 @@
--- Rev 11
--- GRIP – Guild invite module (restricted #hwevent; one per click/keybind)
--- CHANGED: InviteNext performs Whisper+Invite immediately in the same hardware event,
--- enforces a shared 1.0s cooldown, and implements:
---   - no-response => 24h temp blacklist + remove from Potential
---   - after 7 no-responses => purgeable blacklistDays
---   - decline/blocked/etc => purgeable blacklistDays
---
--- Changed: NO_RESPONSE_TIMEOUT raised to 70s.
--- Rationale: Blizzard UI static popup default timeout is 60s; we wait +10s to avoid false "no response".
---
--- CHANGED (Rev 5):
--- - Add GRIPDB/config/potential nil-safety guards.
--- - Ensure pending tables exist before use.
--- - Clamp blacklistDays to a sane default if missing.
---
--- CHANGED (Rev 6):
--- - Reduce redundant UpdateUI() calls (single refresh per action; avoid extra churn in common paths).
--- - Skip whisper send if template resolves to blank/whitespace (avoid empty whisper attempts).
--- - Minor hardening: clear pendingWhisper on blank-skip in InviteNext whisper path.
---
--- CHANGED (Rev 7):
--- - Blacklist execution gate (last-line defense): if target is blacklisted, never whisper/invite.
--- - Purge/skip blacklisted names found in pending states (handles bad SavedVariables state after /reload).
--- - Enforce InCombatLockdown() guard for the invite hardware-event call path.
---
--- CHANGED (Rev 8):
--- - Deduplicate blacklist gating: route all invite-pipeline blacklist decisions through GRIP:BL_ExecutionGate().
---
--- CHANGED (Rev 9):
--- - Gate Trace Mode plumbing: pass structured context tables to BL_ExecutionGate() so trace logs
---   show action + phase + module when trace is enabled (default trace remains off).
---
--- CHANGED (Rev 10):
--- - Fix GateCtx argument order bug in InviteBlacklistGate(): phase should be the invite/whisper phase,
---   not the literal string "gate". (Improves Gate Trace Mode diagnostics; behavior unchanged.)
---
--- CHANGED (Rev 11):
--- - Ensure BL_ExecutionGate coverage is "immediately before" execution:
---   move Debug logging AFTER the whisper send and AFTER the GuildInvite protected call,
---   so the last-line InviteBlacklistGate() check is the final step before execution.
+-- GRIP: Invite Pipeline
+-- Hardware-event gated guild invite with whisper+invite combo, no-response escalation.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state
@@ -163,7 +124,7 @@ end
 -- Returns true if target is blocked and we should stop/clean up.
 local function InviteBlacklistGate(self, name, pot, cfg, phase, ctx)
   if not name or name == "" then return true end
-  -- Rev 10: fix GateCtx argument order (phase should be the real phase)
+  -- Fix GateCtx argument order (phase should be the real phase)
   local context = ctx or GateCtx(phase, "gate")
 
   if not IsInviteBlocked(self, name, context) then return false end
@@ -303,7 +264,7 @@ function GRIP:InviteNext()
       state.pendingWhisper[name] = true
 
       -- LAST-LINE DEFENSE for whisper execution (blacklist could change between template and send).
-      -- Rev 11: keep this as the final step immediately before the send.
+      -- Keep this as the final step immediately before the send.
       if InviteBlacklistGate(self, name, pot, cfg, "whisper", GateCtx("whisper:pre-exec")) then
         didUIChange = true
         if didUIChange then self:UpdateUI() end
@@ -328,7 +289,7 @@ function GRIP:InviteNext()
   didUIChange = true
 
   -- LAST-LINE DEFENSE: do not attempt protected call if blocked.
-  -- Rev 11: keep this as the final step immediately before GuildInvite.
+  -- Keep this as the final step immediately before GuildInvite.
   if InviteBlacklistGate(self, name, pot, cfg, "invite", GateCtx("invite:pre-exec")) then
     entry.invitePending = false
     state.pendingInvite[name] = nil

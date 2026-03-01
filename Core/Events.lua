@@ -1,22 +1,5 @@
--- Rev 7
--- GRIP – Event wiring (kept last in the TOC so all modules are defined)
--- Changed: normalize global strings that include |3-#(%s) grammar tokens, and add robust English fallbacks
--- so invite accept/decline/blocked clears pending reliably (prevents false no-response timeouts).
---
--- CHANGED (Rev 5):
--- - Prevent mis-attributing invite failures to a non-pending name.
---   InviteFailFor() now only uses whoMaybe if it matches a pending invite (after resolution),
---   otherwise it will only attribute if exactly one invite is pending.
---
--- CHANGED (Rev 6):
--- - Call GRIP:ReconcileAfterReload() during ADDON_LOADED after EnsureDB(), so reconciliation happens once
---   at the correct time (after DB exists) and does not race/clear schedulers started later.
---
--- CHANGED (Rev 7):
--- - Harden name resolution for system-fail attribution:
---   ResolvePendingName() resolves short names against pending maps (invite/whisper) before falling back to Potential.
---   This prevents mis-attribution when Potential was removed but a pending entry still exists, or when the system
---   message provides a short name while pending keys are full "Name-Realm".
+-- GRIP: Events
+-- Event frame wiring: ADDON_LOADED, PLAYER_LOGIN, WHO_LIST_UPDATE, system messages.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

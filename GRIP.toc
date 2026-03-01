@@ -1,57 +1,40 @@
-## Rev 10
 ## Interface: 120001
 ## Title: GRIP – Guild Recruitment Automation
 ## Notes: /who scan for unguilded players, whisper/invite queues, and Trade/General post queue (queued; click/keybind to send).
 ## Author: GRIP
 ## Version: 0.4.0
 ## SavedVariables: GRIPDB
-## CHANGED (Rev 10): Add Hooks/UnitPopupInvite.lua after DB/DB_Blacklist.lua (depends on blacklist gate).
 
-# ============================================================================
-# Core bootstrap (must load first)
-# ============================================================================
+# -- Core bootstrap (must load first)
 Core/Core.lua
 Core/Debug.lua
 Core/Utils.lua
 
-# ============================================================================
-# Optional / planned modules (must remain inert unless enabled in DB)
-# ============================================================================
+# -- Optional modules (inert unless enabled in config)
 Core/GhostMode.lua
 
-# ============================================================================
-# Static data
-# ============================================================================
+# -- Static data
 Data/Maps_Zones.lua
 
-# ============================================================================
-# Database layer
-# ============================================================================
+# -- Database layer
 DB/DB_Util.lua
 DB/DB_Zones.lua
 DB/DB_Init.lua
 DB/DB_Blacklist.lua
 
-# ============================================================================
-# Hooks (depend on DB + gate)
-# ============================================================================
+# -- Hooks (depend on DB + gate)
 Hooks/UnitPopupInvite.lua
 
 DB/DB_Filters.lua
 DB/DB_Potential.lua
 
-# ============================================================================
-# Recruitment pipeline (who → whisper → invite → post)
-# ============================================================================
+# -- Recruitment pipeline (who → whisper → invite → post)
 Recruit/Who.lua
 Recruit/Whisper.lua
 Recruit/Invite.lua
 Recruit/Post.lua
 
-# ============================================================================
-# UI layer
-# (Bindings.xml intentionally kept in root, per project preference)
-# ============================================================================
+# -- UI layer
 UI/UI_Widgets.lua
 UI/UI_Home.lua
 UI/UI_Settings.lua
@@ -59,8 +42,6 @@ UI/UI_Ads.lua
 UI/UI.lua
 UI/Minimap.lua
 
-# ============================================================================
-# Commands + events last (depend on everything above)
-# ============================================================================
+# -- Commands + events (depend on everything above)
 Core/Slash.lua
 Core/Events.lua

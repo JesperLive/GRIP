@@ -1,31 +1,5 @@
--- Rev 2
--- GRIP – Ghost Mode (hardware-event gated chat send)
---
--- Clean-room module.
---
--- Goal:
---   Queue restricted chat sends (notably SAY/YELL/CHANNEL) when invoked from non-hardware contexts,
---   and flush only when explicitly triggered from a real hardware event (click/keybind/slash).
---
--- IMPORTANT:
--- - OFF by default. Inert unless GRIPDB.config.ghostModeEnabled == true.
--- - Does NOT attempt to “detect” hardware events (WoW doesn’t expose a reliable detector).
---   Instead, callers must only call FlushOne/FlushAll from known hardware events.
--- - Avoid combat restrictions: if InCombatLockdown() then do not send; fail gracefully.
---
--- API (minimal):
---   GRIP.Ghost:IsEnabled() -> bool
---   GRIP.Ghost:Queue(chatType, msg, languageID, target, meta) -> ok, reason
---   GRIP.Ghost:Send(chatType, msg, languageID, target, isHardwareEvent, meta) -> ok, reason
---   GRIP.Ghost:FlushOne(isHardwareEvent) -> ok, reason
---   GRIP.Ghost:FlushAll(isHardwareEvent) -> sentCount, reason
---   GRIP.Ghost:GetNumPending() -> number
---
--- Config keys (optional):
---   ghostModeEnabled        (bool)   default false
---   ghostModeQueueAll       (bool)   default false (if true, queue all chatTypes)
---   ghostModeMaxQueue       (number) default 10    (clamped 1..50)
---   ghostModeMinInterval    (number) default 0.5   (seconds between actual sends; clamped 0..10)
+-- GRIP: Ghost Mode
+-- Optional hardware-event gated chat send queue (Phase 1: CHANNEL only).
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state

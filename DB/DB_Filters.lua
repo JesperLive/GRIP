@@ -1,9 +1,5 @@
--- Rev 2
--- GRIP – Candidate filtering (excluded zones + allowlists)
---
--- CHANGED (Rev 2):
--- - Nil-safety: tolerate missing GRIPDB/filters tables and nil inputs.
--- - Accept common field variants (raceStr/classStr) defensively.
+-- GRIP: DB Filters
+-- Candidate filtering: zone/race/class allowlists applied to /who results.
 
 local ADDON_NAME, GRIP = ...
 

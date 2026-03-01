@@ -1,9 +1,5 @@
--- Rev 5
--- GRIP – Debug module (Logger capture + optional SavedVariables ring buffer)
---
--- CHANGED (Rev 5):
--- - Add GRIP:GetPersistedDebugDropped() + GRIP:GetPersistedDebugLastAt() helpers (used by Slash status paths).
--- - NormalizeCaptureAliases now clamps max values and writes them back to both alias keys.
+-- GRIP: Debug
+-- Logger capture override + SavedVariables ring buffer for debug persistence.
 
 local ADDON_NAME, GRIP = ...
 local Logger = GRIP.Logger or {}

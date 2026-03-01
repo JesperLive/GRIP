@@ -1,23 +1,5 @@
--- Rev 2
--- GRIP – Global right-click guild invite hook (UnitPopup / Menu API)
---
--- CHANGED (Rev 1):
--- - Adds a global unit right-click context menu option: "Invite to Guild (GRIP)".
--- - Same-realm only: hides entry for cross-realm targets.
--- - Hardware-event compliant: invite executes only on the menu click.
--- - Defense-in-depth: calls GRIP:BL_ExecutionGate(targetName, context) immediately before GuildInvite().
--- - Combat safe: blocks when InCombatLockdown() is true.
--- - Nil-safe: tolerates missing optional APIs and GRIP not fully ready without throwing.
---
--- CHANGED (Rev 2):
--- - Show the menu entry ONLY when currently valid:
---     * not in combat
---     * in a guild
---     * invite permission (if CanGuildInvite is available)
---     * GuildInvite exists
---     * GRIP + BL_ExecutionGate are available
--- - Harden realm comparisons to tolerate normalized vs display realm strings (spaces/apostrophes/hyphens).
--- - Legacy UnitPopup fallback: add best-effort disabled/isHidden guards to align with “only when valid”.
+-- GRIP: Unit Popup Hook
+-- Right-click “Invite to Guild (GRIP)” context menu via Menu API + legacy UnitPopup fallback.
 
 local ADDON_NAME, GRIP = ...
 

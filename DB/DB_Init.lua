@@ -1,26 +1,5 @@
--- Rev 7
--- GRIP – SavedVariables defaults + EnsureDB
---
--- Changed (Rev 4):
--- - Add back-compat defaults for config keys used by other modules:
---     * hideOutgoingWhispers <-> suppressWhisperEcho
---     * debugCapture <-> debugPersist
--- - Add normalization/aliasing in EnsureDB so either key works.
---
--- CHANGED (Rev 5):
--- - Add debugCaptureMax back-compat alias (sync with debugPersistMax) + clamp.
--- - Ensure GRIPDB.debugLog.lastAt exists (used by logger capture paths).
---
--- CHANGED (Rev 6):
--- - Add Gate Trace Mode default + normalization:
---     GRIPDB.config.traceExecutionGate (bool, default false)
---
--- CHANGED (Rev 7):
--- - SV schema alignment + safe migration:
---   * Enforce GRIPDB.blacklist is a table of numbers only (expiry epoch seconds).
---   * Migrate legacy string entries in GRIPDB.blacklist into GRIPDB.blacklistPerm:
---       GRIPDB.blacklistPerm[name] = { at=epoch, reason=string }
---   * Remove non-number junk values from GRIPDB.blacklist (defense-in-depth).
+-- GRIP: DB Init
+-- SavedVariables defaults, EnsureDB, seeding (classes/races/zones), schema migration.
 
 local ADDON_NAME, GRIP = ...
 local U = GRIP.DBUtil
@@ -45,7 +24,7 @@ local DEFAULT_DB = {
     -- (CHAT_MSG_WHISPER_INFORM still fires; this is only a visual filter)
     suppressWhisperEcho = false,
 
-    -- Back-compat alias used by Slash.lua (Rev 3)
+    -- Back-compat alias used by Slash.lua
     hideOutgoingWhispers = false,
 
     -- Invite settings

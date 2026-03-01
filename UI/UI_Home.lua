@@ -1,26 +1,5 @@
--- Rev 19
--- GRIP – UI: Home page
---
--- CHANGED (Rev 17):
--- - Add “Blacklist…” action to Potential row right-click menu:
---   - Prompts for an optional reason (StaticPopup edit box).
---   - Adds/updates GRIPDB.blacklist[name] (string reason, may be empty).
---   - Removes the name from Potential and clears any queued/pending actions for that name.
--- - Keeps Rev 16 blacklist list + remove flow intact.
---
--- CHANGED (Rev 18):
--- - Harden “Blacklist…” pipeline cleanup:
---   - Remove blacklisted name from Potential using multiple key variants (Name-Realm, Name, lowercase, etc.).
---   - Clear queued/pending whisper/invite/recruit/action state using best-effort removal across common containers.
---   - Avoid touching whoQueue filters (was never correct to remove a player name from whoQueue).
---
--- CHANGED (Rev 19):
--- - SV schema alignment for manual blacklist UI:
---   - “Blacklist…” now adds/updates GRIPDB.blacklistPerm[name] = {at, reason} (perm), not GRIPDB.blacklist.
---   - Blacklist panel now displays permanent blacklist entries; header shows perm + temp counts.
---   - Unblacklist confirm now removes from blacklistPerm.
---   - Defense-in-depth: right-click “Invite to Guild” calls GRIP:BL_ExecutionGate(...) immediately
---     before GuildInvite(), and refuses execution if the gate helper is missing.
+-- GRIP: UI Home Page
+-- Potential candidate list, blacklist panel, action buttons, row context menu.
 
 local ADDON_NAME, GRIP = ...
 local state = GRIP.state
@@ -497,7 +476,7 @@ local function EnsureBlacklistAddPopup()
         GRIPDB.blacklist[n] = nil
       end
 
-      -- Remove from potential and any action queues/pending (Rev 18 hardened)
+      -- Remove from potential and any action queues/pending
       ClearNameFromQueues(n)
 
       GRIP:Print(reason ~= "" and ("Blacklisted %s: %s"):format(n, reason) or ("Blacklisted %s."):format(n))
