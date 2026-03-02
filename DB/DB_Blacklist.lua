@@ -3,6 +3,17 @@
 
 local ADDON_NAME, GRIP = ...
 
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, ipairs, strsplit = pairs, ipairs, strsplit
+local wipe = wipe
+local tsort, concat = table.sort, table.concat
+local floor, max = math.floor, math.max
+local time, date = time, date
+
+-- WoW API
+local GetNormalizedRealmName = GetNormalizedRealmName
+
 local function EnsureBlacklistTables()
   if not _G.GRIPDB then _G.GRIPDB = {} end
   GRIPDB.blacklist = GRIPDB.blacklist or {}

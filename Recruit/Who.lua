@@ -2,6 +2,23 @@
 -- /who queue builder, bracket expansion, result ingestion, blacklist enforcement at scan time.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, ipairs, next = pairs, ipairs, next
+local wipe, strsplit = wipe, strsplit
+local gsub, match, find, lower, format = string.gsub, string.match, string.find, string.lower, string.format
+local tinsert, tremove, tsort = table.insert, table.remove, table.sort
+local min = math.min
+
+-- WoW API
+local GetTime = GetTime
+local InCombatLockdown = InCombatLockdown
+local GetNormalizedRealmName = GetNormalizedRealmName
+local GetRealZoneText = GetRealZoneText
+local C_FriendList = C_FriendList
+local C_Timer = C_Timer
+
 local state = GRIP.state
 
 local MIN_WHO_INTERVAL = 15

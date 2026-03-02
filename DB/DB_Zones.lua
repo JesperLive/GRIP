@@ -2,6 +2,28 @@
 -- Zone gathering, deep scan, exclusion building, export.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, ipairs, next = pairs, ipairs, next
+local pcall, wipe = pcall, wipe
+local find, format = string.find, string.format
+local tsort, concat = table.sort, table.concat
+local max = math.max
+local date = date
+
+-- WoW API
+local GetTime = GetTime
+local GetRealZoneText = GetRealZoneText
+local GetNumBattlegroundTypes, GetBattlegroundInfo = GetNumBattlegroundTypes, GetBattlegroundInfo
+local IsAddOnLoaded, LoadAddOn = IsAddOnLoaded, LoadAddOn
+local EJ_GetInstanceByIndex, EJ_GetNumTiers, EJ_SelectTier = EJ_GetInstanceByIndex, EJ_GetNumTiers, EJ_SelectTier
+local EncounterJournal_LoadUI = EncounterJournal_LoadUI
+local C_Map = C_Map
+local C_DateAndTime = C_DateAndTime
+local C_Calendar = C_Calendar
+local C_Timer = C_Timer
+
 local U = GRIP.DBUtil
 
 function GRIP:_TryLoadEncounterJournal()

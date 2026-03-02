@@ -2,6 +2,16 @@
 -- Potential candidate list, blacklist panel, action buttons, row context menu.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, ipairs, wipe, strsplit = pairs, ipairs, wipe, strsplit
+local tsort = table.sort
+local floor, max = math.floor, math.max
+
+-- WoW API
+local GetTime = GetTime
+
 local state = GRIP.state
 local W = GRIP.UIW
 

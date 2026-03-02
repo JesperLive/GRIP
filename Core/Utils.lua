@@ -2,6 +2,25 @@
 -- Shared helpers: template engine, chat compat, whisper echo suppression, pattern matching.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, pcall, wipe, strsplit = pairs, pcall, wipe, strsplit
+local gsub, sub, find, match = string.gsub, string.sub, string.find, string.match
+local tremove, tsort = table.remove, table.sort
+local floor = math.floor
+local time = time
+
+-- WoW API
+local GetTime = GetTime
+local IsInGuild, GetGuildInfo = IsInGuild, GetGuildInfo
+local InCombatLockdown = InCombatLockdown
+local ChatFrame_AddMessageEventFilter = ChatFrame_AddMessageEventFilter
+local C_Club = C_Club
+local C_ClubFinder = C_ClubFinder
+local C_ChatInfo = C_ChatInfo
+local SendChatMessage = SendChatMessage
+
 local state = GRIP.state
 
 -- ----------------------------

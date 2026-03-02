@@ -2,6 +2,19 @@
 -- Trade/General channel post queue, scheduler, hardware-event gated sending.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, wipe = pairs, wipe
+local gsub, match, lower, find = string.gsub, string.match, string.lower, string.find
+local tremove = table.remove
+
+-- WoW API
+local GetTime = GetTime
+local GetChannelList = GetChannelList
+local InCombatLockdown = InCombatLockdown
+local C_Timer = C_Timer
+
 local state = GRIP.state
 
 local function GetCfg()

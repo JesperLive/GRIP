@@ -2,6 +2,17 @@
 -- Level range, filter checklists, whisper editor with byte-budget enforcement.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber, select = type, tostring, tonumber, select
+local pairs, ipairs, pcall, wipe = pairs, ipairs, pcall, wipe
+local gsub, find, sub, rep = string.gsub, string.find, string.sub, string.rep
+local tremove, tsort = table.remove, table.sort
+local floor, ceil, min, max = math.floor, math.ceil, math.min, math.max
+
+-- WoW API
+local UnitName = UnitName
+
 local state = GRIP.state
 local W = GRIP.UIW
 

@@ -3,6 +3,10 @@
 
 local ADDON_NAME, GRIP = ...
 
+-- Lua
+local type = type
+local pairs = pairs
+
 local function AnySelected(t)
   if type(t) ~= "table" then return false end
   for _, v in pairs(t) do

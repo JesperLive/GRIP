@@ -2,6 +2,20 @@
 -- Event frame wiring: ADDON_LOADED, PLAYER_LOGIN, WHO_LIST_UPDATE, system messages.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring = type, tostring
+local pairs, pcall = pairs, pcall
+local gsub, match, lower, find = string.gsub, string.match, string.lower, string.find
+local floor = math.floor
+
+-- WoW API
+local GetGuildInfo = GetGuildInfo
+local C_Timer = C_Timer
+local C_Club = C_Club
+local C_ClubFinder = C_ClubFinder
+local C_Calendar = C_Calendar
+
 local state = GRIP.state
 
 -- Some GlobalStrings contain grammar tokens like |3-6(%s) which do NOT appear in the final CHAT_MSG_SYSTEM text.

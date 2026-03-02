@@ -2,6 +2,10 @@
 -- Potential candidate list: add, remove, finalize lifecycle.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type = type
+
 local state = GRIP.state
 
 local function EnsurePotentialTable()

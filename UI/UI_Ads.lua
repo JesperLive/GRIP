@@ -2,6 +2,16 @@
 -- Trade/General message editors, post scheduler config, queue/post buttons.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber, select = type, tostring, tonumber, select
+local pairs, ipairs, pcall = pairs, ipairs, pcall
+local gsub, sub = string.gsub, string.sub
+local ceil = math.ceil
+
+-- WoW API
+local GetTime = GetTime
+
 local state = GRIP.state
 local W = GRIP.UIW
 

@@ -3,6 +3,20 @@
 
 local ADDON_NAME, GRIP = ...
 
+-- Lua
+local type, tostring = type, tostring
+local ipairs, pcall, strsplit = ipairs, pcall, strsplit
+
+-- WoW API
+local IsInGuild, CanGuildInvite = IsInGuild, CanGuildInvite
+local InCombatLockdown = InCombatLockdown
+local GetNormalizedRealmName = GetNormalizedRealmName
+local UnitName, UnitFullName = UnitName, UnitFullName
+local UnitExists, UnitIsUnit, UnitIsPlayer = UnitExists, UnitIsUnit, UnitIsPlayer
+local C_GuildInfo = C_GuildInfo
+local GuildInvite = GuildInvite
+local hooksecurefunc = hooksecurefunc
+
 local MENU_TEXT = "Invite to Guild (GRIP)"
 local LEGACY_VALUE = "GRIP_GUILDINVITE"
 

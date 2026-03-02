@@ -2,6 +2,20 @@
 -- Hardware-event gated guild invite with whisper+invite combo, no-response escalation.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, ipairs, pcall, strsplit = pairs, ipairs, pcall, strsplit
+local gsub = string.gsub
+local tinsert, tremove = table.insert, table.remove
+local min = math.min
+
+-- WoW API
+local GetTime = GetTime
+local InCombatLockdown = InCombatLockdown
+local IsInGuild, CanGuildInvite = IsInGuild, CanGuildInvite
+local C_Timer = C_Timer
+
 local state = GRIP.state
 
 local ACTION_COOLDOWN = 1.0

@@ -3,6 +3,11 @@
 
 local ADDON_NAME, GRIP = ...
 
+-- Lua
+local type, tostring = type, tostring
+local ipairs = ipairs
+local max, abs = math.max, math.abs
+
 GRIP.UIW = GRIP.UIW or {}
 local W = GRIP.UIW
 

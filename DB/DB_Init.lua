@@ -2,6 +2,20 @@
 -- SavedVariables defaults, EnsureDB, seeding (classes/races/zones), schema migration.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, ipairs, pcall, wipe = pairs, ipairs, pcall, wipe
+local format = string.format
+local tremove, tsort = table.remove, table.sort
+local time, date = time, date
+
+-- WoW API
+local GetNumClasses = GetNumClasses
+local GetRealZoneText = GetRealZoneText
+local C_CreatureInfo = C_CreatureInfo
+local C_DateAndTime = C_DateAndTime
+
 local U = GRIP.DBUtil
 
 local DEFAULT_DB = {

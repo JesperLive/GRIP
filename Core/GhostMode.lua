@@ -2,6 +2,21 @@
 -- Universal action queue with invisible overlay frame for hardware-event gated execution.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, pcall, wipe = pairs, pcall, wipe
+local gsub = string.gsub
+local tremove = table.remove
+local floor, ceil = math.floor, math.ceil
+local time = time
+
+-- WoW API
+local GetTime = GetTime
+local InCombatLockdown = InCombatLockdown
+local IsInGuild, CanGuildInvite = IsInGuild, CanGuildInvite
+local C_Timer = C_Timer
+
 local state = GRIP.state
 
 GRIP.Ghost = GRIP.Ghost or {}

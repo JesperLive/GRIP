@@ -2,6 +2,20 @@
 -- Whisper queue management, template rendering, rate-limited sending.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, ipairs, wipe = pairs, ipairs, wipe
+local gsub, lower, find, format = string.gsub, string.lower, string.find, string.format
+local tremove, tsort = table.remove, table.sort
+local random = math.random
+local time, date = time, date
+
+-- WoW API
+local GetTime = GetTime
+local C_DateAndTime = C_DateAndTime
+local C_Timer = C_Timer
+
 local state = GRIP.state
 
 local function GetCfg()

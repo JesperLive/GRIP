@@ -2,6 +2,19 @@
 -- /grip command handler and all subcommands.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local pairs, pcall, wipe = pairs, pcall, wipe
+local lower, match, gsub, find = string.lower, string.match, string.gsub, string.find
+local tremove, tsort = table.remove, table.sort
+local floor, min, max, ceil = math.floor, math.min, math.max, math.ceil
+local time = time
+
+-- WoW API
+local C_Club = C_Club
+local C_ClubFinder = C_ClubFinder
+
 local state = GRIP.state
 
 local function SplitArgs(msg)

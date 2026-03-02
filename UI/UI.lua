@@ -2,6 +2,17 @@
 -- Main frame, tabs, page routing, resize handling, UpdateUI coalescing.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring = type, tostring
+local pairs, ipairs, pcall = pairs, ipairs, pcall
+local tinsert = table.insert
+local floor, max = math.floor, math.max
+
+-- WoW API
+local GetTime = GetTime
+local C_Timer = C_Timer
+
 local state = GRIP.state
 local W = GRIP.UIW
 

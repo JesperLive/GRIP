@@ -8,6 +8,13 @@ GRIP.VERSION = "0.4.0"
 -- Optional global for debugging in /run
 _G.GRIP = GRIP
 
+-- Lua
+local type, tostring, tonumber, select = type, tostring, tonumber, select
+local pairs, pcall, wipe = pairs, pcall, wipe
+local concat = table.concat
+local floor, max = math.floor, math.max
+local time, date = time, date
+
 -- Keybinding labels (shown in Key Bindings UI)
 BINDING_HEADER_GRIP = "GRIP"
 BINDING_HEADER_GRIP_BINDINGS = "GRIP"

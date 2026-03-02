@@ -2,6 +2,18 @@
 -- Minimap ring button with drag-to-reposition and click shortcuts.
 
 local ADDON_NAME, GRIP = ...
+
+-- Lua
+local type, tostring, tonumber = type, tostring, tonumber
+local ipairs = ipairs
+local cos, sin, rad, deg, atan = math.cos, math.sin, math.rad, math.deg, math.atan
+local floor = math.floor
+
+-- WoW API
+local GetTime = GetTime
+local GetCursorPosition = GetCursorPosition
+local InCombatLockdown = InCombatLockdown
+
 local btn
 
 local function EnsureMinimapDB()
