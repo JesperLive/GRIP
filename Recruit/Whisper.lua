@@ -45,6 +45,45 @@ local function IncrementWhisperCount()
   GRIPDB.counters.whispersSent = (GRIPDB.counters.whispersSent or 0) + 1
 end
 
+local OPT_OUT_PHRASES = {
+  "no thanks",
+  "no thank you",
+  "no ty",
+  "not interested",
+  "no interest",
+  "don't want",
+  "dont want",
+  "stop",
+  "leave me alone",
+  "don't whisper",
+  "dont whisper",
+  "don't message",
+  "dont message",
+  "don't contact",
+  "dont contact",
+  "already in a guild",
+  "already guilded",
+  "have a guild",
+  "got a guild",
+  "i'm in a guild",
+  "im in a guild",
+  "reported",
+  "reporting you",
+  "spam",
+  "blocked",
+}
+
+local function IsOptOutMessage(text)
+  if type(text) ~= "string" or text == "" then return false end
+  local low = text:lower()
+  for i = 1, #OPT_OUT_PHRASES do
+    if low:find(OPT_OUT_PHRASES[i], 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
 local function ResolvePotentialName(nameMaybe)
   if not nameMaybe or nameMaybe == "" then return nil end
   local pot = GetPotential()
@@ -145,6 +184,62 @@ function GRIP:GetWhisperCapStatus()
     sent = GRIPDB.counters.whispersSent or 0
   end
   return sent, cap
+end
+
+function GRIP:OnWhisperReceived(senderName, messageText)
+  local cfg = GetCfg()
+  if not cfg or not cfg.optOutDetection then return end
+
+  local pot = GetPotential()
+  if not pot then return end
+
+  -- Resolve sender against Potential keys (handles Name vs Name-Realm)
+  local full = ResolvePotentialName(senderName)
+
+  -- Also check pending maps if not in Potential
+  if not full then
+    state.pendingWhisper = state.pendingWhisper or {}
+    state.pendingInvite = state.pendingInvite or {}
+    local senderShort = tostring(senderName):match("^[^-]+")
+    for name in pairs(state.pendingWhisper) do
+      local short = name:match("^[^-]+")
+      if name == senderName or short == senderShort then
+        full = name
+        break
+      end
+    end
+  end
+
+  if not full then
+    for name in pairs(state.pendingInvite or {}) do
+      local short = name:match("^[^-]+")
+      local senderShort = tostring(senderName):match("^[^-]+")
+      if name == senderName or short == senderShort then
+        full = name
+        break
+      end
+    end
+  end
+
+  -- Not a GRIP candidate — ignore completely
+  if not full then return end
+
+  if not IsOptOutMessage(messageText) then return end
+
+  -- Opt-out detected: clean up all pending state
+  self:Info(("Opt-out detected from %s: \"%s\" — permanently blacklisted."):format(
+    full, tostring(messageText):sub(1, 60)))
+
+  if state.pendingWhisper then state.pendingWhisper[full] = nil end
+  if state.pendingInvite then state.pendingInvite[full] = nil end
+
+  if pot[full] then
+    pot[full].invitePending = false
+  end
+
+  self:BlacklistPermanent(full, "opt-out")
+  self:RemovePotential(full)
+  self:UpdateUI()
 end
 
 function GRIP:BuildWhisperQueue()

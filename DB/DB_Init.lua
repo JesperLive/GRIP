@@ -41,6 +41,9 @@ local DEFAULT_DB = {
     -- Daily whisper cap (0 = unlimited)
     whisperDailyCap = 500,
 
+    -- Auto-blacklist candidates who reply with opt-out phrases
+    optOutDetection = true,
+
     -- Safety throttles
     minWhoInterval = 15,
     minPostInterval = 8,
@@ -338,6 +341,7 @@ function GRIP:EnsureDB()
 
   local cfg = GRIPDB.config
   if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB.config.whisperDailyCap end
+  if type(cfg.optOutDetection) ~= "boolean" then cfg.optOutDetection = DEFAULT_DB.config.optOutDetection end
 
   NormalizeConfigAliases(cfg)
 

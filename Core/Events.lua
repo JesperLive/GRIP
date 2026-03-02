@@ -162,6 +162,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("WHO_LIST_UPDATE")
 eventFrame:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
+eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 eventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
 eventFrame:RegisterEvent("PLAYER_GUILD_UPDATE")
 eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
@@ -224,6 +225,12 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     local msg, _, _, _, target = ...
     GRIP:Debug("WHISPER_INFORM to:", tostring(target), "msgLen=", msg and #msg or 0)
     GRIP:OnWhisperInform(target)
+    return
+  end
+
+  if event == "CHAT_MSG_WHISPER" then
+    local msg, sender = ...
+    GRIP:OnWhisperReceived(sender, msg)
     return
   end
 

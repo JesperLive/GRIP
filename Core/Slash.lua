@@ -69,6 +69,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip set verbosity <1|2|3>              (1=info 2=debug 3=trace)")
   self:Print("  /grip set hidewhispers on|off            (hide outgoing whisper echoes in chat)")
   self:Print("  /grip set dailycap <number>              (daily whisper cap; 0 = unlimited)")
+  self:Print("  /grip set optout on|off                  (auto-blacklist opt-out replies)")
 end
 
 local function PrintPermBLUsage()
@@ -604,6 +605,14 @@ function GRIP:HandleSlash(msg)
       else
         self:Print(("Daily whisper cap set to %d."):format(n))
       end
+      return
+    end
+
+    if key == "optout" or key == "optoutdetection" then
+      local low = (val or ""):lower()
+      local v = (low == "on" or low == "1" or low == "true" or low == "yes")
+      GRIPDB.config.optOutDetection = v
+      self:Print("Opt-out detection: " .. (v and "ON" or "OFF"))
       return
     end
 
