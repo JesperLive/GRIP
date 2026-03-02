@@ -338,6 +338,24 @@ function GRIP:ToggleMinimapButton(force)
   self:Print("Minimap button: " .. (GRIPDB.minimap.hide and "OFF" or "ON"))
 end
 
+-- Addon Compartment callbacks (called by name from TOC metadata)
+function GRIP_OnCompartmentClick(addonName, buttonName)
+  ToggleHome()
+end
+
+function GRIP_OnCompartmentEnter(addonName, menuButtonFrame)
+  local anchor = menuButtonFrame or UIParent
+  GameTooltip:SetOwner(anchor, "ANCHOR_LEFT")
+  GameTooltip:AddLine("GRIP", 1, 1, 1)
+  GameTooltip:AddLine("Click: Toggle window", 0.8, 0.8, 0.8)
+  GameTooltip:AddLine("Right-click minimap button for more options", 0.8, 0.8, 0.8)
+  GameTooltip:Show()
+end
+
+function GRIP_OnCompartmentLeave(addonName, menuButtonFrame)
+  GameTooltip:Hide()
+end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(_, event, name)

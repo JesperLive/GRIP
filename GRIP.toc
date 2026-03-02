@@ -4,6 +4,10 @@
 ## Author: GRIP
 ## Version: 0.4.0
 ## SavedVariables: GRIPDB
+## IconTexture: Interface\Icons\INV_Misc_GroupLooking
+## AddonCompartmentFunc: GRIP_OnCompartmentClick
+## AddonCompartmentFuncOnEnter: GRIP_OnCompartmentEnter
+## AddonCompartmentFuncOnLeave: GRIP_OnCompartmentLeave
 
 # -- Core bootstrap (must load first)
 Core/Core.lua
