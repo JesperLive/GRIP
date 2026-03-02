@@ -21,7 +21,6 @@ local BL_GAP              = 10
 
 -- Blacklist list constants
 local BL_ROW_H    = 18
-local BL_ROWS_MAX = 12
 
 -- Minimum width for the Potential panel when in two-column mode.
 -- This is sized so the header can always fit through Zone + W + I without crossing into the Blacklist region.
@@ -693,40 +692,46 @@ local function EnsureBlacklistShell(home)
   bl.empty:SetText("Permanent blacklist is empty.\nTip: right-click a Potential entry to add it.")
   bl.empty:Hide()
 
-  -- Rows
-  bl.rows = {}
-  for i = 1, BL_ROWS_MAX do
-    local row = CreateFrame("Button", nil, bl)
-    row:SetHeight(BL_ROW_H)
-    row:Hide()
+  -- Row pool (dynamic row count based on visible height)
+  local function initBlRow(frame)
+    frame:SetHeight(BL_ROW_H)
+    frame:Hide()
 
-    row.stripe = row:CreateTexture(nil, "BACKGROUND")
-    row.stripe:SetAllPoints(row)
-    row.stripe:SetColorTexture(1, 1, 1, 0.035)
-    row.stripe:Hide()
+    frame.stripe = frame:CreateTexture(nil, "BACKGROUND")
+    frame.stripe:SetAllPoints(frame)
+    frame.stripe:SetColorTexture(1, 1, 1, 0.035)
+    frame.stripe:Hide()
 
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-    row:RegisterForClicks("LeftButtonUp")
+    frame:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+    frame:RegisterForClicks("LeftButtonUp")
 
-    row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.name:SetJustifyH("LEFT")
-    if row.name.SetWordWrap then row.name:SetWordWrap(false) end
+    frame.name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.name:SetJustifyH("LEFT")
+    if frame.name.SetWordWrap then frame.name:SetWordWrap(false) end
 
-    row.reason = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.reason:SetJustifyH("LEFT")
-    if row.reason.SetWordWrap then row.reason:SetWordWrap(false) end
+    frame.reason = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    frame.reason:SetJustifyH("LEFT")
+    if frame.reason.SetWordWrap then frame.reason:SetWordWrap(false) end
 
-    row._nameKey = nil
+    frame._nameKey = nil
 
-    row:SetScript("OnClick", function(self)
+    frame:SetScript("OnClick", function(self)
       if not HasDB() then return end
       local n = self._nameKey
       if type(n) ~= "string" or n == "" then return end
       ConfirmUnblacklist(n)
     end)
-
-    bl.rows[i] = row
   end
+
+  local function resetBlRow(pool, frame)
+    frame:Hide()
+    frame:ClearAllPoints()
+    frame._nameKey = nil
+    if frame.stripe then frame.stripe:Hide() end
+  end
+
+  bl._rowPool = CreateFramePool("Button", bl, nil, resetBlRow, false, initBlRow)
+  bl.rows = {}
 
   local function OnScroll()
     GRIP:UI_UpdateHome()
@@ -734,6 +739,29 @@ local function EnsureBlacklistShell(home)
   sf:SetScript("OnVerticalScroll", function(self, offset)
     FauxScrollFrame_OnVerticalScroll(self, offset, BL_ROW_H, OnScroll)
   end)
+end
+
+local function ResizeBlacklistRows(home)
+  if not home or not home.blFrame or not home.blFrame.scroll or not home.blFrame._rowPool then return end
+  local bl = home.blFrame
+  local sf = bl.scroll
+  local h = tonumber(sf:GetHeight()) or 0
+  if h <= 0 then return end
+  local needed = math.floor(h / BL_ROW_H) + 1
+  if needed < 4 then needed = 4 end
+  local current = #bl.rows
+  if needed == current then return end
+  if needed > current then
+    for i = current + 1, needed do
+      local row = bl._rowPool:Acquire()
+      bl.rows[i] = row
+    end
+  else
+    for i = needed + 1, current do
+      bl._rowPool:Release(bl.rows[i])
+      bl.rows[i] = nil
+    end
+  end
 end
 
 local function LayoutBlacklistPanel(home)
@@ -763,6 +791,8 @@ local function LayoutBlacklistPanel(home)
   bl.hReason:ClearAllPoints()
   bl.hReason:SetPoint("LEFT", bl.header, "LEFT", x, 0)
   ClampFontString(bl.hReason, wReason)
+
+  ResizeBlacklistRows(home)
 
   for i = 1, #(bl.rows or {}) do
     local row = bl.rows[i]
@@ -991,64 +1021,75 @@ local function EnsurePotentialTable(home)
 
   EnsureRowMenu(home)
 
-  home.potRows = {}
-  for i = 1, 30 do
-    local row = CreateFrame("Button", nil, pot)
-    row:SetHeight(POT_ROW_H)
+  -- Row pool (dynamic row count based on visible height)
+  local function initPotRow(frame)
+    frame:SetHeight(POT_ROW_H)
+    frame:Hide()
 
-    row.stripe = row:CreateTexture(nil, "BACKGROUND")
-    row.stripe:SetAllPoints(row)
-    row.stripe:SetColorTexture(1, 1, 1, 0.045)
-    row.stripe:Hide()
+    frame.stripe = frame:CreateTexture(nil, "BACKGROUND")
+    frame.stripe:SetAllPoints(frame)
+    frame.stripe:SetColorTexture(1, 1, 1, 0.045)
+    frame.stripe:Hide()
 
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    row:Hide()
+    frame:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+    frame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-    row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.name:SetJustifyH("LEFT")
-    if row.name.SetWordWrap then row.name:SetWordWrap(false) end
+    frame.name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.name:SetJustifyH("LEFT")
+    if frame.name.SetWordWrap then frame.name:SetWordWrap(false) end
 
-    row.lvl = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.lvl:SetJustifyH("LEFT")
-    if row.lvl.SetWordWrap then row.lvl:SetWordWrap(false) end
+    frame.lvl = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.lvl:SetJustifyH("LEFT")
+    if frame.lvl.SetWordWrap then frame.lvl:SetWordWrap(false) end
 
-    row.classIcon = row:CreateTexture(nil, "ARTWORK")
-    row.classIcon:SetSize(14, 14)
-    row.classIcon:Hide()
+    frame.classIcon = frame:CreateTexture(nil, "ARTWORK")
+    frame.classIcon:SetSize(14, 14)
+    frame.classIcon:Hide()
 
-    row.classTxt = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.classTxt:SetJustifyH("LEFT")
-    if row.classTxt.SetWordWrap then row.classTxt:SetWordWrap(false) end
+    frame.classTxt = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.classTxt:SetJustifyH("LEFT")
+    if frame.classTxt.SetWordWrap then frame.classTxt:SetWordWrap(false) end
 
-    row.race = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.race:SetJustifyH("LEFT")
-    if row.race.SetWordWrap then row.race:SetWordWrap(false) end
+    frame.race = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.race:SetJustifyH("LEFT")
+    if frame.race.SetWordWrap then frame.race:SetWordWrap(false) end
 
-    row.zone = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.zone:SetJustifyH("LEFT")
-    if row.zone.SetWordWrap then row.zone:SetWordWrap(false) end
+    frame.zone = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.zone:SetJustifyH("LEFT")
+    if frame.zone.SetWordWrap then frame.zone:SetWordWrap(false) end
 
-    row.wIcon = row:CreateTexture(nil, "OVERLAY")
-    row.wIcon:SetSize(14, 14)
-    row.wIcon:Hide()
+    frame.wIcon = frame:CreateTexture(nil, "OVERLAY")
+    frame.wIcon:SetSize(14, 14)
+    frame.wIcon:Hide()
 
-    row.iIcon = row:CreateTexture(nil, "OVERLAY")
-    row.iIcon:SetSize(14, 14)
-    row.iIcon:Hide()
+    frame.iIcon = frame:CreateTexture(nil, "OVERLAY")
+    frame.iIcon:SetSize(14, 14)
+    frame.iIcon:Hide()
 
-    row._nameKey = nil
+    frame._nameKey = nil
+    frame._home = home
 
-    row:SetScript("OnClick", function(self, button)
+    frame:SetScript("OnClick", function(self, button)
       if button ~= "RightButton" then return end
       if not HasDB() then return end
       local n = self._nameKey
       if type(n) ~= "string" or n == "" then return end
-      ShowRowMenu(home, self, n)
+      ShowRowMenu(self._home, self, n)
     end)
-
-    home.potRows[i] = row
   end
+
+  local function resetPotRow(pool, frame)
+    frame:Hide()
+    frame:ClearAllPoints()
+    frame._nameKey = nil
+    if frame.stripe then frame.stripe:Hide() end
+    if frame.classIcon then frame.classIcon:Hide() end
+    if frame.wIcon then frame.wIcon:Hide() end
+    if frame.iIcon then frame.iIcon:Hide() end
+  end
+
+  home._potPool = CreateFramePool("Button", pot, nil, resetPotRow, false, initPotRow)
+  home.potRows = {}
 
   local function OnScroll()
     GRIP:UI_UpdateHome()
@@ -1058,6 +1099,28 @@ local function EnsurePotentialTable(home)
   end)
 
   EnsureBlacklistShell(home)
+end
+
+local function ResizePotentialRows(home)
+  if not home or not home.potFrame or not home.potScroll or not home._potPool then return end
+  local sf = home.potScroll
+  local h = tonumber(sf:GetHeight()) or 0
+  if h <= 0 then return end
+  local needed = math.floor(h / POT_ROW_H) + 1
+  if needed < POT_ROWS_MIN then needed = POT_ROWS_MIN end
+  local current = #home.potRows
+  if needed == current then return end
+  if needed > current then
+    for i = current + 1, needed do
+      local row = home._potPool:Acquire()
+      home.potRows[i] = row
+    end
+  else
+    for i = needed + 1, current do
+      home._potPool:Release(home.potRows[i])
+      home.potRows[i] = nil
+    end
+  end
 end
 
 local function LayoutPotentialTable(home)
@@ -1122,6 +1185,8 @@ local function LayoutPotentialTable(home)
   home.hI:ClearAllPoints()
   home.hI:SetPoint("LEFT", home.potHeader, "LEFT", x + seamPad, 0)
   ClampFontString(home.hI, wWI)
+
+  ResizePotentialRows(home)
 
   for i = 1, #home.potRows do
     local row = home.potRows[i]
