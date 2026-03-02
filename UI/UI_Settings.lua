@@ -24,7 +24,7 @@ local PAD_L = 4
 local PAD_R = 24 -- leave room from right edge inside scroll content
 
 local function HasDB()
-  return (_G.GRIPDB and GRIPDB.config and GRIPDB.lists and GRIPDB.filters) and true or false
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.lists and GRIPDB_CHAR.filters) and true or false
 end
 
 local function ClearDirty(...)
@@ -300,7 +300,7 @@ end
 -- Template navigation helpers for multi-template whisper editor
 local function UpdateRotationHighlight(s)
   if not s or not HasDB() then return end
-  local mode = GRIPDB.config.whisperRotation or "sequential"
+  local mode = GRIPDB_CHAR.config.whisperRotation or "sequential"
   if s.whisperRotSeq then s.whisperRotSeq:SetAlpha(mode == "sequential" and 1.0 or 0.5) end
   if s.whisperRotRand then s.whisperRotRand:SetAlpha(mode == "random" and 1.0 or 0.5) end
 end
@@ -339,14 +339,14 @@ end
 
 local function LoadWhisperDrafts(s)
   if not HasDB() then return end
-  local msgs = GRIPDB.config.whisperMessages
+  local msgs = GRIPDB_CHAR.config.whisperMessages
   s._whisperDrafts = {}
   if type(msgs) == "table" and #msgs > 0 then
     for i = 1, #msgs do
       s._whisperDrafts[i] = msgs[i] or ""
     end
   else
-    s._whisperDrafts = { GRIPDB.config.whisperMessage or "" }
+    s._whisperDrafts = { GRIPDB_CHAR.config.whisperMessage or "" }
   end
   s._whisperIdx = 1
 end
@@ -534,8 +534,8 @@ function GRIP:UI_CreateSettings(parent)
       return
     end
 
-    GRIPDB.config.scanZoneOnly = btn:GetChecked() and true or false
-    GRIP:Print("scanZoneOnly: " .. (GRIPDB.config.scanZoneOnly and "ON" or "OFF"))
+    GRIPDB_CHAR.config.scanZoneOnly = btn:GetChecked() and true or false
+    GRIP:Print("scanZoneOnly: " .. (GRIPDB_CHAR.config.scanZoneOnly and "ON" or "OFF"))
     GRIP:BuildWhoQueue()
     GRIP:UpdateUI()
   end)
@@ -559,14 +559,14 @@ function GRIP:UI_CreateSettings(parent)
       return
     end
 
-    GRIPDB.config.scanMinLevel = GRIP:Clamp(a1, 1, 100)
-    GRIPDB.config.scanMaxLevel = GRIP:Clamp(b1, GRIPDB.config.scanMinLevel, 100)
-    GRIPDB.config.scanStep = GRIP:Clamp(c1, 1, 20)
+    GRIPDB_CHAR.config.scanMinLevel = GRIP:Clamp(a1, 1, 100)
+    GRIPDB_CHAR.config.scanMaxLevel = GRIP:Clamp(b1, GRIPDB_CHAR.config.scanMinLevel, 100)
+    GRIPDB_CHAR.config.scanStep = GRIP:Clamp(c1, 1, 20)
 
     ClearDirty(settings.minEdit, settings.maxEdit, settings.stepEdit)
 
     GRIP:BuildWhoQueue()
-    GRIP:Print(("Scan levels set: %d-%d step %d"):format(GRIPDB.config.scanMinLevel, GRIPDB.config.scanMaxLevel, GRIPDB.config.scanStep))
+    GRIP:Print(("Scan levels set: %d-%d step %d"):format(GRIPDB_CHAR.config.scanMinLevel, GRIPDB_CHAR.config.scanMaxLevel, GRIPDB_CHAR.config.scanStep))
     GRIP:UpdateUI()
   end)
   settings.applyLevels:SetPoint("LEFT", settings.stepEdit, "RIGHT", 14, 0)
@@ -586,11 +586,11 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.zoneAll = W.CreateUIButton(s, "All", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    wipe(GRIPDB.filters.zones)
+    wipe(GRIPDB_CHAR.filters.zones)
     local groups = GRIP:GetZonesGroupedForUI()
     for _, g in ipairs(groups) do
       for _, z in ipairs(g.zones) do
-        GRIPDB.filters.zones[z] = true
+        GRIPDB_CHAR.filters.zones[z] = true
       end
     end
     GRIP:UpdateUI()
@@ -599,17 +599,17 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.zoneNone = W.CreateUIButton(s, "None", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    wipe(GRIPDB.filters.zones); GRIP:UpdateUI()
+    wipe(GRIPDB_CHAR.filters.zones); GRIP:UpdateUI()
   end)
   settings.zoneNone:SetPoint("LEFT", settings.zoneAll, "RIGHT", 4, 0)
 
   settings.zoneCurrent = W.CreateUIButton(s, "Current", 56, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    wipe(GRIPDB.filters.zones)
+    wipe(GRIPDB_CHAR.filters.zones)
     local groups = GRIP:GetZonesGroupedForUI()
     if groups and groups[1] then
       for _, z in ipairs(groups[1].zones) do
-        GRIPDB.filters.zones[z] = true
+        GRIPDB_CHAR.filters.zones[z] = true
       end
     end
     GRIP:UpdateUI()
@@ -618,33 +618,33 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.raceAll = W.CreateUIButton(s, "All", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    SetAll(GRIPDB.lists.races, GRIPDB.filters.races); GRIP:UpdateUI()
+    SetAll(GRIPDB_CHAR.lists.races, GRIPDB_CHAR.filters.races); GRIP:UpdateUI()
   end)
   settings.raceAll:SetPoint("TOPRIGHT", settings.raceList, "TOPRIGHT", -52, -4)
 
   settings.raceNone = W.CreateUIButton(s, "None", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    wipe(GRIPDB.filters.races); GRIP:UpdateUI()
+    wipe(GRIPDB_CHAR.filters.races); GRIP:UpdateUI()
   end)
   settings.raceNone:SetPoint("LEFT", settings.raceAll, "RIGHT", 4, 0)
 
   settings.classAll = W.CreateUIButton(s, "All", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    SetAll(GRIPDB.lists.classes, GRIPDB.filters.classes); GRIP:UpdateUI()
+    SetAll(GRIPDB_CHAR.lists.classes, GRIPDB_CHAR.filters.classes); GRIP:UpdateUI()
   end)
   settings.classAll:SetPoint("TOPRIGHT", settings.classList, "TOPRIGHT", -52, -4)
 
   settings.classNone = W.CreateUIButton(s, "None", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    wipe(GRIPDB.filters.classes); GRIP:UpdateUI()
+    wipe(GRIPDB_CHAR.filters.classes); GRIP:UpdateUI()
   end)
   settings.classNone:SetPoint("LEFT", settings.classAll, "RIGHT", 4, 0)
 
   settings.clearFilters = W.CreateUIButton(s, "Clear Selections", 120, 22, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    wipe(GRIPDB.filters.zones)
-    wipe(GRIPDB.filters.races)
-    wipe(GRIPDB.filters.classes)
+    wipe(GRIPDB_CHAR.filters.zones)
+    wipe(GRIPDB_CHAR.filters.races)
+    wipe(GRIPDB_CHAR.filters.classes)
     GRIP:Print("Cleared filter selections.")
     GRIP:UpdateUI()
   end)
@@ -767,11 +767,11 @@ function GRIP:UI_CreateSettings(parent)
       end
     end
 
-    GRIPDB.config.whisperMessages = {}
+    GRIPDB_CHAR.config.whisperMessages = {}
     for i = 1, #drafts do
-      GRIPDB.config.whisperMessages[i] = drafts[i]
+      GRIPDB_CHAR.config.whisperMessages[i] = drafts[i]
     end
-    GRIPDB.config.whisperMessage = GRIPDB.config.whisperMessages[1] or ""
+    GRIPDB_CHAR.config.whisperMessage = GRIPDB_CHAR.config.whisperMessages[1] or ""
     ClearDirty(settings.whisperEdit)
     GRIP:Print(("Saved %d whisper template(s)."):format(#drafts))
     GRIP:UpdateUI()
@@ -800,14 +800,14 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.whisperRotSeq = W.CreateUIButton(s, "Sequential", 80, 20, function()
     if not HasDB() then return end
-    GRIPDB.config.whisperRotation = "sequential"
+    GRIPDB_CHAR.config.whisperRotation = "sequential"
     UpdateRotationHighlight(settings)
   end)
   settings.whisperRotSeq:SetPoint("LEFT", settings.whisperRotLbl, "RIGHT", 4, 0)
 
   settings.whisperRotRand = W.CreateUIButton(s, "Random", 60, 20, function()
     if not HasDB() then return end
-    GRIPDB.config.whisperRotation = "random"
+    GRIPDB_CHAR.config.whisperRotation = "random"
     UpdateRotationHighlight(settings)
   end)
   settings.whisperRotRand:SetPoint("LEFT", settings.whisperRotSeq, "RIGHT", 4, 0)
@@ -819,32 +819,32 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.soundEnabled = W.CreateCheckbox(s, "Enable sound feedback", function(btn)
     if not HasDB() then btn:SetChecked(false) return end
-    GRIPDB.config.soundEnabled = btn:GetChecked() and true or false
+    GRIPDB_CHAR.config.soundEnabled = btn:GetChecked() and true or false
     GRIP:UpdateUI()
   end)
   settings.soundEnabled:SetPoint("TOPLEFT", settings.soundHdr, "BOTTOMLEFT", 0, -4)
 
   settings.soundWhisperDone = W.CreateCheckbox(s, "Whisper queue complete", function(btn)
     if not HasDB() then btn:SetChecked(false) return end
-    GRIPDB.config.soundWhisperDone = btn:GetChecked() and true or false
+    GRIPDB_CHAR.config.soundWhisperDone = btn:GetChecked() and true or false
   end)
   settings.soundWhisperDone:SetPoint("TOPLEFT", settings.soundEnabled, "BOTTOMLEFT", 16, -2)
 
   settings.soundInviteAccepted = W.CreateCheckbox(s, "Invite accepted", function(btn)
     if not HasDB() then btn:SetChecked(false) return end
-    GRIPDB.config.soundInviteAccepted = btn:GetChecked() and true or false
+    GRIPDB_CHAR.config.soundInviteAccepted = btn:GetChecked() and true or false
   end)
   settings.soundInviteAccepted:SetPoint("TOPLEFT", settings.soundWhisperDone, "BOTTOMLEFT", 0, -2)
 
   settings.soundScanComplete = W.CreateCheckbox(s, "Scan results found", function(btn)
     if not HasDB() then btn:SetChecked(false) return end
-    GRIPDB.config.soundScanComplete = btn:GetChecked() and true or false
+    GRIPDB_CHAR.config.soundScanComplete = btn:GetChecked() and true or false
   end)
   settings.soundScanComplete:SetPoint("TOPLEFT", settings.soundInviteAccepted, "BOTTOMLEFT", 0, -2)
 
   settings.soundCapWarning = W.CreateCheckbox(s, "Daily cap warning", function(btn)
     if not HasDB() then btn:SetChecked(false) return end
-    GRIPDB.config.soundCapWarning = btn:GetChecked() and true or false
+    GRIPDB_CHAR.config.soundCapWarning = btn:GetChecked() and true or false
   end)
   settings.soundCapWarning:SetPoint("TOPLEFT", settings.soundScanComplete, "BOTTOMLEFT", 0, -2)
 
@@ -855,7 +855,7 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.ghostEnabled = W.CreateCheckbox(s, "Enable Ghost Mode", function(btn)
     if not HasDB() then btn:SetChecked(false) return end
-    GRIPDB.config.ghostModeEnabled = btn:GetChecked() and true or false
+    GRIPDB_CHAR.config.ghostModeEnabled = btn:GetChecked() and true or false
     GRIP:UpdateUI()
   end)
   settings.ghostEnabled:SetPoint("TOPLEFT", settings.ghostHdr, "BOTTOMLEFT", 0, -4)
@@ -875,14 +875,14 @@ function GRIP:UI_CreateSettings(parent)
     local maxV = tonumber(settings.ghostMaxEdit:GetText())
     local coolV = tonumber(settings.ghostCoolEdit:GetText())
     if maxV then
-      GRIPDB.config.ghostSessionMaxMinutes = GRIP:Clamp(maxV, 5, 120)
+      GRIPDB_CHAR.config.ghostSessionMaxMinutes = GRIP:Clamp(maxV, 5, 120)
     end
     if coolV then
-      GRIPDB.config.ghostCooldownMinutes = GRIP:Clamp(coolV, 1, 60)
+      GRIPDB_CHAR.config.ghostCooldownMinutes = GRIP:Clamp(coolV, 1, 60)
     end
     ClearDirty(settings.ghostMaxEdit, settings.ghostCoolEdit)
     GRIP:Print(("Ghost Mode: session max %d min, cooldown %d min"):format(
-      GRIPDB.config.ghostSessionMaxMinutes, GRIPDB.config.ghostCooldownMinutes))
+      GRIPDB_CHAR.config.ghostSessionMaxMinutes, GRIPDB_CHAR.config.ghostCooldownMinutes))
     GRIP:UpdateUI()
   end)
   settings.ghostApply:SetPoint("LEFT", settings.ghostCoolEdit, "RIGHT", 12, 0)
@@ -979,14 +979,14 @@ function GRIP:UI_UpdateSettings()
   SetEnabledSafe(s.whisperRotSeq, true)
   SetEnabledSafe(s.whisperRotRand, true)
 
-  W.SetTextIfUnfocused(s.minEdit, tostring(GRIPDB.config.scanMinLevel or 1))
-  W.SetTextIfUnfocused(s.maxEdit, tostring(GRIPDB.config.scanMaxLevel or 90))
-  W.SetTextIfUnfocused(s.stepEdit, tostring(GRIPDB.config.scanStep or 5))
-  s.zoneOnly:SetChecked(GRIPDB.config.scanZoneOnly and true or false)
+  W.SetTextIfUnfocused(s.minEdit, tostring(GRIPDB_CHAR.config.scanMinLevel or 1))
+  W.SetTextIfUnfocused(s.maxEdit, tostring(GRIPDB_CHAR.config.scanMaxLevel or 90))
+  W.SetTextIfUnfocused(s.stepEdit, tostring(GRIPDB_CHAR.config.scanStep or 5))
+  s.zoneOnly:SetChecked(GRIPDB_CHAR.config.scanZoneOnly and true or false)
 
-  s.zoneList:Render(GRIP:GetZonesGroupedForUI(), GRIPDB.filters.zones)
-  s.raceList:Render(GRIPDB.lists.races, GRIPDB.filters.races)
-  s.classList:Render(GRIPDB.lists.classes, GRIPDB.filters.classes)
+  s.zoneList:Render(GRIP:GetZonesGroupedForUI(), GRIPDB_CHAR.filters.zones)
+  s.raceList:Render(GRIPDB_CHAR.lists.races, GRIPDB_CHAR.filters.races)
+  s.classList:Render(GRIPDB_CHAR.lists.classes, GRIPDB_CHAR.filters.classes)
 
   -- Multi-template: reload drafts when edit box isn't actively being used.
   if not s.whisperEdit:HasFocus() and not s.whisperEdit._gripDirty then
@@ -999,27 +999,27 @@ function GRIP:UI_UpdateSettings()
   EnforceWhisperBudget(s, s.whisperEdit)
 
   -- Sound checkboxes
-  local soundOn = GRIPDB.config.soundEnabled and true or false
+  local soundOn = GRIPDB_CHAR.config.soundEnabled and true or false
   SetEnabledSafe(s.soundEnabled, true)
   s.soundEnabled:SetChecked(soundOn)
   SetEnabledSafe(s.soundWhisperDone, soundOn)
   SetEnabledSafe(s.soundInviteAccepted, soundOn)
   SetEnabledSafe(s.soundScanComplete, soundOn)
   SetEnabledSafe(s.soundCapWarning, soundOn)
-  s.soundWhisperDone:SetChecked(GRIPDB.config.soundWhisperDone and true or false)
-  s.soundInviteAccepted:SetChecked(GRIPDB.config.soundInviteAccepted and true or false)
-  s.soundScanComplete:SetChecked(GRIPDB.config.soundScanComplete and true or false)
-  s.soundCapWarning:SetChecked(GRIPDB.config.soundCapWarning and true or false)
+  s.soundWhisperDone:SetChecked(GRIPDB_CHAR.config.soundWhisperDone and true or false)
+  s.soundInviteAccepted:SetChecked(GRIPDB_CHAR.config.soundInviteAccepted and true or false)
+  s.soundScanComplete:SetChecked(GRIPDB_CHAR.config.soundScanComplete and true or false)
+  s.soundCapWarning:SetChecked(GRIPDB_CHAR.config.soundCapWarning and true or false)
 
   -- Ghost Mode
-  local ghostOn = GRIPDB.config.ghostModeEnabled and true or false
+  local ghostOn = GRIPDB_CHAR.config.ghostModeEnabled and true or false
   SetEnabledSafe(s.ghostEnabled, true)
   s.ghostEnabled:SetChecked(ghostOn)
   SetEnabledSafe(s.ghostMaxEdit, ghostOn)
   SetEnabledSafe(s.ghostCoolEdit, ghostOn)
   SetEnabledSafe(s.ghostApply, ghostOn)
-  W.SetTextIfUnfocused(s.ghostMaxEdit, tostring(GRIPDB.config.ghostSessionMaxMinutes or 60))
-  W.SetTextIfUnfocused(s.ghostCoolEdit, tostring(GRIPDB.config.ghostCooldownMinutes or 10))
+  W.SetTextIfUnfocused(s.ghostMaxEdit, tostring(GRIPDB_CHAR.config.ghostSessionMaxMinutes or 60))
+  W.SetTextIfUnfocused(s.ghostCoolEdit, tostring(GRIPDB_CHAR.config.ghostCooldownMinutes or 10))
 
   -- Keep layout responsive (UI.lua calls it too, but this makes Settings robust if called directly).
   pcall(function() GRIP:UI_LayoutSettings() end)

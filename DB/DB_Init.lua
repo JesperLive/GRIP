@@ -1,5 +1,5 @@
 -- GRIP: DB Init
--- SavedVariables defaults, EnsureDB, seeding (classes/races/zones), schema migration.
+-- SavedVariables defaults, EnsureDB (account + per-char), seeding, schema migration.
 
 local ADDON_NAME, GRIP = ...
 
@@ -18,7 +18,32 @@ local C_DateAndTime = C_DateAndTime
 
 local U = GRIP.DBUtil
 
-local DEFAULT_DB = {
+-- Schema versions
+local SCHEMA_VERSION_ACCOUNT = 2   -- bump from implicit "1" (pre-split)
+local SCHEMA_VERSION_CHAR = 1
+
+-- =========================================================================
+-- Account-wide defaults (GRIPDB — shared across all characters)
+-- =========================================================================
+local DEFAULT_DB_ACCOUNT = {
+  -- Temp blacklist: [fullName] = expiryEpochSeconds
+  blacklist = {},
+
+  -- Perm blacklist: [fullName] = { at=epoch, reason="..." }
+  blacklistPerm = {},
+
+  -- Shared counters (tracks TARGET player behavior, not per-alt)
+  counters = {
+    noResponse = {},   -- [fullName] = count
+  },
+
+  schemaVersion = SCHEMA_VERSION_ACCOUNT,
+}
+
+-- =========================================================================
+-- Per-character defaults (GRIPDB_CHAR — isolated per character)
+-- =========================================================================
+local DEFAULT_DB_CHAR = {
   config = {
     enabled = true,
 
@@ -31,13 +56,12 @@ local DEFAULT_DB = {
 
     -- Whisper settings
     whisperEnabled = true,
-    whisperMessage = "Hey {player}! We're recruiting for {guild}. Interested? 🙂 {guildlink}",
+    whisperMessage = "Hey {player}! We're recruiting for {guild}. Interested? \xF0\x9F\x99\x82 {guildlink}",
     whisperMessages = {},
     whisperRotation = "sequential",
     whisperDelay = 3.0,
 
-    -- Optional: hide outgoing whisper echo lines ("To X: ...") in your chat frame
-    -- (CHAT_MSG_WHISPER_INFORM still fires; this is only a visual filter)
+    -- Optional: hide outgoing whisper echo lines
     suppressWhisperEcho = false,
 
     -- Back-compat alias used by Slash.lua
@@ -50,8 +74,8 @@ local DEFAULT_DB = {
     -- Trade/General posts (queued; click to send)
     postEnabled = true,
     postIntervalMinutes = 20,
-    postMessageGeneral = "{guild} recruiting! Friendly, active, and helpful. Whisper me for info 🙂 {guildlink}",
-    postMessageTrade = "{guild} recruiting! PvE/PvP/social – whisper for details 🙂 {guildlink}",
+    postMessageGeneral = "{guild} recruiting! Friendly, active, and helpful. Whisper me for info \xF0\x9F\x99\x82 {guildlink}",
+    postMessageTrade = "{guild} recruiting! PvE/PvP/social \xe2\x80\x93 whisper for details \xF0\x9F\x99\x82 {guildlink}",
     postQueueMax = 20,
 
     -- Daily whisper cap (0 = unlimited)
@@ -94,11 +118,10 @@ local DEFAULT_DB = {
     _warnedMissingDebugWindow = false,
 
     -- Persist debug lines to SavedVariables (WTF) for easy copy/paste
-    -- (the Debug module will write to GRIPDB.debugLog when enabled)
     debugPersist = false,
     debugPersistMax = 800,
 
-    -- Back-compat aliases used by some earlier drafts / Slash helpers
+    -- Back-compat aliases
     debugCapture = false,
     debugCaptureMax = 800,
 
@@ -128,34 +151,28 @@ local DEFAULT_DB = {
 
   potential = {},
 
-  -- Purgeable / expiring blacklist (anti-spam, no-response cooldown, etc.)
-  -- [fullName] = expiryEpochSeconds
-  blacklist = {},
-
-  -- Permanent blacklist (e.g. "has us on ignore")
-  -- [fullName] = true | { at=epoch, reason="..." }
-  blacklistPerm = {},
-
-  -- Persistent counters (e.g. no-response escalation)
+  -- Per-character counters (daily cap is per-alt)
   counters = {
-    -- [fullName] = count
-    noResponse = {},
     whispersSent = 0,
     whispersSentDate = "",
   },
 
   -- Persisted debug capture (SavedVariables/WTF)
-  -- lines: array of strings (already formatted)
-  -- dropped: count of lines dropped due to cap
-  -- lastAt: last timestamp string written (optional metadata)
   debugLog = {
     lines = {},
     dropped = 0,
     lastAt = "",
   },
+
+  schemaVersion = SCHEMA_VERSION_CHAR,
 }
 
-GRIP.DEFAULT_DB = DEFAULT_DB
+GRIP.DEFAULT_DB_ACCOUNT = DEFAULT_DB_ACCOUNT
+GRIP.DEFAULT_DB_CHAR = DEFAULT_DB_CHAR
+
+-- =========================================================================
+-- Seeding helpers
+-- =========================================================================
 
 local function SeedClasses(list)
   if #list > 0 then return end
@@ -235,6 +252,10 @@ local function SeedZones(list)
   GRIP:Debug("SeedZones:", #list, "zones, method=", method)
 end
 
+-- =========================================================================
+-- Config helpers
+-- =========================================================================
+
 local function ClampPersistMax(n)
   n = tonumber(n) or 800
   if n < 50 then n = 50 end
@@ -281,6 +302,10 @@ local function NormalizeConfigAliases(cfg)
   -- Gate trace: strict boolean
   cfg.traceExecutionGate = (cfg.traceExecutionGate == true) and true or false
 end
+
+-- =========================================================================
+-- Legacy migration helpers
+-- =========================================================================
 
 local function NowEpochSafe(self)
   if self and self.Now then
@@ -341,19 +366,102 @@ local function MigrateLegacyBlacklistStrings(self)
   end
 end
 
-function GRIP:EnsureDB()
-  if not _G.GRIPDB then _G.GRIPDB = {} end
-  U.Merge(GRIPDB, DEFAULT_DB)
+-- =========================================================================
+-- Account/Character split migration (one-time, idempotent)
+-- =========================================================================
 
-  if type(GRIPDB.potential) ~= "table" then GRIPDB.potential = {} end
+function GRIP:MigrateToSplitSV()
+  if not _G.GRIPDB then return false end
+
+  -- Already migrated?
+  if GRIPDB.schemaVersion and GRIPDB.schemaVersion >= SCHEMA_VERSION_ACCOUNT then
+    return false
+  end
+
+  -- Fresh install: no old config to migrate
+  if not GRIPDB.config then
+    GRIPDB.schemaVersion = SCHEMA_VERSION_ACCOUNT
+    return false
+  end
+
+  -- Old combined GRIPDB detected — split into account + per-char
+  if not _G.GRIPDB_CHAR then _G.GRIPDB_CHAR = {} end
+  local char = GRIPDB_CHAR
+
+  -- Move per-char data (only if target doesn't already have it)
+  if not char.config then char.config = GRIPDB.config end
+  if not char.potential then char.potential = GRIPDB.potential end
+  if not char.filters then char.filters = GRIPDB.filters end
+  if not char.lists then char.lists = GRIPDB.lists end
+  if not char.minimap then char.minimap = GRIPDB.minimap end
+  if not char.debugLog then char.debugLog = GRIPDB.debugLog end
+
+  -- Move per-char counters
+  char.counters = char.counters or {}
+  if char.counters.whispersSent == nil then
+    char.counters.whispersSent = (GRIPDB.counters and GRIPDB.counters.whispersSent) or 0
+  end
+  if char.counters.whispersSentDate == nil then
+    char.counters.whispersSentDate = (GRIPDB.counters and GRIPDB.counters.whispersSentDate) or ""
+  end
+
+  -- Clean per-char keys from account table
+  GRIPDB.config = nil
+  GRIPDB.potential = nil
+  GRIPDB.filters = nil
+  GRIPDB.lists = nil
+  GRIPDB.minimap = nil
+  GRIPDB.debugLog = nil
+
+  -- Clean per-char counters from account table (keep noResponse — it's shared)
+  if GRIPDB.counters then
+    GRIPDB.counters.whispersSent = nil
+    GRIPDB.counters.whispersSentDate = nil
+  end
+
+  GRIPDB.schemaVersion = SCHEMA_VERSION_ACCOUNT
+  char.schemaVersion = SCHEMA_VERSION_CHAR
+
+  if self.Debug then
+    self:Debug("MigrateToSplitSV: completed GRIPDB/GRIPDB_CHAR split")
+  end
+
+  return true
+end
+
+-- =========================================================================
+-- EnsureDB — initializes both account-wide and per-character tables
+-- =========================================================================
+
+function GRIP:EnsureDB()
+  -- Run one-time migration first (idempotent)
+  self:MigrateToSplitSV()
+
+  -- === Account-wide table (GRIPDB) ===
+  if not _G.GRIPDB then _G.GRIPDB = {} end
+  U.Merge(GRIPDB, DEFAULT_DB_ACCOUNT)
+
   if type(GRIPDB.blacklist) ~= "table" then GRIPDB.blacklist = {} end
   if type(GRIPDB.blacklistPerm) ~= "table" then GRIPDB.blacklistPerm = {} end
-
   if type(GRIPDB.counters) ~= "table" then GRIPDB.counters = { noResponse = {} } end
   if type(GRIPDB.counters.noResponse) ~= "table" then GRIPDB.counters.noResponse = {} end
 
-  -- Reset whisper counter if date has changed (inline because Whisper.lua loads after DB_Init)
-  local ctr = GRIPDB.counters
+  -- Migrate legacy blacklist string values to blacklistPerm
+  MigrateLegacyBlacklistStrings(self)
+
+  -- === Per-character table (GRIPDB_CHAR) ===
+  if not _G.GRIPDB_CHAR then _G.GRIPDB_CHAR = {} end
+  U.Merge(GRIPDB_CHAR, DEFAULT_DB_CHAR)
+
+  if type(GRIPDB_CHAR.potential) ~= "table" then GRIPDB_CHAR.potential = {} end
+
+  -- Per-char counters
+  if type(GRIPDB_CHAR.counters) ~= "table" then
+    GRIPDB_CHAR.counters = { whispersSent = 0, whispersSentDate = "" }
+  end
+
+  -- Reset whisper counter if date has changed
+  local ctr = GRIPDB_CHAR.counters
   if type(ctr.whispersSent) ~= "number" then ctr.whispersSent = 0 end
   if type(ctr.whispersSentDate) ~= "string" then ctr.whispersSentDate = "" end
   local t = C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime()
@@ -368,51 +476,60 @@ function GRIP:EnsureDB()
     ctr.whispersSentDate = today
   end
 
-  if type(GRIPDB.debugLog) ~= "table" then GRIPDB.debugLog = { lines = {}, dropped = 0, lastAt = "" } end
-  if type(GRIPDB.debugLog.lines) ~= "table" then GRIPDB.debugLog.lines = {} end
-  GRIPDB.debugLog.dropped = tonumber(GRIPDB.debugLog.dropped) or 0
-  GRIPDB.debugLog.lastAt = GRIPDB.debugLog.lastAt or ""
+  -- Debug log
+  if type(GRIPDB_CHAR.debugLog) ~= "table" then
+    GRIPDB_CHAR.debugLog = { lines = {}, dropped = 0, lastAt = "" }
+  end
+  if type(GRIPDB_CHAR.debugLog.lines) ~= "table" then GRIPDB_CHAR.debugLog.lines = {} end
+  GRIPDB_CHAR.debugLog.dropped = tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
+  GRIPDB_CHAR.debugLog.lastAt = GRIPDB_CHAR.debugLog.lastAt or ""
 
-  if type(GRIPDB.lists) ~= "table" then GRIPDB.lists = { zones = {}, zonesAll = {}, races = {}, classes = {} } end
-  if type(GRIPDB.filters) ~= "table" then GRIPDB.filters = { zones = {}, races = {}, classes = {} } end
-  if type(GRIPDB.minimap) ~= "table" then GRIPDB.minimap = { hide = false, angle = 225 } end
+  -- Lists, filters, minimap
+  if type(GRIPDB_CHAR.lists) ~= "table" then
+    GRIPDB_CHAR.lists = { zones = {}, zonesAll = {}, races = {}, classes = {} }
+  end
+  if type(GRIPDB_CHAR.filters) ~= "table" then
+    GRIPDB_CHAR.filters = { zones = {}, races = {}, classes = {} }
+  end
+  if type(GRIPDB_CHAR.minimap) ~= "table" then
+    GRIPDB_CHAR.minimap = { hide = false, angle = 225 }
+  end
 
-  local cfg = GRIPDB.config
-  if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB.config.whisperDailyCap end
-  if type(cfg.optOutDetection) ~= "boolean" then cfg.optOutDetection = DEFAULT_DB.config.optOutDetection end
+  -- Config-specific fixups
+  local cfg = GRIPDB_CHAR.config
+  if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB_CHAR.config.whisperDailyCap end
+  if type(cfg.optOutDetection) ~= "boolean" then cfg.optOutDetection = DEFAULT_DB_CHAR.config.optOutDetection end
 
-  if type(cfg.soundEnabled) ~= "boolean" then cfg.soundEnabled = DEFAULT_DB.config.soundEnabled end
-  if type(cfg.soundWhisperDone) ~= "boolean" then cfg.soundWhisperDone = DEFAULT_DB.config.soundWhisperDone end
-  if type(cfg.soundInviteAccepted) ~= "boolean" then cfg.soundInviteAccepted = DEFAULT_DB.config.soundInviteAccepted end
-  if type(cfg.soundScanComplete) ~= "boolean" then cfg.soundScanComplete = DEFAULT_DB.config.soundScanComplete end
-  if type(cfg.soundCapWarning) ~= "boolean" then cfg.soundCapWarning = DEFAULT_DB.config.soundCapWarning end
+  if type(cfg.soundEnabled) ~= "boolean" then cfg.soundEnabled = DEFAULT_DB_CHAR.config.soundEnabled end
+  if type(cfg.soundWhisperDone) ~= "boolean" then cfg.soundWhisperDone = DEFAULT_DB_CHAR.config.soundWhisperDone end
+  if type(cfg.soundInviteAccepted) ~= "boolean" then cfg.soundInviteAccepted = DEFAULT_DB_CHAR.config.soundInviteAccepted end
+  if type(cfg.soundScanComplete) ~= "boolean" then cfg.soundScanComplete = DEFAULT_DB_CHAR.config.soundScanComplete end
+  if type(cfg.soundCapWarning) ~= "boolean" then cfg.soundCapWarning = DEFAULT_DB_CHAR.config.soundCapWarning end
 
   -- Migrate single whisperMessage → whisperMessages array
   if type(cfg.whisperMessages) ~= "table" or #cfg.whisperMessages == 0 then
-    cfg.whisperMessages = { cfg.whisperMessage or DEFAULT_DB.config.whisperMessage }
+    cfg.whisperMessages = { cfg.whisperMessage or DEFAULT_DB_CHAR.config.whisperMessage }
   end
   cfg.whisperMessage = cfg.whisperMessages[1]
   if cfg.whisperRotation ~= "random" then
     cfg.whisperRotation = "sequential"
   end
 
-  -- Defensive cap: max 10 templates (protects against manual WTF edits)
+  -- Defensive cap: max 10 templates
   while type(cfg.whisperMessages) == "table" and #cfg.whisperMessages > 10 do
     table.remove(cfg.whisperMessages)
   end
 
   NormalizeConfigAliases(cfg)
 
-  SeedClasses(GRIPDB.lists.classes)
-  SeedRaces(GRIPDB.lists.races)
-  SeedZones(GRIPDB.lists.zones)
+  -- Seed per-character lists
+  SeedClasses(GRIPDB_CHAR.lists.classes)
+  SeedRaces(GRIPDB_CHAR.lists.races)
+  SeedZones(GRIPDB_CHAR.lists.zones)
 
-  -- SV schema alignment: migrate any legacy blacklist string values to blacklistPerm
-  MigrateLegacyBlacklistStrings(self)
-
-  -- Remove excluded zones from lists + selections
+  -- Remove excluded zones from per-char lists + selections
   do
-    local zones = GRIPDB.lists.zones
+    local zones = GRIPDB_CHAR.lists.zones
     if type(zones) == "table" and #zones > 0 then
       local kept = {}
       local removed = 0
@@ -433,7 +550,7 @@ function GRIP:EnsureDB()
       end
     end
 
-    local fz = GRIPDB.filters and GRIPDB.filters.zones
+    local fz = GRIPDB_CHAR.filters and GRIPDB_CHAR.filters.zones
     if type(fz) == "table" then
       local pruned = 0
       local badKeys = {}
@@ -452,8 +569,8 @@ function GRIP:EnsureDB()
     end
   end
 
-  U.PruneFilterKeys(GRIPDB.filters.classes, GRIPDB.lists.classes)
-  U.PruneFilterKeys(GRIPDB.filters.races, GRIPDB.lists.races)
+  U.PruneFilterKeys(GRIPDB_CHAR.filters.classes, GRIPDB_CHAR.lists.classes)
+  U.PruneFilterKeys(GRIPDB_CHAR.filters.races, GRIPDB_CHAR.lists.races)
 
-  return GRIPDB
+  return GRIPDB, GRIPDB_CHAR
 end

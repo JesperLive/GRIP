@@ -383,8 +383,8 @@ function GRIP:GetBestZonesListForUI()
   local base, method
   if type(GRIP.STATIC_ZONES) == "table" and #GRIP.STATIC_ZONES > 0 then
     base, method = GRIP.STATIC_ZONES, "static"
-  elseif _G.GRIPDB and GRIPDB.lists and type(GRIPDB.lists.zonesAll) == "table" and #GRIPDB.lists.zonesAll > 0 then
-    base, method = GRIPDB.lists.zonesAll, "zonesAll"
+  elseif _G.GRIPDB_CHAR and GRIPDB_CHAR.lists and type(GRIPDB_CHAR.lists.zonesAll) == "table" and #GRIPDB_CHAR.lists.zonesAll > 0 then
+    base, method = GRIPDB_CHAR.lists.zonesAll, "zonesAll"
   else
     local z, stats = self:GatherAllZoneNames(true)
     base, method = z, (stats and stats.method) or "hierarchy"
@@ -430,17 +430,17 @@ function GRIP:GetZonesGroupedForUI()
 end
 
 function GRIP:ReseedZones()
-  if not _G.GRIPDB or type(GRIPDB.lists) ~= "table" or type(GRIPDB.lists.zones) ~= "table" then
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.lists) ~= "table" or type(GRIPDB_CHAR.lists.zones) ~= "table" then
     return 0, 0, nil
   end
 
-  local oldCount = #GRIPDB.lists.zones
+  local oldCount = #GRIPDB_CHAR.lists.zones
 
   local zones, stats
-  if type(GRIPDB.lists.zonesAll) == "table" and #GRIPDB.lists.zonesAll > 0 then
+  if type(GRIPDB_CHAR.lists.zonesAll) == "table" and #GRIPDB_CHAR.lists.zonesAll > 0 then
     zones = {}
-    for i = 1, #GRIPDB.lists.zonesAll do
-      zones[i] = GRIPDB.lists.zonesAll[i]
+    for i = 1, #GRIPDB_CHAR.lists.zonesAll do
+      zones[i] = GRIPDB_CHAR.lists.zonesAll[i]
     end
     stats = { method = "zonesAll", total = #zones }
   else
@@ -451,23 +451,23 @@ function GRIP:ReseedZones()
     return 0, oldCount, stats
   end
 
-  wipe(GRIPDB.lists.zones)
+  wipe(GRIPDB_CHAR.lists.zones)
   for i = 1, #zones do
-    GRIPDB.lists.zones[i] = zones[i]
+    GRIPDB_CHAR.lists.zones[i] = zones[i]
   end
 
   return #zones, oldCount, stats
 end
 
 function GRIP:PrintZoneDiag()
-  if not _G.GRIPDB or type(GRIPDB.lists) ~= "table" or type(GRIPDB.lists.zones) ~= "table" then
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.lists) ~= "table" or type(GRIPDB_CHAR.lists.zones) ~= "table" then
     self:Print("Zones: saved=0 (no DB yet).")
     return
   end
 
-  local saved = GRIPDB.lists.zones
+  local saved = GRIPDB_CHAR.lists.zones
   local hierarchy, stats = self:GatherAllZoneNames(true)
-  local allCount = (type(GRIPDB.lists.zonesAll) == "table" and #GRIPDB.lists.zonesAll) or 0
+  local allCount = (type(GRIPDB_CHAR.lists.zonesAll) == "table" and #GRIPDB_CHAR.lists.zonesAll) or 0
   local staticCount = (type(GRIP.STATIC_ZONES) == "table" and #GRIP.STATIC_ZONES) or 0
 
   self:Print(("Zones: saved=%d hierarchy=%d method=%s"):format(#saved, #hierarchy, (stats and stats.method) or "?"))
@@ -564,10 +564,10 @@ function GRIP:StartDeepZoneScan(maxMapID)
       end
       local zones = U.SortUnique(out)
 
-      if _G.GRIPDB and GRIPDB.lists then
-        GRIPDB.lists.zonesAll = zones
-        GRIPDB.lists.zonesAllCount = #zones
-        GRIPDB.lists.zonesAllTime = date("%Y-%m-%d %H:%M:%S")
+      if _G.GRIPDB_CHAR and GRIPDB_CHAR.lists then
+        GRIPDB_CHAR.lists.zonesAll = zones
+        GRIPDB_CHAR.lists.zonesAllCount = #zones
+        GRIPDB_CHAR.lists.zonesAllTime = date("%Y-%m-%d %H:%M:%S")
       end
 
       self:Print(("Deep scan complete: %d names (checked %d mapIDs)."):format(#zones, deep.checked))
@@ -581,7 +581,7 @@ function GRIP:StartDeepZoneScan(maxMapID)
 end
 
 function GRIP:ExportZonesToSavedVars()
-  if not _G.GRIPDB or not GRIPDB.lists then
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.lists then
     self:Print("No DB yet; cannot export.")
     return false
   end
@@ -611,10 +611,10 @@ function GRIP:ExportZonesToSavedVars()
   lines[#lines + 1] = "}"
   local out = table.concat(lines, "\n")
 
-  GRIPDB.lists.zonesExportLua = out
-  GRIPDB.lists.zonesExportCount = #filtered
-  GRIPDB.lists.zonesExportSource = srcLabel
-  GRIPDB.lists.zonesExportTime = date("%Y-%m-%d %H:%M:%S")
+  GRIPDB_CHAR.lists.zonesExportLua = out
+  GRIPDB_CHAR.lists.zonesExportCount = #filtered
+  GRIPDB_CHAR.lists.zonesExportSource = srcLabel
+  GRIPDB_CHAR.lists.zonesExportTime = date("%Y-%m-%d %H:%M:%S")
 
   self:Print(("Zones export written to SavedVariables: zonesExportLua (%d zones from %s)."):format(#filtered, srcLabel))
   self:Debug("Zones export saved:", #filtered, "source", srcLabel)

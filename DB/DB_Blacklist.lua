@@ -82,7 +82,7 @@ local function IsGateTraceEnabled(self, context)
   end
 
   -- Opt-in via config flag:
-  if _G.GRIPDB and type(GRIPDB.config) == "table" and GRIPDB.config.traceExecutionGate == true then
+  if _G.GRIPDB_CHAR and type(GRIPDB_CHAR.config) == "table" and GRIPDB_CHAR.config.traceExecutionGate == true then
     return true
   end
 
@@ -357,10 +357,10 @@ function GRIP:PurgeBlacklist(opts)
   -- IMPORTANT: only do this when Potential table exists, otherwise we'd risk wiping counters during early init.
   if opts.pruneNoResponse
     and GRIPDB.counters and type(GRIPDB.counters.noResponse) == "table"
-    and _G.GRIPDB and type(GRIPDB.potential) == "table"
+    and _G.GRIPDB_CHAR and type(GRIPDB_CHAR.potential) == "table"
   then
     local pruned = 0
-    local pot = GRIPDB.potential
+    local pot = GRIPDB_CHAR.potential
     local stale = {}
     for name in pairs(GRIPDB.counters.noResponse) do
       if not pot[name] then
@@ -381,7 +381,7 @@ function GRIP:Blacklist(fullName, days)
   if not fullName or fullName == "" then return end
   EnsureBlacklistTables()
 
-  days = tonumber(days) or (GRIPDB.config and GRIPDB.config.blacklistDays) or 7
+  days = tonumber(days) or (_G.GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.config.blacklistDays) or 7
   days = self:Clamp(days, 1, 365)
 
   local exp = self:Now() + (days * 86400)

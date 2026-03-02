@@ -77,7 +77,7 @@ end
 
 local function WhisperInformFilter(_, event, msg, author, ...)
   if event ~= "CHAT_MSG_WHISPER_INFORM" then return false end
-  if not (_G.GRIPDB and GRIPDB.config and GRIPDB.config.suppressWhisperEcho) then
+  if not (_G.GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.config.suppressWhisperEcho) then
     return false
   end
 
@@ -182,8 +182,8 @@ local function CacheGuildLink(link, guid, guildName)
   state._gripGuildLinkCacheAt = GetTime()
   state._gripGuildLinkTraced = nil
 
-  if _G.GRIPDB then
-    GRIPDB._guildLinkCache = {
+  if _G.GRIPDB_CHAR then
+    GRIPDB_CHAR._guildLinkCache = {
       link = link,
       guid = guid,
       name = guildName,
@@ -197,7 +197,7 @@ end
 function GRIP:GetGuildFinderLink()
   -- If we're not in a guild, invalidate SV cache and bail.
   if IsInGuild and not IsInGuild() then
-    if _G.GRIPDB then GRIPDB._guildLinkCache = nil end
+    if _G.GRIPDB_CHAR then GRIPDB_CHAR._guildLinkCache = nil end
     return ""
   end
 
@@ -210,8 +210,8 @@ function GRIP:GetGuildFinderLink()
   end
 
   -- Path 0b: SV cache (10 min TTL, survives /reload)
-  if _G.GRIPDB and GRIPDB._guildLinkCache then
-    local sv = GRIPDB._guildLinkCache
+  if _G.GRIPDB_CHAR and GRIPDB_CHAR._guildLinkCache then
+    local sv = GRIPDB_CHAR._guildLinkCache
     if sv.link and sv.at and (time() - sv.at) < 600 then
       -- Promote to runtime cache
       state._gripGuildLinkCache = sv.link
@@ -272,8 +272,8 @@ function GRIP:GetGuildFinderLink()
   end
 
   -- Path 3: Reconstruct from SV-cached GUID (if we have one but it was expired above)
-  if _G.GRIPDB and GRIPDB._guildLinkCache and GRIPDB._guildLinkCache.guid and GetClubFinderLink then
-    local sv = GRIPDB._guildLinkCache
+  if _G.GRIPDB_CHAR and GRIPDB_CHAR._guildLinkCache and GRIPDB_CHAR._guildLinkCache.guid and GetClubFinderLink then
+    local sv = GRIPDB_CHAR._guildLinkCache
     if self:IsDebugEnabled(3) then
       self:Trace("GetGuildFinderLink: Path 3 trying SV GUID reconstruction")
     end
@@ -394,10 +394,10 @@ end
 
 function GRIP:SortPotentialNames()
   local names = {}
-  if not _G.GRIPDB or type(GRIPDB.potential) ~= "table" then
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.potential) ~= "table" then
     return names
   end
-  for name in pairs(GRIPDB.potential) do
+  for name in pairs(GRIPDB_CHAR.potential) do
     names[#names + 1] = name
   end
   table.sort(names)
@@ -405,7 +405,7 @@ function GRIP:SortPotentialNames()
 end
 
 local function GateTraceEnabled()
-  return (_G.GRIPDB and type(GRIPDB.config) == "table" and GRIPDB.config.traceExecutionGate == true) and true or false
+  return (_G.GRIPDB_CHAR and type(GRIPDB_CHAR.config) == "table" and GRIPDB_CHAR.config.traceExecutionGate == true) and true or false
 end
 
 local function PreviewForTrace(msg)
@@ -488,7 +488,7 @@ function GRIP:SafeGuildInvite(name)
 end
 
 function GRIP:PlayAlertSound(soundKitID)
-  if not (_G.GRIPDB and GRIPDB.config and GRIPDB.config.soundEnabled) then return end
+  if not (_G.GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.config.soundEnabled) then return end
   if not soundKitID then return end
   if _G.SOUNDKIT and PlaySound then
     PlaySound(soundKitID, "SFX")

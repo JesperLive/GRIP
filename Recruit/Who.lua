@@ -25,7 +25,7 @@ local MIN_WHO_INTERVAL = 15
 local WHO_SATURATED = 50
 
 local function GetCfg()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function HideFriendsWhoUIIfNeeded()
@@ -64,14 +64,14 @@ local function StripClassToken(filter)
 end
 
 local function GetExpansionClassList()
-  if not _G.GRIPDB or not GRIPDB.lists or type(GRIPDB.lists.classes) ~= "table" then
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.lists or type(GRIPDB_CHAR.lists.classes) ~= "table" then
     return nil
   end
 
-  local src = GRIPDB.lists.classes
+  local src = GRIPDB_CHAR.lists.classes
   if #src == 0 then return nil end
 
-  local selected = (GRIPDB.filters and GRIPDB.filters.classes) or {}
+  local selected = (GRIPDB_CHAR.filters and GRIPDB_CHAR.filters.classes) or {}
   local hasSel = AnySelected(selected)
 
   local out = {}
@@ -204,7 +204,7 @@ local function RemoveFromMapByName(map, nameLower)
 end
 
 local function PurgeCandidateFromPipeline(self, fullName)
-  if not _G.GRIPDB then return false end
+  if not _G.GRIPDB_CHAR then return false end
   fullName = Trim(fullName)
   if fullName == "" then return false end
 
@@ -222,7 +222,7 @@ local function PurgeCandidateFromPipeline(self, fullName)
       end
     end
   else
-    local pot = GRIPDB.potential
+    local pot = GRIPDB_CHAR.potential
     if type(pot) == "table" then
       for _, k in ipairs(variants) do
         if pot[k] ~= nil then
@@ -259,7 +259,7 @@ local function PurgeCandidateFromPipeline(self, fullName)
   -- Also defensive: DB-level queues (if any exist)
   local dbQueueKeys = { "whisperQueue", "inviteQueue", "recruitQueue", "actionQueue" }
   for _, key in ipairs(dbQueueKeys) do
-    local q = GRIPDB[key]
+    local q = GRIPDB_CHAR[key]
     if type(q) == "table" then
       if RemoveFromArrayByName(q, nameLower) then changed = true end
       if RemoveFromMapByName(q, nameLower) then changed = true end
@@ -270,8 +270,8 @@ local function PurgeCandidateFromPipeline(self, fullName)
 end
 
 local function PurgeAllBlacklistedFromPotential(self)
-  if not _G.GRIPDB then return 0 end
-  local pot = GRIPDB.potential
+  if not _G.GRIPDB_CHAR then return 0 end
+  local pot = GRIPDB_CHAR.potential
   if type(pot) ~= "table" then return 0 end
 
   local purged = 0
@@ -561,7 +561,7 @@ function GRIP:OnWhoListUpdate()
     GRIP:ProcessWhoResults(pending)
     -- Ghost Mode auto-chain: queue next scan after interval
     if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
-      local cfg = (GRIPDB and GRIPDB.config) or {}
+      local cfg = (GRIPDB_CHAR and GRIPDB_CHAR.config) or {}
       local interval = math.max(tonumber(cfg.minWhoInterval) or 15, 15)
       C_Timer.After(interval, function()
         if GRIP.Ghost and GRIP.Ghost:IsSessionActive() and not state.pendingWho then

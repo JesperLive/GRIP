@@ -21,11 +21,11 @@ local PAD_L = 4
 local PAD_R = 24 -- leave room from the right edge inside scroll content
 
 local function HasCfg()
-  return (_G.GRIPDB and GRIPDB.config) and true or false
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) and true or false
 end
 
 local function GetCfg()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function ClearDirty(...)

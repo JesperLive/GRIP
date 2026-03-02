@@ -19,7 +19,7 @@ function GRIP:FiltersAllowWhoInfo(info)
   if not info then return true end
 
   -- If DB isn't ready yet, fail-open (don't accidentally filter everything out).
-  if not _G.GRIPDB or type(GRIPDB.filters) ~= "table" then
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.filters) ~= "table" then
     return true
   end
 
@@ -29,7 +29,7 @@ function GRIP:FiltersAllowWhoInfo(info)
   end
 
   -- Zones allowlist (if any selected)
-  local fz = GRIPDB.filters.zones
+  local fz = GRIPDB_CHAR.filters.zones
   if AnySelected(fz) then
     local z = info.zone or info.area or ""
     if z == "" or not fz[z] then
@@ -38,7 +38,7 @@ function GRIP:FiltersAllowWhoInfo(info)
   end
 
   -- Races allowlist
-  local fr = GRIPDB.filters.races
+  local fr = GRIPDB_CHAR.filters.races
   if AnySelected(fr) then
     local r = info.race or info.raceStr or ""
     if r == "" or not fr[r] then
@@ -47,7 +47,7 @@ function GRIP:FiltersAllowWhoInfo(info)
   end
 
   -- Classes allowlist
-  local fc = GRIPDB.filters.classes
+  local fc = GRIPDB_CHAR.filters.classes
   if AnySelected(fc) then
     local c = info.class or info.classStr or ""
     if c == "" or not fc[c] then

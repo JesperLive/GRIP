@@ -119,7 +119,7 @@ function GRIP:ReconcileAfterReload()
     st.ghost.sessionActionCount = 0
   end
 
-  if not _G.GRIPDB or type(GRIPDB.potential) ~= "table" then
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.potential) ~= "table" then
     return
   end
 
@@ -127,7 +127,7 @@ function GRIP:ReconcileAfterReload()
   local changed = 0
   local retryEnabled = 0
 
-  for _, entry in pairs(GRIPDB.potential) do
+  for _, entry in pairs(GRIPDB_CHAR.potential) do
     if type(entry) == "table" and entry.invitePending then
       -- If we were mid-invite and reloaded, that pending cannot complete reliably.
       -- Convert “pending” -> “unknown outcome” and (optionally) allow retry if it’s stale.
@@ -164,7 +164,7 @@ end
 -- ------------------------------------------------------------
 
 function GRIP:RecordCampaignAction(actionType)
-  local cfg = (_G.GRIPDB and GRIPDB.config) or nil
+  local cfg = (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
   if not cfg or not cfg.campaignCooldownEnabled then return end
 
   local now = time()
@@ -236,8 +236,8 @@ if not Logger._gripFallbackInstalled then
   }
 
   function Logger:GetConfig()
-    if not _G.GRIPDB or not GRIPDB.config then return nil end
-    return GRIPDB.config
+    if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then return nil end
+    return GRIPDB_CHAR.config
   end
 
   function Logger:IsEnabled(level)
@@ -293,12 +293,12 @@ if not Logger._gripFallbackInstalled then
   -- Fallback debug capture (SavedVariables)
   -- ----------------------------
   local function EnsureDebugLog()
-    if not _G.GRIPDB then return nil end
-    GRIPDB.debugLog = GRIPDB.debugLog or {}
-    GRIPDB.debugLog.lines = GRIPDB.debugLog.lines or {}
-    GRIPDB.debugLog.dropped = tonumber(GRIPDB.debugLog.dropped) or 0
-    GRIPDB.debugLog.lastAt = GRIPDB.debugLog.lastAt or ""
-    return GRIPDB.debugLog
+    if not _G.GRIPDB_CHAR then return nil end
+    GRIPDB_CHAR.debugLog = GRIPDB_CHAR.debugLog or {}
+    GRIPDB_CHAR.debugLog.lines = GRIPDB_CHAR.debugLog.lines or {}
+    GRIPDB_CHAR.debugLog.dropped = tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
+    GRIPDB_CHAR.debugLog.lastAt = GRIPDB_CHAR.debugLog.lastAt or ""
+    return GRIPDB_CHAR.debugLog
   end
 
   local function CaptureEnabled(cfg)
@@ -408,7 +408,7 @@ function GRIP:Trace(...) self:Log(3, ...) end
 -- Gate Trace Mode helper (prints even if debug is OFF)
 -- ------------------------------------------------------------
 function GRIP:GateTrace(...)
-  if not (_G.GRIPDB and type(GRIPDB.config) == "table" and GRIPDB.config.traceExecutionGate == true) then
+  if not (_G.GRIPDB_CHAR and type(GRIPDB_CHAR.config) == "table" and GRIPDB_CHAR.config.traceExecutionGate == true) then
     return
   end
 
@@ -445,24 +445,24 @@ end
 function GRIP:UpdateDebugCapture()
   -- Ensure SavedVariables tables exist if capture is enabled.
   local cfg = self:GetDebugConfig()
-  if not (_G.GRIPDB and cfg) then return end
+  if not (_G.GRIPDB_CHAR and cfg) then return end
   if cfg.debugCapture or cfg.debugPersist then
-    GRIPDB.debugLog = GRIPDB.debugLog or { lines = {}, dropped = 0, lastAt = "" }
-    GRIPDB.debugLog.lines = GRIPDB.debugLog.lines or {}
-    GRIPDB.debugLog.dropped = tonumber(GRIPDB.debugLog.dropped) or 0
-    GRIPDB.debugLog.lastAt = GRIPDB.debugLog.lastAt or ""
+    GRIPDB_CHAR.debugLog = GRIPDB_CHAR.debugLog or { lines = {}, dropped = 0, lastAt = "" }
+    GRIPDB_CHAR.debugLog.lines = GRIPDB_CHAR.debugLog.lines or {}
+    GRIPDB_CHAR.debugLog.dropped = tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
+    GRIPDB_CHAR.debugLog.lastAt = GRIPDB_CHAR.debugLog.lastAt or ""
   end
 end
 
 function GRIP:ClearDebugLog()
-  if not _G.GRIPDB or not GRIPDB.debugLog then return end
-  if type(GRIPDB.debugLog.lines) == "table" then
-    wipe(GRIPDB.debugLog.lines)
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.debugLog then return end
+  if type(GRIPDB_CHAR.debugLog.lines) == "table" then
+    wipe(GRIPDB_CHAR.debugLog.lines)
   else
-    GRIPDB.debugLog.lines = {}
+    GRIPDB_CHAR.debugLog.lines = {}
   end
-  GRIPDB.debugLog.dropped = 0
-  GRIPDB.debugLog.lastAt = ""
+  GRIPDB_CHAR.debugLog.dropped = 0
+  GRIPDB_CHAR.debugLog.lastAt = ""
 end
 
 function GRIP:DumpDebugLog(n)
@@ -470,19 +470,19 @@ function GRIP:DumpDebugLog(n)
   if n < 1 then n = 1 end
   if n > 500 then n = 500 end
 
-  if not _G.GRIPDB or not GRIPDB.debugLog or type(GRIPDB.debugLog.lines) ~= "table" then
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.debugLog or type(GRIPDB_CHAR.debugLog.lines) ~= "table" then
     self:Print("Debug dump: no captured log. Enable with: /grip debug capture on")
     return
   end
 
-  local lines = GRIPDB.debugLog.lines
+  local lines = GRIPDB_CHAR.debugLog.lines
   local total = #lines
   local start = math.max(1, total - n + 1)
 
-  self:Print(("Debug dump: showing %d/%d (dropped=%d). Full log is in WTF/SavedVariables/GRIP.lua under GRIPDB.debugLog.lines"):format(
+  self:Print(("Debug dump: showing %d/%d (dropped=%d). Full log is in WTF/SavedVariables/GRIP.lua under GRIPDB_CHAR.debugLog.lines"):format(
     (total - start + 1),
     total,
-    tonumber(GRIPDB.debugLog.dropped) or 0
+    tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
   ))
 
   for i = start, total do

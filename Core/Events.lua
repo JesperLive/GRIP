@@ -66,13 +66,13 @@ end
 
 local function ResolvePotentialName(nameMaybe)
   if not nameMaybe or nameMaybe == "" then return nil end
-  if _G.GRIPDB and GRIPDB.potential and GRIPDB.potential[nameMaybe] then return nameMaybe end
+  if _G.GRIPDB_CHAR and GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[nameMaybe] then return nameMaybe end
 
   local short = tostring(nameMaybe):match("^[^-]+")
-  if not short or not _G.GRIPDB or not GRIPDB.potential then return nil end
+  if not short or not _G.GRIPDB_CHAR or not GRIPDB_CHAR.potential then return nil end
 
   local found
-  for name in pairs(GRIPDB.potential) do
+  for name in pairs(GRIPDB_CHAR.potential) do
     if name:match("^[^-]+") == short then
       if found then return nil end -- ambiguous
       found = name
@@ -145,8 +145,8 @@ local function HandleWhisperIgnored(whoMaybe, rawMsg)
   if state.pendingWhisper then state.pendingWhisper[full] = nil end
   if state.pendingInvite then state.pendingInvite[full] = nil end
 
-  if _G.GRIPDB and GRIPDB.potential and GRIPDB.potential[full] then
-    GRIPDB.potential[full].invitePending = false
+  if _G.GRIPDB_CHAR and GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[full] then
+    GRIPDB_CHAR.potential[full].invitePending = false
   end
 
   GRIP:Debug("Whisper ignored -> permanent blacklist + remove:", full, "msg=", tostring(rawMsg or ""))
@@ -203,9 +203,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
       pcall(function() GRIP:ReconcileAfterReload() end)
     end
 
-    if GRIPDB.config and GRIPDB.config.debug then
+    if GRIPDB_CHAR.config and GRIPDB_CHAR.config.debug then
       GRIP:ResolveDebugFrame(true)
-      GRIP:Debug("Loaded. Debug window=", GRIPDB.config.debugWindowName, "verbosity=", GRIPDB.config.debugVerbosity)
+      GRIP:Debug("Loaded. Debug window=", GRIPDB_CHAR.config.debugWindowName, "verbosity=", GRIPDB_CHAR.config.debugVerbosity)
     end
 
     GRIP:BuildWhoQueue()

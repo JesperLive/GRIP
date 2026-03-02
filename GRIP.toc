@@ -4,6 +4,7 @@
 ## Author: GRIP
 ## Version: 0.5.0-beta
 ## SavedVariables: GRIPDB
+## SavedVariablesPerCharacter: GRIPDB_CHAR
 ## IconTexture: Interface\Icons\INV_Misc_GroupLooking
 ## AddonCompartmentFunc: GRIP_OnCompartmentClick
 ## AddonCompartmentFuncOnEnter: GRIP_OnCompartmentEnter

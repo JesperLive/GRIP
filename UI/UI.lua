@@ -17,7 +17,7 @@ local state = GRIP.state
 local W = GRIP.UIW
 
 local function HasDB()
-  return (_G.GRIPDB and GRIPDB.config and GRIPDB.lists and GRIPDB.filters) and true or false
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.lists and GRIPDB_CHAR.filters) and true or false
 end
 
 local function EnsureDBSafe()
@@ -80,7 +80,7 @@ local DEFAULT_W, DEFAULT_H = 560, 420
 local MIN_W, MIN_H = DEFAULT_W, DEFAULT_H
 
 local function GetConfig()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function GetUIParentCenter()

@@ -38,7 +38,7 @@ state.ghost = state.ghost or {
 -- ----------------------------------------------------------------
 
 local function GetCfg()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function CfgBool(key, default)

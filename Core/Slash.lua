@@ -28,7 +28,7 @@ local function Trim(s)
 end
 
 local function GetCfg()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function EnsureStateTables()
@@ -152,8 +152,8 @@ local function DebugStatus()
   local dropped = 0
   if GRIP.GetPersistedDebugDropped then
     dropped = tonumber(GRIP:GetPersistedDebugDropped()) or 0
-  elseif _G.GRIPDB and GRIPDB.debugLog and GRIPDB.debugLog.dropped then
-    dropped = tonumber(GRIPDB.debugLog.dropped) or 0
+  elseif _G.GRIPDB_CHAR and GRIPDB_CHAR.debugLog and GRIPDB_CHAR.debugLog.dropped then
+    dropped = tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
   end
 
   GRIP:Print(("Debug capture: %s (max=%d, stored=%d, dropped=%d)"):format(on and "ON" or "OFF", max, stored, dropped))
@@ -210,7 +210,7 @@ function GRIP:HandleSlash(msg)
   end
 
   -- Most commands require a configured DB
-  if not _G.GRIPDB or not GRIPDB.config then
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then
     self:Print("GRIPDB not initialized yet.")
     return
   end
@@ -256,7 +256,7 @@ function GRIP:HandleSlash(msg)
       GRIP.Ghost:StopSession("manual")
       self:Print("Ghost Mode session stopped.")
     elseif sub == "status" then
-      local cfg = GRIPDB.config
+      local cfg = GRIPDB_CHAR.config
       if GRIP.Ghost:IsSessionActive() then
         local elapsed = math.floor((time() - (state.ghost.sessionStartedAt or time())) / 60)
         local maxMin = cfg and cfg.ghostSessionMaxMinutes or 60
@@ -372,7 +372,7 @@ function GRIP:HandleSlash(msg)
   if cmd == "templates" or cmd == "template" then
     local sub, subrest = SplitArgs(rest)
     subrest = Trim(subrest)
-    local cfg = GRIPDB.config
+    local cfg = GRIPDB_CHAR.config
 
     if sub == "" or sub == "list" then
       local msgs = cfg.whisperMessages or {}
@@ -434,8 +434,8 @@ function GRIP:HandleSlash(msg)
   end
 
   if cmd == "clear" then
-    GRIPDB.potential = GRIPDB.potential or {}
-    wipe(GRIPDB.potential)
+    GRIPDB_CHAR.potential = GRIPDB_CHAR.potential or {}
+    wipe(GRIPDB_CHAR.potential)
 
     wipe(state.whisperQueue)
     wipe(state.pendingWhisper)
@@ -448,7 +448,7 @@ function GRIP:HandleSlash(msg)
 
   if cmd == "status" then
     self:Print(("Potential: %d, Blacklist: %d, WhoQueue: %d/%d, PostQueue: %d"):format(
-      self:Count(GRIPDB.potential),
+      self:Count(GRIPDB_CHAR.potential),
       self:Count(GRIPDB.blacklist),
       (state.whoIndex - 1),
       #state.whoQueue,
@@ -460,11 +460,11 @@ function GRIP:HandleSlash(msg)
     else
       self:Print(("  Whispers today: %d (no cap)"):format(sent))
     end
-    local tplCount = type(GRIPDB.config.whisperMessages) == "table" and #GRIPDB.config.whisperMessages or 0
-    self:Print(("  Templates: %d (%s)"):format(tplCount, GRIPDB.config.whisperRotation or "sequential"))
-    self:Print(("  Sound: %s"):format(GRIPDB.config.soundEnabled and "ON" or "OFF"))
+    local tplCount = type(GRIPDB_CHAR.config.whisperMessages) == "table" and #GRIPDB_CHAR.config.whisperMessages or 0
+    self:Print(("  Templates: %d (%s)"):format(tplCount, GRIPDB_CHAR.config.whisperRotation or "sequential"))
+    self:Print(("  Sound: %s"):format(GRIPDB_CHAR.config.soundEnabled and "ON" or "OFF"))
     -- Campaign cooldown status
-    local cfg_s = GRIPDB.config
+    local cfg_s = GRIPDB_CHAR.config
     if cfg_s.campaignCooldownEnabled then
       if state.campaignActivityStart then
         local elapsed = math.floor((time() - state.campaignActivityStart) / 60)
@@ -526,9 +526,9 @@ function GRIP:HandleSlash(msg)
 
     -- Path 3: SV cache
     local p3 = "nil"
-    if _G.GRIPDB and GRIPDB._guildLinkCache and GRIPDB._guildLinkCache.guid then
-      p3 = GRIPDB._guildLinkCache.guid .. " (age: " ..
-        math.floor(time() - (GRIPDB._guildLinkCache.at or 0)) .. "s)"
+    if _G.GRIPDB_CHAR and GRIPDB_CHAR._guildLinkCache and GRIPDB_CHAR._guildLinkCache.guid then
+      p3 = GRIPDB_CHAR._guildLinkCache.guid .. " (age: " ..
+        math.floor(time() - (GRIPDB_CHAR._guildLinkCache.at or 0)) .. "s)"
     end
     self:Print("Path 3 (SV cache): " .. p3)
 
@@ -620,12 +620,12 @@ function GRIP:HandleSlash(msg)
     -- Back-compat: "/grip debug on|off"
     if sub == "on" or sub == "off" or sub == "1" or sub == "0" or sub == "true" or sub == "false" or sub == "yes" or sub == "no" then
       local val = sub
-      GRIPDB.config.debug = (val == "on" or val == "1" or val == "true" or val == "yes")
-      self:Print("Debug: " .. (GRIPDB.config.debug and "ON" or "OFF"))
+      GRIPDB_CHAR.config.debug = (val == "on" or val == "1" or val == "true" or val == "yes")
+      self:Print("Debug: " .. (GRIPDB_CHAR.config.debug and "ON" or "OFF"))
 
-      if GRIPDB.config.debug then
+      if GRIPDB_CHAR.config.debug then
         self:ResolveDebugFrame(true)
-        self:Debug("Debug enabled. Window=", GRIPDB.config.debugWindowName, "verbosity=", GRIPDB.config.debugVerbosity)
+        self:Debug("Debug enabled. Window=", GRIPDB_CHAR.config.debugWindowName, "verbosity=", GRIPDB_CHAR.config.debugVerbosity)
       end
       return
     end
@@ -664,24 +664,24 @@ function GRIP:HandleSlash(msg)
       local on = BoolFromWord(v)
 
       -- Keep alias keys in sync (some modules read debugCapture; some read debugPersist)
-      GRIPDB.config.debugPersist = on and true or false
-      GRIPDB.config.debugCapture = on and true or false
+      GRIPDB_CHAR.config.debugPersist = on and true or false
+      GRIPDB_CHAR.config.debugCapture = on and true or false
 
       local nMax = tonumber(maybeMax)
       if nMax then
         local clamped = self:Clamp(nMax, 100, 5000)
-        GRIPDB.config.debugPersistMax = clamped
-        GRIPDB.config.debugCaptureMax = clamped
+        GRIPDB_CHAR.config.debugPersistMax = clamped
+        GRIPDB_CHAR.config.debugCaptureMax = clamped
       else
         -- If one exists, mirror it so they stay in sync
-        local m = tonumber(GRIPDB.config.debugPersistMax or GRIPDB.config.debugCaptureMax)
+        local m = tonumber(GRIPDB_CHAR.config.debugPersistMax or GRIPDB_CHAR.config.debugCaptureMax)
         if m then
-          GRIPDB.config.debugPersistMax = m
-          GRIPDB.config.debugCaptureMax = m
+          GRIPDB_CHAR.config.debugPersistMax = m
+          GRIPDB_CHAR.config.debugCaptureMax = m
         end
       end
 
-      self:Print("Debug capture: " .. (GRIPDB.config.debugPersist and "ON" or "OFF"))
+      self:Print("Debug capture: " .. (GRIPDB_CHAR.config.debugPersist and "ON" or "OFF"))
 
       if self.UpdateDebugCapture then
         self:UpdateDebugCapture()
@@ -707,7 +707,7 @@ function GRIP:HandleSlash(msg)
       return
     end
 
-    local cfg = GRIPDB.config
+    local cfg = GRIPDB_CHAR.config
 
     if key == "whisper" then
       cfg.whisperMessage = (val ~= "" and val) or cfg.whisperMessage
@@ -815,7 +815,7 @@ function GRIP:HandleSlash(msg)
         return
       end
       n = math.floor(n)
-      GRIPDB.config.whisperDailyCap = n
+      GRIPDB_CHAR.config.whisperDailyCap = n
       if n == 0 then
         self:Print("Daily whisper cap disabled (unlimited).")
       else
@@ -827,7 +827,7 @@ function GRIP:HandleSlash(msg)
     if key == "optout" or key == "optoutdetection" then
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
-      GRIPDB.config.optOutDetection = v
+      GRIPDB_CHAR.config.optOutDetection = v
       self:Print("Opt-out detection: " .. (v and "ON" or "OFF"))
       return
     end
@@ -835,7 +835,7 @@ function GRIP:HandleSlash(msg)
     if key == "sound" or key == "sounds" then
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
-      GRIPDB.config.soundEnabled = v
+      GRIPDB_CHAR.config.soundEnabled = v
       self:Print("Sound feedback: " .. (v and "ON" or "OFF"))
       return
     end

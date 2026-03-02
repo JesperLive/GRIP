@@ -24,11 +24,11 @@ local NO_RESPONSE_SECONDS = 24 * 60 * 60
 local NO_RESPONSE_ESCALATE_COUNT = 7
 
 local function GetCfg()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function GetPotential()
-  return (_G.GRIPDB and GRIPDB.potential) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.potential) or nil
 end
 
 local function GetBlacklistDays(cfg)
@@ -333,8 +333,8 @@ function GRIP:InviteNext()
     if state.pendingInvite and state.pendingInvite[name] then
       state.pendingInvite[name] = nil
 
-      if _G.GRIPDB and GRIPDB.potential and GRIPDB.potential[name] then
-        GRIPDB.potential[name].invitePending = false
+      if _G.GRIPDB_CHAR and GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[name] then
+        GRIPDB_CHAR.potential[name].invitePending = false
       end
 
       -- If they were blocked after the attempt, just finalize safely (no more pipeline actions).
@@ -418,8 +418,8 @@ function GRIP:AutoQueueGhostInvite(name)
   C_Timer.After(NO_RESPONSE_TIMEOUT, function()
     if state.pendingInvite and state.pendingInvite[inviteName] then
       state.pendingInvite[inviteName] = nil
-      if _G.GRIPDB and GRIPDB.potential and GRIPDB.potential[inviteName] then
-        GRIPDB.potential[inviteName].invitePending = false
+      if _G.GRIPDB_CHAR and GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[inviteName] then
+        GRIPDB_CHAR.potential[inviteName].invitePending = false
       end
       if GRIP:BL_ExecutionGate(inviteName, GateCtx("no-response-timeout")) == false then
         GRIP:MaybeFinalize(inviteName)

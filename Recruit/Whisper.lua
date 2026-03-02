@@ -19,11 +19,11 @@ local C_Timer = C_Timer
 local state = GRIP.state
 
 local function GetCfg()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function GetPotential()
-  return (_G.GRIPDB and GRIPDB.potential) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.potential) or nil
 end
 
 local function IsBlank(s)
@@ -49,14 +49,14 @@ end
 
 local function IsDailyCapReached(cfg)
   if not cfg.whisperDailyCap or cfg.whisperDailyCap <= 0 then return false end
-  if not _G.GRIPDB or not GRIPDB.counters then return false end
-  ResetIfNewDay(GRIPDB.counters)
-  return GRIPDB.counters.whispersSent >= cfg.whisperDailyCap
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.counters then return false end
+  ResetIfNewDay(GRIPDB_CHAR.counters)
+  return GRIPDB_CHAR.counters.whispersSent >= cfg.whisperDailyCap
 end
 
 local function IncrementWhisperCount()
-  if not _G.GRIPDB or not GRIPDB.counters then return end
-  GRIPDB.counters.whispersSent = (GRIPDB.counters.whispersSent or 0) + 1
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.counters then return end
+  GRIPDB_CHAR.counters.whispersSent = (GRIPDB_CHAR.counters.whispersSent or 0) + 1
 end
 
 local OPT_OUT_PHRASES = {
@@ -212,9 +212,9 @@ function GRIP:GetWhisperCapStatus()
   if not cfg then return 0, 0 end
   local cap = cfg.whisperDailyCap or 0
   local sent = 0
-  if _G.GRIPDB and GRIPDB.counters then
-    ResetIfNewDay(GRIPDB.counters)
-    sent = GRIPDB.counters.whispersSent or 0
+  if _G.GRIPDB_CHAR and GRIPDB_CHAR.counters then
+    ResetIfNewDay(GRIPDB_CHAR.counters)
+    sent = GRIPDB_CHAR.counters.whispersSent or 0
   end
   return sent, cap
 end
@@ -437,8 +437,8 @@ function GRIP:WhisperTick()
 
   -- Daily cap check (GRIP-sent whispers only)
   if cfg.whisperDailyCap and cfg.whisperDailyCap > 0 then
-    ResetIfNewDay(GRIPDB.counters)
-    if GRIPDB.counters.whispersSent >= cfg.whisperDailyCap then
+    ResetIfNewDay(GRIPDB_CHAR.counters)
+    if GRIPDB_CHAR.counters.whispersSent >= cfg.whisperDailyCap then
       self:Print(("Daily whisper cap reached (%d). Queue stopped. Resets tomorrow."):format(cfg.whisperDailyCap))
       if cfg.soundCapWarning ~= false then
         self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
@@ -448,9 +448,9 @@ function GRIP:WhisperTick()
     end
     IncrementWhisperCount()
     -- Soft warning at ~80% of cap
-    local ratio = GRIPDB.counters.whispersSent / cfg.whisperDailyCap
+    local ratio = GRIPDB_CHAR.counters.whispersSent / cfg.whisperDailyCap
     if ratio >= 0.8 and ratio < 0.85 then
-      self:Print(("Approaching daily whisper limit: %d/%d"):format(GRIPDB.counters.whispersSent, cfg.whisperDailyCap))
+      self:Print(("Approaching daily whisper limit: %d/%d"):format(GRIPDB_CHAR.counters.whispersSent, cfg.whisperDailyCap))
       if cfg.soundCapWarning ~= false then
         self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
       end

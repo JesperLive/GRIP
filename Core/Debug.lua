@@ -31,12 +31,12 @@ local function Join(...)
 end
 
 local function EnsurePersistTables()
-  if not _G.GRIPDB then return nil end
-  GRIPDB.debugLog = GRIPDB.debugLog or {}
-  GRIPDB.debugLog.lines = GRIPDB.debugLog.lines or {}
-  GRIPDB.debugLog.dropped = tonumber(GRIPDB.debugLog.dropped) or 0
-  GRIPDB.debugLog.lastAt = GRIPDB.debugLog.lastAt or ""
-  return GRIPDB.debugLog
+  if not _G.GRIPDB_CHAR then return nil end
+  GRIPDB_CHAR.debugLog = GRIPDB_CHAR.debugLog or {}
+  GRIPDB_CHAR.debugLog.lines = GRIPDB_CHAR.debugLog.lines or {}
+  GRIPDB_CHAR.debugLog.dropped = tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
+  GRIPDB_CHAR.debugLog.lastAt = GRIPDB_CHAR.debugLog.lastAt or ""
+  return GRIPDB_CHAR.debugLog
 end
 
 local function ClampPersistMax(n)
@@ -87,9 +87,9 @@ end
 
 local function PersistAppend(line, ts)
   if type(line) ~= "string" or line == "" then return end
-  if not _G.GRIPDB or not GRIPDB.config then return end
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then return end
 
-  local cfg = GRIPDB.config
+  local cfg = GRIPDB_CHAR.config
   if not CaptureEnabled(cfg) then return end
 
   local store = EnsurePersistTables()
@@ -117,7 +117,7 @@ end
 --   Capture(self, level, ts, formattedChatMsg, ...)
 -- ------------------------------------------------------------
 function Logger:Capture(level, ts, _formattedChatMsg, ...)
-  local cfg = self.GetConfig and self:GetConfig() or (_G.GRIPDB and GRIPDB.config)
+  local cfg = self.GetConfig and self:GetConfig() or (_G.GRIPDB_CHAR and GRIPDB_CHAR.config)
   if not cfg then return end
   if not CaptureEnabled(cfg) then return end
 
@@ -133,32 +133,32 @@ end
 -- Public helpers for Slash/UI
 -- ------------------------------------------------------------
 function GRIP:GetPersistedDebugLines()
-  if not _G.GRIPDB or not GRIPDB.debugLog or type(GRIPDB.debugLog.lines) ~= "table" then
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.debugLog or type(GRIPDB_CHAR.debugLog.lines) ~= "table" then
     return {}
   end
-  return GRIPDB.debugLog.lines
+  return GRIPDB_CHAR.debugLog.lines
 end
 
 function GRIP:GetPersistedDebugDropped()
-  if not _G.GRIPDB or not GRIPDB.debugLog then return 0 end
-  return tonumber(GRIPDB.debugLog.dropped) or 0
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.debugLog then return 0 end
+  return tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
 end
 
 function GRIP:GetPersistedDebugLastAt()
-  if not _G.GRIPDB or not GRIPDB.debugLog then return "" end
-  return tostring(GRIPDB.debugLog.lastAt or "")
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.debugLog then return "" end
+  return tostring(GRIPDB_CHAR.debugLog.lastAt or "")
 end
 
 function GRIP:ClearPersistedDebugLines()
-  if not _G.GRIPDB then return 0 end
-  if not GRIPDB.debugLog or type(GRIPDB.debugLog.lines) ~= "table" then
-    GRIPDB.debugLog = { lines = {}, dropped = 0, lastAt = "" }
+  if not _G.GRIPDB_CHAR then return 0 end
+  if not GRIPDB_CHAR.debugLog or type(GRIPDB_CHAR.debugLog.lines) ~= "table" then
+    GRIPDB_CHAR.debugLog = { lines = {}, dropped = 0, lastAt = "" }
     return 0
   end
-  local n = #GRIPDB.debugLog.lines
-  wipe(GRIPDB.debugLog.lines)
-  GRIPDB.debugLog.dropped = 0
-  GRIPDB.debugLog.lastAt = ""
+  local n = #GRIPDB_CHAR.debugLog.lines
+  wipe(GRIPDB_CHAR.debugLog.lines)
+  GRIPDB_CHAR.debugLog.dropped = 0
+  GRIPDB_CHAR.debugLog.lastAt = ""
   return n
 end
 
@@ -193,9 +193,9 @@ function GRIP:ClearDebugLog()
 end
 
 function GRIP:UpdateDebugCapture()
-  if not _G.GRIPDB or not GRIPDB.config then return end
-  NormalizeCaptureAliases(GRIPDB.config)
-  if CaptureEnabled(GRIPDB.config) then
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then return end
+  NormalizeCaptureAliases(GRIPDB_CHAR.config)
+  if CaptureEnabled(GRIPDB_CHAR.config) then
     EnsurePersistTables()
   end
 end

@@ -38,9 +38,10 @@ local POT_MIN_TWO_COL_W = 500
 
 local function EnsureHomeDBTables()
   if not _G.GRIPDB then return false end
+  if not _G.GRIPDB_CHAR then return false end
 
-  if type(GRIPDB.config) ~= "table" then GRIPDB.config = {} end
-  if type(GRIPDB.potential) ~= "table" then GRIPDB.potential = {} end
+  if type(GRIPDB_CHAR.config) ~= "table" then GRIPDB_CHAR.config = {} end
+  if type(GRIPDB_CHAR.potential) ~= "table" then GRIPDB_CHAR.potential = {} end
   if type(GRIPDB.blacklist) ~= "table" then GRIPDB.blacklist = {} end
   if type(GRIPDB.blacklistPerm) ~= "table" then GRIPDB.blacklistPerm = {} end
 
@@ -49,7 +50,7 @@ end
 
 local function HasDB()
   if not EnsureHomeDBTables() then return false end
-  return (type(GRIPDB.config) == "table") and true or false
+  return (type(GRIPDB_CHAR.config) == "table") and true or false
 end
 
 local function SecondsLeft(untilT)
@@ -60,7 +61,7 @@ local function SecondsLeft(untilT)
 end
 
 local function GetScanCooldown()
-  local cfg = (GRIPDB and GRIPDB.config) or nil
+  local cfg = (GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
   local v = tonumber(cfg and cfg.minWhoInterval) or 15
   if v < 15 then v = 15 end
   return v
@@ -182,8 +183,8 @@ local function SortPotentialNewestFirst(names)
   if type(names) ~= "table" then return names end
   table.sort(names, function(a, b)
     if a == b then return false end
-    local ea = GRIPDB.potential and GRIPDB.potential[a] or nil
-    local eb = GRIPDB.potential and GRIPDB.potential[b] or nil
+    local ea = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[a] or nil
+    local eb = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[b] or nil
     local ta = GetEntryTimestamp(ea)
     local tb = GetEntryTimestamp(eb)
     if ta ~= tb then return ta > tb end
@@ -194,8 +195,8 @@ end
 
 local function BuildPotentialNameList()
   local t = {}
-  if not (GRIPDB and GRIPDB.potential) then return t end
-  for name, _ in pairs(GRIPDB.potential) do
+  if not (GRIPDB_CHAR and GRIPDB_CHAR.potential) then return t end
+  for name, _ in pairs(GRIPDB_CHAR.potential) do
     if type(name) == "string" and name ~= "" then
       t[#t + 1] = name
     end
@@ -398,10 +399,10 @@ local function ClearNameFromQueues(name)
       pcall(function() GRIP:RemovePotential(k) end)
     end
   end
-  if GRIPDB and type(GRIPDB.potential) == "table" then
+  if GRIPDB_CHAR and type(GRIPDB_CHAR.potential) == "table" then
     for _, k in ipairs(variants) do
-      if GRIPDB.potential[k] ~= nil then
-        GRIPDB.potential[k] = nil
+      if GRIPDB_CHAR.potential[k] ~= nil then
+        GRIPDB_CHAR.potential[k] = nil
       end
     end
   end
@@ -415,7 +416,7 @@ local function ClearNameFromQueues(name)
 
   for _, key in ipairs(queueKeys) do
     local t = state and state[key]
-    local dbt = GRIPDB and GRIPDB[key]
+    local dbt = GRIPDB_CHAR and GRIPDB_CHAR[key]
 
     for _, k in ipairs(variants) do
       local kl = Lower(Trim(k))
@@ -436,7 +437,7 @@ local function ClearNameFromQueues(name)
         RemoveFromArray(dbt, kl)
         RemoveFromMapByName(dbt, kl)
       elseif type(dbt) == "string" then
-        if Lower(Trim(dbt)) == kl then GRIPDB[key] = nil end
+        if Lower(Trim(dbt)) == kl then GRIPDB_CHAR[key] = nil end
       end
     end
   end
@@ -1300,7 +1301,7 @@ local function UpdatePotentialRows(home)
     local idx = i + offset
     local name = names[idx]
     if name then
-      local e = GRIPDB.potential[name] or {}
+      local e = GRIPDB_CHAR.potential[name] or {}
 
       row._nameKey = name
       row.name:SetText(name)
@@ -1453,7 +1454,7 @@ function GRIP:UI_CreateHome(parent)
       return
     end
 
-    wipe(GRIPDB.potential)
+    wipe(GRIPDB_CHAR.potential)
     wipe(state.whisperQueue)
     wipe(state.pendingWhisper)
     wipe(state.pendingInvite)
@@ -1573,7 +1574,7 @@ function GRIP:UI_UpdateHome()
   SetEnabledSafe(home.btnPostNext, true)
   SetEnabledSafe(home.btnClear, true)
 
-  local pot = self:Count(GRIPDB.potential)
+  local pot = self:Count(GRIPDB_CHAR.potential)
   local blPerm = self:Count(GRIPDB.blacklistPerm)
   local blTemp = self:Count(GRIPDB.blacklist)
 

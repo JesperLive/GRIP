@@ -9,8 +9,8 @@ local type = type
 local state = GRIP.state
 
 local function EnsurePotentialTable()
-  if not _G.GRIPDB then return false end
-  GRIPDB.potential = GRIPDB.potential or {}
+  if not _G.GRIPDB_CHAR then return false end
+  GRIPDB_CHAR.potential = GRIPDB_CHAR.potential or {}
   return true
 end
 
@@ -31,8 +31,8 @@ function GRIP:AddPotential(fullName, info)
     return false
   end
 
-  GRIPDB.potential[fullName] = GRIPDB.potential[fullName] or {}
-  local p = GRIPDB.potential[fullName]
+  GRIPDB_CHAR.potential[fullName] = GRIPDB_CHAR.potential[fullName] or {}
+  local p = GRIPDB_CHAR.potential[fullName]
 
   if info then
     p.name = fullName
@@ -67,9 +67,9 @@ end
 
 function GRIP:RemovePotential(fullName)
   if not fullName or fullName == "" then return false end
-  if not _G.GRIPDB or type(GRIPDB.potential) ~= "table" then return false end
-  if GRIPDB.potential[fullName] then
-    GRIPDB.potential[fullName] = nil
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.potential) ~= "table" then return false end
+  if GRIPDB_CHAR.potential[fullName] then
+    GRIPDB_CHAR.potential[fullName] = nil
     self:Debug("Potential removed:", fullName)
     return true
   end
@@ -83,9 +83,9 @@ end
 --    AND there is no pending whisper/invite outcome still in flight.
 function GRIP:MaybeFinalize(fullName)
   if not fullName or fullName == "" then return false end
-  if not _G.GRIPDB or type(GRIPDB.potential) ~= "table" then return false end
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.potential) ~= "table" then return false end
 
-  local entry = GRIPDB.potential[fullName]
+  local entry = GRIPDB_CHAR.potential[fullName]
   if not entry then return false end
 
   -- If blacklisted, always finalize (but still avoid racing a pending state).
@@ -102,7 +102,7 @@ function GRIP:MaybeFinalize(fullName)
     return true
   end
 
-  local cfg = GRIPDB.config or {}
+  local cfg = GRIPDB_CHAR.config or {}
   local whisperDone = (not cfg.whisperEnabled) or entry.whisperAttempted
   local inviteDone = (not cfg.inviteEnabled) or entry.inviteAttempted
 

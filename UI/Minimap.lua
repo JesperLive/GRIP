@@ -17,15 +17,15 @@ local InCombatLockdown = InCombatLockdown
 local btn
 
 local function EnsureMinimapDB()
-  _G.GRIPDB = _G.GRIPDB or {}
-  GRIPDB.minimap = GRIPDB.minimap or { hide = false, angle = 225 }
+  _G.GRIPDB_CHAR = _G.GRIPDB_CHAR or {}
+  GRIPDB_CHAR.minimap = GRIPDB_CHAR.minimap or { hide = false, angle = 225 }
 end
 
 local function SetButtonPosition()
   if not btn or not Minimap then return end
   EnsureMinimapDB()
 
-  local angle = tonumber(GRIPDB.minimap.angle) or 225
+  local angle = tonumber(GRIPDB_CHAR.minimap.angle) or 225
   local rad = math.rad(angle)
 
   local radius = 80
@@ -311,7 +311,7 @@ function GRIP:CreateMinimapButton()
     EnsureMinimapDB()
 
     if type(self._dragAngle) == "number" then
-      GRIPDB.minimap.angle = self._dragAngle
+      GRIPDB_CHAR.minimap.angle = self._dragAngle
     end
     self._dragAngle = nil
 
@@ -325,7 +325,7 @@ end
 function GRIP:UpdateMinimapButton()
   EnsureMinimapDB()
   if not btn then return end
-  if GRIPDB.minimap.hide then
+  if GRIPDB_CHAR.minimap.hide then
     btn:Hide()
   else
     btn:Show()
@@ -336,18 +336,18 @@ end
 function GRIP:ToggleMinimapButton(force)
   EnsureMinimapDB()
   if force == true then
-    GRIPDB.minimap.hide = false
+    GRIPDB_CHAR.minimap.hide = false
   elseif force == false then
-    GRIPDB.minimap.hide = true
+    GRIPDB_CHAR.minimap.hide = true
   else
-    GRIPDB.minimap.hide = not GRIPDB.minimap.hide
+    GRIPDB_CHAR.minimap.hide = not GRIPDB_CHAR.minimap.hide
   end
   if not btn then
     self:CreateMinimapButton()
   else
     self:UpdateMinimapButton()
   end
-  self:Print("Minimap button: " .. (GRIPDB.minimap.hide and "OFF" or "ON"))
+  self:Print("Minimap button: " .. (GRIPDB_CHAR.minimap.hide and "OFF" or "ON"))
 end
 
 -- Addon Compartment callbacks (called by name from TOC metadata)

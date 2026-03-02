@@ -18,7 +18,7 @@ local C_Timer = C_Timer
 local state = GRIP.state
 
 local function GetCfg()
-  return (_G.GRIPDB and GRIPDB.config) or nil
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
 
 local function IsBlank(s)
