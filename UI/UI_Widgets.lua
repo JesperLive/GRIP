@@ -363,3 +363,188 @@ function W.CreateChecklist(parent, titleText, w, h)
 
   return box
 end
+
+-- ---------------------------
+-- Grouped checklist widget (expansion-grouped zones)
+-- ---------------------------
+
+function W.CreateGroupedChecklist(parent, titleText, w, h)
+  local box = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+  box:SetSize(w, h)
+  box:SetBackdrop({
+    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+    tile = false, edgeSize = 12,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+  })
+  box:SetBackdropColor(0, 0, 0, 0.25)
+
+  local title = box:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  title:SetPoint("TOPLEFT", box, "TOPLEFT", 8, -6)
+  title:SetText(titleText)
+
+  local sf = CreateFrame("ScrollFrame", nil, box, "UIPanelScrollFrameTemplate")
+  sf:SetPoint("TOPLEFT", box, "TOPLEFT", 6, -22)
+  sf:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -26, 6)
+
+  local child = CreateFrame("Frame", nil, sf)
+  child:SetSize(1, 1)
+  sf:SetScrollChild(child)
+
+  box._sf = sf
+  box._child = child
+  box._title = title
+  box._checks = {}
+  box._headers = {}
+  box._groupBtns = {}
+
+  local INDENT = 12
+  local CB_HEIGHT = 20
+  local HDR_HEIGHT = 20
+  local GROUP_GAP = 6
+
+  local function ComputeLabelWidth()
+    local sw = (sf.GetWidth and sf:GetWidth()) or 0
+    local labelW = sw - 36 - INDENT
+    if labelW < 40 then labelW = 40 end
+    return labelW
+  end
+
+  local function RecalcWidths()
+    local sw = (sf.GetWidth and sf:GetWidth()) or 0
+    local cw = sw
+    if cw < 1 then cw = 1 end
+    child:SetWidth(cw)
+    local labelW = ComputeLabelWidth()
+    for _, cb in ipairs(box._checks) do
+      if cb and cb.IsShown and cb:IsShown() then
+        local lbl = cb._gripLabel or cb.Text or cb.text
+        if lbl and lbl.SetWidth then
+          lbl:SetWidth(labelW)
+        end
+      end
+    end
+  end
+
+  if sf.HookScript then
+    sf:HookScript("OnSizeChanged", function() RecalcWidths() end)
+  else
+    sf:SetScript("OnSizeChanged", function() RecalcWidths() end)
+  end
+  RecalcWidths()
+  box._gripRecalc = RecalcWidths
+
+  function box:Render(groups, selectedTbl, onToggle)
+    groups = groups or {}
+    selectedTbl = selectedTbl or {}
+
+    -- Hide all existing elements
+    for _, cb in ipairs(self._checks) do cb:Hide() end
+    for _, h in ipairs(self._headers) do h:Hide() end
+    for _, btns in ipairs(self._groupBtns) do
+      if btns.all then btns.all:Hide() end
+      if btns.none then btns.none:Hide() end
+    end
+
+    local labelW = ComputeLabelWidth()
+    local y = -2
+    local cbIdx = 0
+    local hdrIdx = 0
+
+    for _, group in ipairs(groups) do
+      hdrIdx = hdrIdx + 1
+
+      -- Group header (gold text)
+      local hdr = self._headers[hdrIdx]
+      if not hdr then
+        hdr = child:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        hdr:SetJustifyH("LEFT")
+        self._headers[hdrIdx] = hdr
+      end
+      hdr:ClearAllPoints()
+      hdr:SetPoint("TOPLEFT", child, "TOPLEFT", 4, y)
+      hdr:SetText(group.name or "")
+      hdr:SetTextColor(1, 0.82, 0, 1)
+      hdr:Show()
+
+      -- Per-group All / None buttons (small, inside scrollable area)
+      local btns = self._groupBtns[hdrIdx]
+      if not btns then
+        btns = {}
+        btns.all = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
+        btns.all:SetSize(32, 18)
+        btns.all:SetText("All")
+        btns.none = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
+        btns.none:SetSize(38, 18)
+        btns.none:SetText("None")
+        self._groupBtns[hdrIdx] = btns
+      end
+
+      -- Wire click handlers (fresh closure for this group's zones)
+      local groupZones = group.zones
+      btns.all:SetScript("OnClick", function()
+        for _, z in ipairs(groupZones) do selectedTbl[z] = true end
+        if onToggle then onToggle(nil, true) end
+        GRIP:UpdateUI()
+      end)
+      btns.none:SetScript("OnClick", function()
+        for _, z in ipairs(groupZones) do selectedTbl[z] = nil end
+        if onToggle then onToggle(nil, false) end
+        GRIP:UpdateUI()
+      end)
+
+      btns.all:ClearAllPoints()
+      btns.none:ClearAllPoints()
+      btns.all:SetPoint("TOPRIGHT", child, "TOPRIGHT", -40, y - 1)
+      btns.none:SetPoint("LEFT", btns.all, "RIGHT", 2, 0)
+      btns.all:Show()
+      btns.none:Show()
+
+      y = y - HDR_HEIGHT
+
+      -- Zone checkboxes (indented under group header)
+      for _, zoneName in ipairs(group.zones) do
+        cbIdx = cbIdx + 1
+        local key = zoneName
+        local cb = self._checks[cbIdx]
+        if not cb then
+          cb = CreateFrame("CheckButton", nil, child, "UICheckButtonTemplate")
+          local lbl = W.EnsureCheckLabel(cb, "GameFontHighlightSmall")
+          if lbl then lbl:SetJustifyH("LEFT") end
+          self._checks[cbIdx] = cb
+        end
+
+        cb:ClearAllPoints()
+        cb:SetPoint("TOPLEFT", child, "TOPLEFT", INDENT, y)
+
+        local lbl = W.SetCheckLabelText(cb, key)
+        if lbl and lbl.SetWidth then
+          lbl:SetWidth(labelW)
+        end
+
+        cb:SetChecked(selectedTbl[key] == true)
+        cb:Show()
+
+        cb:SetScript("OnClick", function(btn)
+          local checked = btn:GetChecked()
+          if checked then
+            selectedTbl[key] = true
+          else
+            selectedTbl[key] = nil
+          end
+          if onToggle then onToggle(key, checked) end
+          GRIP:UpdateUI()
+        end)
+
+        y = y - CB_HEIGHT
+      end
+
+      y = y - GROUP_GAP
+    end
+
+    child:SetHeight(math.max(1, math.abs(y) + 8))
+    RecalcWidths()
+  end
+
+  return box
+end

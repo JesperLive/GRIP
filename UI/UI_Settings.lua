@@ -478,7 +478,7 @@ function GRIP:UI_CreateSettings(parent)
   settings.filtersHelp:SetPoint("TOPLEFT", settings.zoneOnly, "BOTTOMLEFT", 0, -8)
   settings.filtersHelp:SetText("Filters are allowlists. If nothing is checked in a category, that category allows ALL.")
 
-  settings.zoneList = W.CreateChecklist(s, "Zones", 250, 140)
+  settings.zoneList = W.CreateGroupedChecklist(s, "Zones", 250, 200)
   settings.zoneList:SetPoint("TOPLEFT", settings.filtersHelp, "BOTTOMLEFT", 0, -8)
 
   settings.raceList = W.CreateChecklist(s, "Races", 250, 140)
@@ -489,7 +489,14 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.zoneAll = W.CreateUIButton(s, "All", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    SetAll(GRIPDB.lists.zones, GRIPDB.filters.zones); GRIP:UpdateUI()
+    wipe(GRIPDB.filters.zones)
+    local groups = GRIP:GetZonesGroupedForUI()
+    for _, g in ipairs(groups) do
+      for _, z in ipairs(g.zones) do
+        GRIPDB.filters.zones[z] = true
+      end
+    end
+    GRIP:UpdateUI()
   end)
   settings.zoneAll:SetPoint("TOPRIGHT", settings.zoneList, "TOPRIGHT", -52, -4)
 
@@ -498,6 +505,19 @@ function GRIP:UI_CreateSettings(parent)
     wipe(GRIPDB.filters.zones); GRIP:UpdateUI()
   end)
   settings.zoneNone:SetPoint("LEFT", settings.zoneAll, "RIGHT", 4, 0)
+
+  settings.zoneCurrent = W.CreateUIButton(s, "Current", 56, 18, function()
+    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+    wipe(GRIPDB.filters.zones)
+    local groups = GRIP:GetZonesGroupedForUI()
+    if groups and groups[1] then
+      for _, z in ipairs(groups[1].zones) do
+        GRIPDB.filters.zones[z] = true
+      end
+    end
+    GRIP:UpdateUI()
+  end)
+  settings.zoneCurrent:SetPoint("TOPRIGHT", settings.zoneAll, "TOPLEFT", -4, 0)
 
   settings.raceAll = W.CreateUIButton(s, "All", 44, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
@@ -654,6 +674,7 @@ function GRIP:UI_UpdateSettings()
 
     SetEnabledSafe(s.zoneAll, false)
     SetEnabledSafe(s.zoneNone, false)
+    SetEnabledSafe(s.zoneCurrent, false)
     SetEnabledSafe(s.raceAll, false)
     SetEnabledSafe(s.raceNone, false)
     SetEnabledSafe(s.classAll, false)
@@ -683,6 +704,7 @@ function GRIP:UI_UpdateSettings()
 
   SetEnabledSafe(s.zoneAll, true)
   SetEnabledSafe(s.zoneNone, true)
+  SetEnabledSafe(s.zoneCurrent, true)
   SetEnabledSafe(s.raceAll, true)
   SetEnabledSafe(s.raceNone, true)
   SetEnabledSafe(s.classAll, true)
@@ -699,7 +721,7 @@ function GRIP:UI_UpdateSettings()
   W.SetTextIfUnfocused(s.stepEdit, tostring(GRIPDB.config.scanStep or 5))
   s.zoneOnly:SetChecked(GRIPDB.config.scanZoneOnly and true or false)
 
-  s.zoneList:Render(GRIPDB.lists.zones, GRIPDB.filters.zones)
+  s.zoneList:Render(GRIP:GetZonesGroupedForUI(), GRIPDB.filters.zones)
   s.raceList:Render(GRIPDB.lists.races, GRIPDB.filters.races)
   s.classList:Render(GRIPDB.lists.classes, GRIPDB.filters.classes)
 
