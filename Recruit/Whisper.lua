@@ -367,8 +367,18 @@ function GRIP:WhisperTick()
   PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
 
   if #state.whisperQueue == 0 then
-    self:StopWhispers()
-    return
+    -- Ghost Mode: rebuild queue from Potential (new candidates from ongoing scans)
+    if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
+      self:BuildWhisperQueue()
+      PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
+      if #state.whisperQueue == 0 then
+        return  -- no new candidates yet; try again next tick
+      end
+      -- Fall through to process next candidate
+    else
+      self:StopWhispers()
+      return
+    end
   end
 
   local didUIChange = false

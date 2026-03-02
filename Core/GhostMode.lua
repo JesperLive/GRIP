@@ -238,6 +238,19 @@ function Ghost:StartSession()
     end)
   end
 
+  -- Phase 2c: Auto-start whisper ticker if not already running
+  if cfg.whisperEnabled and not state.whisperTicker then
+    state.ghost.whisperAutoStarted = true
+    state.pendingWhisper = state.pendingWhisper or {}
+    state.pendingInvite = state.pendingInvite or {}
+    state.whisperQueue = state.whisperQueue or {}
+    local delay = GRIP:Clamp(tonumber(cfg.whisperDelay) or 2.5, 0.8, 10)
+    state.whisperTicker = C_Timer.NewTicker(delay, function()
+      GRIP:WhisperTick()
+    end)
+    Dbg("Ghost: whisper ticker auto-started (delay=", delay, "s)")
+  end
+
   return true, "started"
 end
 
@@ -251,6 +264,12 @@ function Ghost:StopSession(reason)
   if state.pendingWho and state.pendingWho.ghostQueued then
     state.pendingWho = nil
   end
+
+  -- Phase 2c: Stop whisper ticker on ghost session end
+  if state.whisperTicker then
+    GRIP:StopWhispers()
+  end
+  state.ghost.whisperAutoStarted = nil
 
   -- Set persistent cooldown
   local cfg = GetCfg()
