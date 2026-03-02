@@ -368,6 +368,9 @@ function GRIP:OnInviteSystemSuccess(targetName)
   self:Blacklist(full, GetBlacklistDays(cfg))
 
   self:Debug("Invite success:", full)
+  if cfg.soundInviteAccepted ~= false then
+    self:PlayAlertSound(SOUNDKIT and SOUNDKIT.READY_CHECK or 8960)
+  end
   self:MaybeFinalize(full)
   self:UpdateUI()
 end

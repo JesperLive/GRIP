@@ -46,6 +46,13 @@ local DEFAULT_DB = {
     -- Auto-blacklist candidates who reply with opt-out phrases
     optOutDetection = true,
 
+    -- Sound feedback
+    soundEnabled = true,
+    soundWhisperDone = true,
+    soundInviteAccepted = true,
+    soundScanComplete = false,
+    soundCapWarning = true,
+
     -- Safety throttles
     minWhoInterval = 15,
     minPostInterval = 8,
@@ -344,6 +351,12 @@ function GRIP:EnsureDB()
   local cfg = GRIPDB.config
   if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB.config.whisperDailyCap end
   if type(cfg.optOutDetection) ~= "boolean" then cfg.optOutDetection = DEFAULT_DB.config.optOutDetection end
+
+  if type(cfg.soundEnabled) ~= "boolean" then cfg.soundEnabled = DEFAULT_DB.config.soundEnabled end
+  if type(cfg.soundWhisperDone) ~= "boolean" then cfg.soundWhisperDone = DEFAULT_DB.config.soundWhisperDone end
+  if type(cfg.soundInviteAccepted) ~= "boolean" then cfg.soundInviteAccepted = DEFAULT_DB.config.soundInviteAccepted end
+  if type(cfg.soundScanComplete) ~= "boolean" then cfg.soundScanComplete = DEFAULT_DB.config.soundScanComplete end
+  if type(cfg.soundCapWarning) ~= "boolean" then cfg.soundCapWarning = DEFAULT_DB.config.soundCapWarning end
 
   -- Migrate single whisperMessage → whisperMessages array
   if type(cfg.whisperMessages) ~= "table" or #cfg.whisperMessages == 0 then

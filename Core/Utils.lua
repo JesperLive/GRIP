@@ -377,6 +377,14 @@ function GRIP:SafeGuildInvite(name)
   return true
 end
 
+function GRIP:PlayAlertSound(soundKitID)
+  if not (_G.GRIPDB and GRIPDB.config and GRIPDB.config.soundEnabled) then return end
+  if not soundKitID then return end
+  if _G.SOUNDKIT and PlaySound then
+    PlaySound(soundKitID, "SFX")
+  end
+end
+
 function GRIP:GlobalStringToPattern(gs)
   if type(gs) ~= "string" or gs == "" then return nil end
   local pat = gs:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")

@@ -481,6 +481,14 @@ function GRIP:ProcessWhoResults(pending)
   end
 
   self:Print(("WHO results processed: %d results, %d unguilded added."):format(numWhos, added))
+
+  if added > 0 then
+    local cfg = GetCfg()
+    if cfg and cfg.soundScanComplete then
+      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.UI_AUTO_QUEST_COMPLETE or 23404)
+    end
+  end
+
   HideFriendsWhoUIIfNeeded()
   self:UpdateUI()
 end

@@ -338,6 +338,10 @@ function GRIP:StopWhispers()
     state.whisperTicker:Cancel()
     state.whisperTicker = nil
     self:Print("Whisper queue stopped.")
+    local cfg = GetCfg()
+    if cfg and cfg.soundWhisperDone ~= false then
+      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.IG_QUEST_LIST_COMPLETE or 878)
+    end
     self:UpdateUI()
   end
 end
@@ -412,6 +416,9 @@ function GRIP:WhisperTick()
     ResetIfNewDay(GRIPDB.counters)
     if GRIPDB.counters.whispersSent >= cfg.whisperDailyCap then
       self:Print(("Daily whisper cap reached (%d). Queue stopped. Resets tomorrow."):format(cfg.whisperDailyCap))
+      if cfg.soundCapWarning ~= false then
+        self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+      end
       self:StopWhispers()
       return
     end
@@ -420,6 +427,9 @@ function GRIP:WhisperTick()
     local ratio = GRIPDB.counters.whispersSent / cfg.whisperDailyCap
     if ratio >= 0.8 and ratio < 0.85 then
       self:Print(("Approaching daily whisper limit: %d/%d"):format(GRIPDB.counters.whispersSent, cfg.whisperDailyCap))
+      if cfg.soundCapWarning ~= false then
+        self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+      end
     end
   end
 

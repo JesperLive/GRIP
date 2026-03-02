@@ -71,6 +71,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip set hidewhispers on|off            (hide outgoing whisper echoes in chat)")
   self:Print("  /grip set dailycap <number>              (daily whisper cap; 0 = unlimited)")
   self:Print("  /grip set optout on|off                  (auto-blacklist opt-out replies)")
+  self:Print("  /grip set sound on|off                   (master toggle for sound feedback)")
 end
 
 local function PrintPermBLUsage()
@@ -399,6 +400,7 @@ function GRIP:HandleSlash(msg)
     end
     local tplCount = type(GRIPDB.config.whisperMessages) == "table" and #GRIPDB.config.whisperMessages or 0
     self:Print(("  Templates: %d (%s)"):format(tplCount, GRIPDB.config.whisperRotation or "sequential"))
+    self:Print(("  Sound: %s"):format(GRIPDB.config.soundEnabled and "ON" or "OFF"))
     self:Debug("Status requested.")
     return
   end
@@ -682,6 +684,14 @@ function GRIP:HandleSlash(msg)
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       GRIPDB.config.optOutDetection = v
       self:Print("Opt-out detection: " .. (v and "ON" or "OFF"))
+      return
+    end
+
+    if key == "sound" or key == "sounds" then
+      local low = (val or ""):lower()
+      local v = (low == "on" or low == "1" or low == "true" or low == "yes")
+      GRIPDB.config.soundEnabled = v
+      self:Print("Sound feedback: " .. (v and "ON" or "OFF"))
       return
     end
 

@@ -249,6 +249,13 @@ local function UpdateScrollContentHeight(settings)
   consider(settings.whisperSF)
   consider(settings.whisperHdr)
 
+  consider(settings.soundCapWarning)
+  consider(settings.soundScanComplete)
+  consider(settings.soundInviteAccepted)
+  consider(settings.soundWhisperDone)
+  consider(settings.soundEnabled)
+  consider(settings.soundHdr)
+
   consider(settings.clearFilters)
   consider(settings.classList)
   consider(settings.raceList)
@@ -783,6 +790,42 @@ function GRIP:UI_CreateSettings(parent)
   end)
   settings.whisperRotRand:SetPoint("LEFT", settings.whisperRotSeq, "RIGHT", 4, 0)
 
+  -- Sound Feedback section
+  settings.soundHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  settings.soundHdr:SetPoint("TOPLEFT", settings.whisperSave, "BOTTOMLEFT", 0, -16)
+  settings.soundHdr:SetText("Sound Feedback")
+
+  settings.soundEnabled = W.CreateCheckbox(s, "Enable sound feedback", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    GRIPDB.config.soundEnabled = btn:GetChecked() and true or false
+    GRIP:UpdateUI()
+  end)
+  settings.soundEnabled:SetPoint("TOPLEFT", settings.soundHdr, "BOTTOMLEFT", 0, -4)
+
+  settings.soundWhisperDone = W.CreateCheckbox(s, "Whisper queue complete", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    GRIPDB.config.soundWhisperDone = btn:GetChecked() and true or false
+  end)
+  settings.soundWhisperDone:SetPoint("TOPLEFT", settings.soundEnabled, "BOTTOMLEFT", 16, -2)
+
+  settings.soundInviteAccepted = W.CreateCheckbox(s, "Invite accepted", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    GRIPDB.config.soundInviteAccepted = btn:GetChecked() and true or false
+  end)
+  settings.soundInviteAccepted:SetPoint("TOPLEFT", settings.soundWhisperDone, "BOTTOMLEFT", 0, -2)
+
+  settings.soundScanComplete = W.CreateCheckbox(s, "Scan results found", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    GRIPDB.config.soundScanComplete = btn:GetChecked() and true or false
+  end)
+  settings.soundScanComplete:SetPoint("TOPLEFT", settings.soundInviteAccepted, "BOTTOMLEFT", 0, -2)
+
+  settings.soundCapWarning = W.CreateCheckbox(s, "Daily cap warning", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    GRIPDB.config.soundCapWarning = btn:GetChecked() and true or false
+  end)
+  settings.soundCapWarning:SetPoint("TOPLEFT", settings.soundScanComplete, "BOTTOMLEFT", 0, -2)
+
   -- Initial layout pass (UI.lua will also call this on resize).
   pcall(function() GRIP:UI_LayoutSettings() end)
 
@@ -833,6 +876,12 @@ function GRIP:UI_UpdateSettings()
     SetEnabledSafe(s.whisperRotSeq, false)
     SetEnabledSafe(s.whisperRotRand, false)
 
+    SetEnabledSafe(s.soundEnabled, false)
+    SetEnabledSafe(s.soundWhisperDone, false)
+    SetEnabledSafe(s.soundInviteAccepted, false)
+    SetEnabledSafe(s.soundScanComplete, false)
+    SetEnabledSafe(s.soundCapWarning, false)
+
     if s.whisperRemaining then s.whisperRemaining:SetText("") end
     pcall(function() GRIP:UI_LayoutSettings() end)
     return
@@ -882,6 +931,19 @@ function GRIP:UI_UpdateSettings()
   end
   UpdateRotationHighlight(s)
   EnforceWhisperBudget(s, s.whisperEdit)
+
+  -- Sound checkboxes
+  local soundOn = GRIPDB.config.soundEnabled and true or false
+  SetEnabledSafe(s.soundEnabled, true)
+  s.soundEnabled:SetChecked(soundOn)
+  SetEnabledSafe(s.soundWhisperDone, soundOn)
+  SetEnabledSafe(s.soundInviteAccepted, soundOn)
+  SetEnabledSafe(s.soundScanComplete, soundOn)
+  SetEnabledSafe(s.soundCapWarning, soundOn)
+  s.soundWhisperDone:SetChecked(GRIPDB.config.soundWhisperDone and true or false)
+  s.soundInviteAccepted:SetChecked(GRIPDB.config.soundInviteAccepted and true or false)
+  s.soundScanComplete:SetChecked(GRIPDB.config.soundScanComplete and true or false)
+  s.soundCapWarning:SetChecked(GRIPDB.config.soundCapWarning and true or false)
 
   -- Keep layout responsive (UI.lua calls it too, but this makes Settings robust if called directly).
   pcall(function() GRIP:UI_LayoutSettings() end)
