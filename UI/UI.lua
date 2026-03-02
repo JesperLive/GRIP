@@ -477,11 +477,6 @@ function GRIP:CreateUI()
       f._ticker = nil
     end
 
-    -- Restore normal key handling when closed.
-    if f.SetPropagateKeyboardInput then
-      f:SetPropagateKeyboardInput(true)
-    end
-
     SaveFrameGeometry(f)
   end)
 
