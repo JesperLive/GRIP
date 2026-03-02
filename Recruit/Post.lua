@@ -172,6 +172,57 @@ function GRIP:QueuePostCycle(reason)
   end
 end
 
+function GRIP:AutoDrainPostQueueGhost()
+  if not GRIP.Ghost or not GRIP.Ghost:IsSessionActive() then return end
+
+  state.postQueue = state.postQueue or {}
+  PurgeBlacklistedFromPostQueue(self)
+  if #state.postQueue == 0 then return end
+
+  local queued = 0
+  while #state.postQueue > 0 do
+    local task = state.postQueue[1]
+    if not task then break end
+
+    local token = (task.channelToken or ""):lower()
+    local channelId, channelName
+    if token == "general" then
+      channelId, channelName = GetChannelIdByToken("general")
+    elseif token == "trade" then
+      channelId, channelName = GetChannelIdByToken("trade")
+    end
+
+    if not channelId then
+      self:Debug("AutoDrainPostQueueGhost: channel not found for", task.channelToken, "— leaving in queue")
+      break
+    end
+
+    table.remove(state.postQueue, 1)
+
+    if IsBlank(task.msg) then
+      -- skip blank
+    elseif PostBlacklistGate(self, task.msg, GateCtx("ghost-auto", { channel = task.channelToken })) then
+      -- skip blacklisted target
+    else
+      local postMsg = task.msg
+      local postChannelId = channelId
+      local postChannelName = channelName or task.channelToken
+      GRIP.Ghost:QueueAction("post", function()
+        GRIP:SendChatMessageCompat(postMsg, "CHANNEL", nil, postChannelId)
+        GRIP:RecordCampaignAction("post")
+        GRIP:Print(("Posted (ghost) to %s"):format(postChannelName))
+        GRIP:Debug("Post (ghost-auto) ->", postChannelName, postMsg)
+      end, { channel = task.channelToken })
+      queued = queued + 1
+    end
+  end
+
+  if queued > 0 then
+    self:Debug("AutoDrainPostQueueGhost: queued", queued, "posts through Ghost")
+    self:UpdateUI()
+  end
+end
+
 function GRIP:StartPostScheduler()
   local cfg = GetCfg()
   if not cfg then return end
@@ -198,6 +249,10 @@ function GRIP:StartPostScheduler()
     interval = GRIP:Clamp(tonumber(cfg2.postIntervalMinutes) or 15, 1, 180) * 60
     if GetTime() >= nextAt then
       GRIP:QueuePostCycle("scheduled")
+      -- Phase 2e: auto-drain through Ghost if session active
+      if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
+        GRIP:AutoDrainPostQueueGhost()
+      end
       nextAt = GetTime() + interval
     end
   end)
@@ -308,6 +363,7 @@ function GRIP:PostNext()
     local postChannelName = channelName or task.channelToken
     GRIP.Ghost:QueueAction("post", function()
       GRIP:SendChatMessageCompat(postMsg, "CHANNEL", nil, postChannelId)
+      GRIP:RecordCampaignAction("post")
       GRIP:Print(("Posted (ghost) to %s"):format(postChannelName))
       GRIP:Debug("Post (ghost) ->", postChannelName, postMsg)
     end, { channel = task.channelToken })
@@ -321,6 +377,7 @@ function GRIP:PostNext()
 
   -- Restricted (#hwevent) for chatType "CHANNEL".
   self:SendChatMessageCompat(task.msg, "CHANNEL", nil, channelId)
+  self:RecordCampaignAction("post")
 
   self:Print(("Posted to %s: %s"):format(channelName or task.channelToken, task.msg))
 
