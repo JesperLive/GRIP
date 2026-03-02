@@ -158,40 +158,35 @@ local function SeedRaces(list)
 end
 
 local function SeedZones(list)
-  if #list > 10 then return end
-
-  local seeded = false
   local src, method = GRIP:GetBestZonesListForUI()
-  if type(src) == "table" and #src > 0 then
-    local filtered = {}
-    for i = 1, #src do
-      local n = src[i]
-      if GRIP:ShouldIncludeZoneName(n) then
-        filtered[#filtered + 1] = n
-      end
-    end
-    filtered = U.SortUnique(filtered)
-
-    if #filtered > 0 then
-      wipe(list)
-      for i = 1, #filtered do
-        list[i] = filtered[i]
-      end
-      seeded = true
-      GRIP:Debug("SeedZones: populated zone list:", #list, "method=", method)
-    end
-  end
-
-  if not seeded then
+  if type(src) ~= "table" or #src == 0 then
+    -- Fallback: current zone
     local z = (GetRealZoneText and GetRealZoneText()) or ""
     if z ~= "" then
-      U.EnsureInList(list, z)
-      local sorted = U.SortUnique(list)
       wipe(list)
-      for i = 1, #sorted do list[i] = sorted[i] end
-      GRIP:Debug("SeedZones: fallback current zone only:", z)
+      list[1] = z
+    end
+    return
+  end
+
+  local filtered = {}
+  for i = 1, #src do
+    if GRIP:ShouldIncludeZoneName(src[i]) then
+      filtered[#filtered + 1] = src[i]
     end
   end
+  filtered = U.SortUnique(filtered)
+
+  wipe(list)
+  for i = 1, #filtered do list[i] = filtered[i] end
+
+  -- Append active seasonal zones
+  local seasonal = GRIP:GetActiveSeasonalZones()
+  for _, z in ipairs(seasonal) do
+    U.EnsureInList(list, z)
+  end
+
+  GRIP:Debug("SeedZones:", #list, "zones, method=", method)
 end
 
 local function ClampPersistMax(n)
