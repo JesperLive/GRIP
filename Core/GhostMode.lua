@@ -220,6 +220,24 @@ function Ghost:StartSession()
   state.ghost.queue = state.ghost.queue or {}
 
   Dbg("Ghost Mode session started.")
+
+  -- Auto-rebuild /who queue if empty or exhausted
+  if type(GRIP.BuildWhoQueue) == "function" then
+    local whoQ = state.whoQueue
+    if not whoQ or #whoQ == 0 or (state.whoIndex and state.whoIndex > #whoQ) then
+      GRIP:BuildWhoQueue()
+    end
+  end
+
+  -- Auto-queue first /who scan
+  if type(GRIP.SendNextWho) == "function" then
+    C_Timer.After(0.5, function()
+      if Ghost:IsSessionActive() then
+        GRIP:SendNextWho()
+      end
+    end)
+  end
+
   return true, "started"
 end
 
@@ -228,6 +246,11 @@ function Ghost:StopSession(reason)
 
   state.ghost.sessionActive = false
   state.ghost.queue = {}
+
+  -- Clear ghost-queued pendingWho so it doesn't block future manual scans
+  if state.pendingWho and state.pendingWho.ghostQueued then
+    state.pendingWho = nil
+  end
 
   -- Set persistent cooldown
   local cfg = GetCfg()

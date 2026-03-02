@@ -398,6 +398,42 @@ function GRIP:SendNextWho()
 
   local filter = state.whoQueue[state.whoIndex]
   state.whoIndex = state.whoIndex + 1
+
+  -- Ghost Mode: queue scan instead of executing directly
+  if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
+    state.pendingWho = { filter = filter, sentAt = 0, ghostQueued = true }
+    local capturedFilter = filter
+    GRIP.Ghost:QueueAction("scan", function()
+      if state.pendingWho and state.pendingWho.filter == capturedFilter then
+        state.pendingWho.sentAt = GetTime()
+        state.pendingWho.ghostQueued = nil
+      end
+      state.lastWhoSentAt = GetTime()
+      if C_FriendList and C_FriendList.SetWhoToUi then
+        C_FriendList.SetWhoToUi(true)
+      end
+      self:Debug("SendWho (ghost):", capturedFilter)
+      C_FriendList.SendWho(capturedFilter,
+        Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
+      C_Timer.After(10, function()
+        if state.pendingWho and state.pendingWho.filter == capturedFilter
+           and (GetTime() - state.pendingWho.sentAt) >= 10 then
+          self:Debug("WHO timeout (ghost):", capturedFilter)
+          state.pendingWho = nil
+          self:UpdateUI()
+          if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
+            self:SendNextWho()
+          end
+        end
+      end)
+    end, { filter = capturedFilter })
+    self:Print(("Queued /who (Ghost): %s (%d/%d)"):format(
+      filter, state.whoIndex - 1, #state.whoQueue))
+    self:UpdateUI()
+    return true
+  end
+
+  -- Normal (non-ghost) path
   state.lastWhoSentAt = now
   state.pendingWho = { filter = filter, sentAt = now }
 
@@ -506,5 +542,15 @@ function GRIP:OnWhoListUpdate()
 
   C_Timer.After(0, function()
     GRIP:ProcessWhoResults(pending)
+    -- Ghost Mode auto-chain: queue next scan after interval
+    if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
+      local cfg = (GRIPDB and GRIPDB.config) or {}
+      local interval = math.max(tonumber(cfg.minWhoInterval) or 15, 15)
+      C_Timer.After(interval, function()
+        if GRIP.Ghost and GRIP.Ghost:IsSessionActive() and not state.pendingWho then
+          GRIP:SendNextWho()
+        end
+      end)
+    end
   end)
 end
