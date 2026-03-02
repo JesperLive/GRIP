@@ -252,6 +252,11 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
       GRIP:Debug("Guild link warmed on CLUB_FINDER_RECRUITMENT_POST_RETURNED:",
         (link ~= "") and "success" or "still empty")
     end
+    -- Cancel retry ticker if still running — we got the data
+    if GRIP.state._gripGuildLinkTicker then
+      GRIP.state._gripGuildLinkTicker:Cancel()
+      GRIP.state._gripGuildLinkTicker = nil
+    end
     return
   end
 
@@ -268,20 +273,47 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     -- Request posting data from C_ClubFinder (async — fires CLUB_FINDER_RECRUITMENT_POST_RETURNED)
     if C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
       local ok, cid = pcall(C_Club.GetGuildClubId)
-      if ok and cid and not GRIP.state._gripGuildLinkRequested then
+      if ok and cid then
         pcall(C_ClubFinder.RequestPostingInformationFromClubId, cid)
-        GRIP.state._gripGuildLinkRequested = true
       end
     end
 
-    -- Delayed retry: C_ClubFinder data may take a few seconds to cache
-    C_Timer.After(8, function()
-      local link = GRIP:GetGuildFinderLink()
-      if GRIP:IsDebugEnabled(2) then
-        GRIP:Debug("Guild link delayed retry (8s):",
-          (link ~= "") and "success" or "still empty")
-      end
-    end)
+    -- Also fire the bulk posting request (this is what Blizzard's CommunitiesFrame does in OnLoad)
+    if C_ClubFinder and C_ClubFinder.RequestSubscribedClubPostingIDs then
+      pcall(C_ClubFinder.RequestSubscribedClubPostingIDs)
+    end
+
+    -- Start periodic retry ticker (every 15s, up to 2 min) instead of single 8s retry
+    if not GRIP.state._gripGuildLinkTicker then
+      local ticks = 0
+      local maxTicks = 8  -- 8 x 15s = 120s max
+      GRIP.state._gripGuildLinkTicker = C_Timer.NewTicker(15, function(ticker)
+        ticks = ticks + 1
+
+        -- Re-request posting data each tick (cheap, may get faster response on retry)
+        local ok2, cid2 = pcall(C_Club.GetGuildClubId)
+        if ok2 and cid2 and C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
+          pcall(C_ClubFinder.RequestPostingInformationFromClubId, cid2)
+        end
+
+        -- Check if link resolved yet
+        local link = GRIP:GetGuildFinderLink()
+        local resolved = (link ~= "")
+
+        if GRIP:IsDebugEnabled(2) then
+          GRIP:Debug("Guild link retry tick", ticks, "of", maxTicks, ":",
+            resolved and "SUCCESS" or "still empty")
+        end
+
+        if resolved or ticks >= maxTicks then
+          ticker:Cancel()
+          GRIP.state._gripGuildLinkTicker = nil
+          if not resolved and GRIP:IsDebugEnabled(1) then
+            GRIP:Info("Guild link could not resolve after 2 min. Open Guild & Communities to prime cache, or check /grip link")
+          end
+        end
+      end)
+    end
 
     return
   end

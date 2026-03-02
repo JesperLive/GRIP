@@ -149,9 +149,8 @@ function GRIP:_TryLoadClubFinder()
   -- Prime the C_ClubFinder data cache (async — fires CLUB_FINDER_RECRUITMENT_POST_RETURNED)
   if C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
     local ok, cid = pcall(C_Club.GetGuildClubId)
-    if ok and cid and not state._gripGuildLinkRequested then
+    if ok and cid then
       pcall(C_ClubFinder.RequestPostingInformationFromClubId, cid)
-      state._gripGuildLinkRequested = true
     end
   end
 
@@ -267,9 +266,8 @@ function GRIP:GetGuildFinderLink()
   end
 
   -- Path 4: Async request (prime the pump for next call)
-  if C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId and not state._gripGuildLinkRequested then
+  if C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
     pcall(C_ClubFinder.RequestPostingInformationFromClubId, clubId)
-    state._gripGuildLinkRequested = true
     if self:IsDebugEnabled(3) then
       self:Trace("GetGuildFinderLink: Path 4 — requested posting data (async)")
     end
