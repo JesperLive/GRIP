@@ -144,6 +144,66 @@ function GRIP:ShouldIncludeZoneName(name)
   return true
 end
 
+-- ---------------------
+-- Seasonal zone detection
+-- ---------------------
+
+function GRIP:IsDarkmoonFaireActive()
+  if not C_DateAndTime or not C_DateAndTime.GetCurrentCalendarTime then return false end
+  -- Primary: check if calendar API has told us
+  if self.state._seasonalHolidays then
+    return self.state._seasonalHolidays["Darkmoon Faire"] == true
+  end
+  -- Fallback: date math. Faire runs first Sun-Sat of month, portal from Fri before.
+  local t = C_DateAndTime.GetCurrentCalendarTime()
+  if not t or not t.monthDay or not t.weekday then return false end
+  if t.monthDay > 13 then return false end
+  local dayOneWeekday = ((t.weekday - ((t.monthDay - 1) % 7) - 1) % 7) + 1
+  local firstSunday = ((8 - dayOneWeekday) % 7) + 1
+  local portalStart = math.max(1, firstSunday - 2)
+  local faireEnd = firstSunday + 6
+  return t.monthDay >= portalStart and t.monthDay <= faireEnd
+end
+
+function GRIP:IsSeasonalZoneActive(zoneName)
+  local info = GRIP.SEASONAL_ZONES and GRIP.SEASONAL_ZONES[zoneName]
+  if not info then return false end
+  if info.fallback == "darkmoon" then return self:IsDarkmoonFaireActive() end
+  return false
+end
+
+function GRIP:GetActiveSeasonalZones()
+  local out = {}
+  if type(GRIP.SEASONAL_ZONES) ~= "table" then return out end
+  for name, _ in pairs(GRIP.SEASONAL_ZONES) do
+    if self:IsSeasonalZoneActive(name) then
+      out[#out + 1] = name
+    end
+  end
+  table.sort(out)
+  return out
+end
+
+function GRIP:RefreshSeasonalFromCalendar()
+  if not C_Calendar or not C_DateAndTime then return end
+  local t = C_DateAndTime.GetCurrentCalendarTime()
+  if not t then return end
+  local n = C_Calendar.GetNumDayEvents and C_Calendar.GetNumDayEvents(0, t.monthDay) or 0
+  local holidays = {}
+  for i = 1, n do
+    local event = C_Calendar.GetDayEvent and C_Calendar.GetDayEvent(0, t.monthDay, i)
+    if event and event.calendarType == "HOLIDAY" and event.title then
+      holidays[event.title] = true
+    end
+  end
+  self.state._seasonalHolidays = holidays
+  if self:IsDebugEnabled(2) then
+    local names = {}
+    for k in pairs(holidays) do names[#names + 1] = k end
+    self:Debug("Seasonal holidays today:", #names > 0 and table.concat(names, ", ") or "none")
+  end
+end
+
 -- Root map selection is unreliable on some clients; try player map root as fallback.
 function GRIP:GetPlayerMapRoot()
   if not C_Map or not C_Map.GetBestMapForUnit then return nil end
@@ -178,6 +238,14 @@ local function getChildrenRoot0(mapType)
   return getChildren(0, mapType)
 end
 
+local DUNGEON_MAP_TYPE = Enum.UIMapType and Enum.UIMapType.Dungeon  -- value 4
+
+local function isDungeonMap(mapID)
+  if not DUNGEON_MAP_TYPE or not mapID or not C_Map or not C_Map.GetMapInfo then return false end
+  local info = C_Map.GetMapInfo(mapID)
+  return info and info.mapType == DUNGEON_MAP_TYPE
+end
+
 local function markUsed(stats, key)
   stats.used = stats.used or {}
   stats.used[key] = true
@@ -198,7 +266,7 @@ function GRIP:GatherAllZoneNames(withStats)
   if type(zones) == "table" then
     markUsed(stats, "root0_zone")
     for _, c in ipairs(zones) do
-      if c and c.name and self:ShouldIncludeZoneName(c.name) then
+      if c and c.name and not isDungeonMap(c.mapID) and self:ShouldIncludeZoneName(c.name) then
         addName(names, c.name)
       end
     end
@@ -217,7 +285,7 @@ function GRIP:GatherAllZoneNames(withStats)
         local zones2 = getChildren(r.mapID, Enum.UIMapType and Enum.UIMapType.Zone)
         if type(zones2) == "table" then
           for _, z in ipairs(zones2) do
-            if z and z.name and self:ShouldIncludeZoneName(z.name) then
+            if z and z.name and not isDungeonMap(z.mapID) and self:ShouldIncludeZoneName(z.name) then
               addName(names, z.name)
             end
           end
@@ -228,7 +296,7 @@ function GRIP:GatherAllZoneNames(withStats)
               local zones3 = getChildren(c.mapID, Enum.UIMapType and Enum.UIMapType.Zone)
               if type(zones3) == "table" then
                 for _, z in ipairs(zones3) do
-                  if z and z.name and self:ShouldIncludeZoneName(z.name) then
+                  if z and z.name and not isDungeonMap(z.mapID) and self:ShouldIncludeZoneName(z.name) then
                     addName(names, z.name)
                   end
                 end
@@ -251,7 +319,7 @@ function GRIP:GatherAllZoneNames(withStats)
       local zones4 = getChildren(root, Enum.UIMapType and Enum.UIMapType.Zone)
       if type(zones4) == "table" then
         for _, z in ipairs(zones4) do
-          if z and z.name and self:ShouldIncludeZoneName(z.name) then
+          if z and z.name and not isDungeonMap(z.mapID) and self:ShouldIncludeZoneName(z.name) then
             addName(names, z.name)
           end
         end
@@ -288,15 +356,55 @@ function GRIP:GatherAllZoneNames(withStats)
 end
 
 -- Prefer shipped static zones (if present), else deep scan, else hierarchy.
+-- Appends active seasonal zones to the result.
 function GRIP:GetBestZonesListForUI()
+  local base, method
   if type(GRIP.STATIC_ZONES) == "table" and #GRIP.STATIC_ZONES > 0 then
-    return GRIP.STATIC_ZONES, "static"
+    base, method = GRIP.STATIC_ZONES, "static"
+  elseif _G.GRIPDB and GRIPDB.lists and type(GRIPDB.lists.zonesAll) == "table" and #GRIPDB.lists.zonesAll > 0 then
+    base, method = GRIPDB.lists.zonesAll, "zonesAll"
+  else
+    local z, stats = self:GatherAllZoneNames(true)
+    base, method = z, (stats and stats.method) or "hierarchy"
   end
-  if _G.GRIPDB and GRIPDB.lists and type(GRIPDB.lists.zonesAll) == "table" and #GRIPDB.lists.zonesAll > 0 then
-    return GRIPDB.lists.zonesAll, "zonesAll"
+
+  -- Append active seasonal zones
+  local seasonal = self:GetActiveSeasonalZones()
+  if #seasonal > 0 then
+    -- Copy base to avoid mutating the original
+    local combined = {}
+    for i = 1, #base do combined[i] = base[i] end
+    for _, z in ipairs(seasonal) do
+      combined[#combined + 1] = z
+    end
+    return combined, method
   end
-  local z, stats = self:GatherAllZoneNames(true)
-  return z, (stats and stats.method) or "hierarchy"
+
+  return base, method
+end
+
+-- Returns ZONES_BY_EXPANSION with active seasonal zones appended as a group.
+-- Used by the UI to render expansion-grouped checklists.
+function GRIP:GetZonesGroupedForUI()
+  local groups = {}
+  if type(GRIP.ZONES_BY_EXPANSION) == "table" then
+    for _, g in ipairs(GRIP.ZONES_BY_EXPANSION) do
+      local filtered = {}
+      for _, z in ipairs(g.zones) do
+        if self:ShouldIncludeZoneName(z) then
+          filtered[#filtered + 1] = z
+        end
+      end
+      if #filtered > 0 then
+        groups[#groups + 1] = { name = g.name, zones = filtered }
+      end
+    end
+  end
+  local seasonal = self:GetActiveSeasonalZones()
+  if #seasonal > 0 then
+    groups[#groups + 1] = { name = "Seasonal (active)", zones = seasonal }
+  end
+  return groups
 end
 
 function GRIP:ReseedZones()

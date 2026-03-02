@@ -166,6 +166,7 @@ eventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
 eventFrame:RegisterEvent("PLAYER_GUILD_UPDATE")
 eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
 eventFrame:RegisterEvent("INITIAL_CLUBS_LOADED")
+eventFrame:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST")
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
   if event == "ADDON_LOADED" then
@@ -205,6 +206,10 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
   if event == "PLAYER_LOGIN" then
     GRIP:PurgeBlacklist()
     GRIP:StartPostScheduler()
+    -- Request calendar data for seasonal zone detection.
+    if C_Calendar and C_Calendar.OpenCalendar then
+      C_Calendar.OpenCalendar()
+    end
     GRIP:Debug("PLAYER_LOGIN init complete.")
     return
   end
@@ -241,6 +246,11 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
         GRIP.state._gripLastGuildName or "?",
         "link=", (GRIP.state._gripGuildLinkCache and GRIP.state._gripGuildLinkCache ~= "") and "yes" or "no")
     end
+    return
+  end
+
+  if event == "CALENDAR_UPDATE_EVENT_LIST" then
+    GRIP:RefreshSeasonalFromCalendar()
     return
   end
 
