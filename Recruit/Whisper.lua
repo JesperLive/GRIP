@@ -84,6 +84,25 @@ local function IsOptOutMessage(text)
   return false
 end
 
+local function PickWhisperTemplate(cfg)
+  local msgs = cfg.whisperMessages
+  if not msgs or #msgs == 0 then
+    return cfg.whisperMessage or ""
+  end
+  if #msgs == 1 then return msgs[1] end
+
+  if cfg.whisperRotation == "random" then
+    return msgs[math.random(1, #msgs)]
+  end
+
+  -- Sequential (default): round-robin
+  state.whisperTemplateIndex = (state.whisperTemplateIndex or 0) + 1
+  if state.whisperTemplateIndex > #msgs then
+    state.whisperTemplateIndex = 1
+  end
+  return msgs[state.whisperTemplateIndex]
+end
+
 local function ResolvePotentialName(nameMaybe)
   if not nameMaybe or nameMaybe == "" then return nil end
   local pot = GetPotential()
@@ -184,6 +203,12 @@ function GRIP:GetWhisperCapStatus()
     sent = GRIPDB.counters.whispersSent or 0
   end
   return sent, cap
+end
+
+function GRIP:PickWhisperTemplate()
+  local cfg = GetCfg()
+  if not cfg then return "" end
+  return PickWhisperTemplate(cfg)
 end
 
 function GRIP:OnWhisperReceived(senderName, messageText)
@@ -356,7 +381,7 @@ function GRIP:WhisperTick()
     return
   end
 
-  local msg = self:ApplyTemplate(cfg.whisperMessage, name)
+  local msg = self:ApplyTemplate(PickWhisperTemplate(cfg), name)
   if IsBlank(msg) then
     self:Debug("Whisper message blank; skipping:", name)
     entry.whisperAttempted = true

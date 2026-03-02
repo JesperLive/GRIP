@@ -249,7 +249,7 @@ function GRIP:InviteNext()
       return
     end
 
-    local msg = self:ApplyTemplate(cfg.whisperMessage, name)
+    local msg = self:ApplyTemplate(self:PickWhisperTemplate(), name)
 
     entry.whisperAttempted = true
     entry.whisperSuccess = nil

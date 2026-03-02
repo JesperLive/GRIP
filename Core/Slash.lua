@@ -36,6 +36,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip post       - send next queued post (requires hardware event)")
   self:Print("  /grip clear      - clear Potential list")
   self:Print("  /grip status     - print counts")
+  self:Print("  /grip templates list|add|remove|rotation  - manage whisper templates")
   self:Print("  /grip permbl list|add|remove|clear   - manage permanent blacklist (ignore list)")
   self:Print("  /grip tracegate on|off|toggle        - execution gate diagnostics (trace mode)")
 
@@ -305,6 +306,70 @@ function GRIP:HandleSlash(msg)
     return
   end
 
+  if cmd == "templates" or cmd == "template" then
+    local sub, subrest = SplitArgs(rest)
+    subrest = Trim(subrest)
+    local cfg = GRIPDB.config
+
+    if sub == "" or sub == "list" then
+      local msgs = cfg.whisperMessages or {}
+      self:Print(("Whisper templates (%d), rotation: %s"):format(#msgs, cfg.whisperRotation or "sequential"))
+      for i = 1, #msgs do
+        self:Print(("  [%d] %s"):format(i, msgs[i] or ""))
+      end
+      return
+    end
+
+    if sub == "add" then
+      if subrest == "" then
+        self:Print("Usage: /grip templates add <message text>")
+        return
+      end
+      cfg.whisperMessages = cfg.whisperMessages or {}
+      if #cfg.whisperMessages >= 10 then
+        self:Print("Max 10 templates.")
+        return
+      end
+      cfg.whisperMessages[#cfg.whisperMessages + 1] = subrest
+      self:Print(("Added template #%d."):format(#cfg.whisperMessages))
+      return
+    end
+
+    if sub == "remove" or sub == "rm" or sub == "del" then
+      local n = tonumber(subrest)
+      cfg.whisperMessages = cfg.whisperMessages or {}
+      if not n or n < 1 or n > #cfg.whisperMessages then
+        self:Print(("Usage: /grip templates remove <1-%d>"):format(math.max(1, #cfg.whisperMessages)))
+        return
+      end
+      if #cfg.whisperMessages <= 1 then
+        self:Print("Must have at least 1 template.")
+        return
+      end
+      table.remove(cfg.whisperMessages, n)
+      cfg.whisperMessage = cfg.whisperMessages[1] or ""
+      self:Print(("Removed template #%d. (%d remaining)"):format(n, #cfg.whisperMessages))
+      return
+    end
+
+    if sub == "rotation" then
+      local mode = (subrest or ""):lower()
+      if mode == "sequential" or mode == "seq" then
+        cfg.whisperRotation = "sequential"
+        self:Print("Whisper rotation: sequential")
+      elseif mode == "random" or mode == "rand" then
+        cfg.whisperRotation = "random"
+        self:Print("Whisper rotation: random")
+      else
+        self:Print("Usage: /grip templates rotation sequential|random")
+      end
+      return
+    end
+
+    self:Print("Usage: /grip templates list|add <text>|remove <n>|rotation sequential|random")
+    return
+  end
+
   if cmd == "clear" then
     GRIPDB.potential = GRIPDB.potential or {}
     wipe(GRIPDB.potential)
@@ -332,6 +397,8 @@ function GRIP:HandleSlash(msg)
     else
       self:Print(("  Whispers today: %d (no cap)"):format(sent))
     end
+    local tplCount = type(GRIPDB.config.whisperMessages) == "table" and #GRIPDB.config.whisperMessages or 0
+    self:Print(("  Templates: %d (%s)"):format(tplCount, GRIPDB.config.whisperRotation or "sequential"))
     self:Debug("Status requested.")
     return
   end
@@ -497,7 +564,9 @@ function GRIP:HandleSlash(msg)
 
     if key == "whisper" then
       cfg.whisperMessage = (val ~= "" and val) or cfg.whisperMessage
-      self:Print("Whisper message set.")
+      cfg.whisperMessages = cfg.whisperMessages or { cfg.whisperMessage }
+      cfg.whisperMessages[1] = cfg.whisperMessage
+      self:Print("Whisper message set (template #1).")
       self:Debug("Set whisperMessage.")
       return
     end

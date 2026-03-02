@@ -6,6 +6,7 @@ local state = GRIP.state
 local W = GRIP.UIW
 
 local MAX_WHISPER_BYTES = 255
+local MAX_WHISPER_TEMPLATES = 10
 
 local PAD_L = 4
 local PAD_R = 24 -- leave room from right edge inside scroll content
@@ -237,6 +238,9 @@ local function UpdateScrollContentHeight(settings)
     if (not lowest) or (b < lowest) then lowest = b end
   end
 
+  consider(settings.whisperRotRand)
+  consider(settings.whisperRotSeq)
+  consider(settings.whisperRotLbl)
   consider(settings.whisperPreview)
   consider(settings.whisperSave)
   consider(settings.whisperInsertPlayer)
@@ -262,6 +266,60 @@ local function UpdateScrollContentHeight(settings)
   local needed = (top - lowest) + 28
   if needed < 520 then needed = 520 end
   c:SetHeight(needed)
+end
+
+-- Template navigation helpers for multi-template whisper editor
+local function UpdateRotationHighlight(s)
+  if not s or not HasDB() then return end
+  local mode = GRIPDB.config.whisperRotation or "sequential"
+  if s.whisperRotSeq then s.whisperRotSeq:SetAlpha(mode == "sequential" and 1.0 or 0.5) end
+  if s.whisperRotRand then s.whisperRotRand:SetAlpha(mode == "random" and 1.0 or 0.5) end
+end
+
+local function UpdateWhisperNavText(s)
+  if not s then return end
+  local total = s._whisperDrafts and #s._whisperDrafts or 0
+  local idx = s._whisperIdx or 1
+  if s.whisperNav then
+    s.whisperNav:SetText(("Message %d/%d"):format(idx, total))
+  end
+  SetEnabledSafe(s.whisperPrev, idx > 1)
+  SetEnabledSafe(s.whisperNext, idx < total)
+  SetEnabledSafe(s.whisperRemove, total > 1)
+  SetEnabledSafe(s.whisperAdd, total < MAX_WHISPER_TEMPLATES)
+end
+
+local function ShowWhisperTemplate(s, idx)
+  if not s or not s._whisperDrafts then return end
+  idx = idx or s._whisperIdx or 1
+  if idx < 1 then idx = 1 end
+  if idx > #s._whisperDrafts then idx = #s._whisperDrafts end
+  s._whisperIdx = idx
+  ProgrammaticSet(s.whisperEdit, s._whisperDrafts[idx] or "")
+  s.whisperEdit._gripDirty = false
+  UpdateWhisperNavText(s)
+  UpdateWhisperBudgetUI(s)
+end
+
+local function SaveCurrentDraft(s)
+  if not s or not s._whisperDrafts or not s._whisperIdx then return end
+  if s.whisperEdit then
+    s._whisperDrafts[s._whisperIdx] = s.whisperEdit:GetText() or ""
+  end
+end
+
+local function LoadWhisperDrafts(s)
+  if not HasDB() then return end
+  local msgs = GRIPDB.config.whisperMessages
+  s._whisperDrafts = {}
+  if type(msgs) == "table" and #msgs > 0 then
+    for i = 1, #msgs do
+      s._whisperDrafts[i] = msgs[i] or ""
+    end
+  else
+    s._whisperDrafts = { GRIPDB.config.whisperMessage or "" }
+  end
+  s._whisperIdx = 1
 end
 
 -- -----------------------------
@@ -353,7 +411,7 @@ function GRIP:UI_LayoutSettings()
 
   if settings.whisperSF then
     settings.whisperSF:ClearAllPoints()
-    settings.whisperSF:SetPoint("TOPLEFT", settings.whisperHdr, "BOTTOMLEFT", 0, -6)
+    settings.whisperSF:SetPoint("TOPLEFT", settings.whisperPrev or settings.whisperHdr, "BOTTOMLEFT", 0, -6)
     settings.whisperSF:SetPoint("TOPRIGHT", settings.content, "TOPRIGHT", -PAD_R, 0)
   end
 
@@ -399,6 +457,15 @@ function GRIP:UI_LayoutSettings()
 
     settings.whisperSave:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -6)
     settings.whisperPreview:SetPoint("LEFT", settings.whisperSave, "RIGHT", 8, 0)
+  end
+
+  if settings.whisperRotLbl and settings.whisperRotSeq and settings.whisperRotRand then
+    settings.whisperRotLbl:ClearAllPoints()
+    settings.whisperRotSeq:ClearAllPoints()
+    settings.whisperRotRand:ClearAllPoints()
+    settings.whisperRotLbl:SetPoint("LEFT", settings.whisperPreview, "RIGHT", 16, 0)
+    settings.whisperRotSeq:SetPoint("LEFT", settings.whisperRotLbl, "RIGHT", 4, 0)
+    settings.whisperRotRand:SetPoint("LEFT", settings.whisperRotSeq, "RIGHT", 4, 0)
   end
 
   UpdateScrollContentHeight(settings)
@@ -556,11 +623,58 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.whisperHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   settings.whisperHdr:SetPoint("TOPLEFT", settings.classList, "BOTTOMLEFT", 0, -12)
-  settings.whisperHdr:SetText("Whisper message (supports {player} {guild} {guildlink})")
+  settings.whisperHdr:SetText("Whisper Templates (supports {player} {guild} {guildlink})")
 
-  -- Create with tiny initial width; layout hook anchors + sizes it properly.
+  -- Template navigation bar
+  settings.whisperPrev = W.CreateUIButton(s, "Prev", 40, 20, function()
+    if not HasDB() then return end
+    SaveCurrentDraft(settings)
+    ShowWhisperTemplate(settings, (settings._whisperIdx or 1) - 1)
+  end)
+  settings.whisperPrev:SetPoint("TOPLEFT", settings.whisperHdr, "BOTTOMLEFT", 0, -6)
+
+  settings.whisperNav = s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  settings.whisperNav:SetPoint("LEFT", settings.whisperPrev, "RIGHT", 6, 0)
+  settings.whisperNav:SetText("Message 1/1")
+
+  settings.whisperNext = W.CreateUIButton(s, "Next", 40, 20, function()
+    if not HasDB() then return end
+    SaveCurrentDraft(settings)
+    ShowWhisperTemplate(settings, (settings._whisperIdx or 1) + 1)
+  end)
+  settings.whisperNext:SetPoint("LEFT", settings.whisperNav, "RIGHT", 6, 0)
+
+  settings.whisperAdd = W.CreateUIButton(s, "+ Add", 50, 20, function()
+    if not HasDB() then return end
+    settings._whisperDrafts = settings._whisperDrafts or { "" }
+    if #settings._whisperDrafts >= MAX_WHISPER_TEMPLATES then
+      GRIP:Print(("Max %d templates."):format(MAX_WHISPER_TEMPLATES))
+      return
+    end
+    SaveCurrentDraft(settings)
+    settings._whisperDrafts[#settings._whisperDrafts + 1] = ""
+    ShowWhisperTemplate(settings, #settings._whisperDrafts)
+    settings.whisperEdit:SetFocus()
+  end)
+  settings.whisperAdd:SetPoint("LEFT", settings.whisperNext, "RIGHT", 12, 0)
+
+  settings.whisperRemove = W.CreateUIButton(s, "- Remove", 64, 20, function()
+    if not HasDB() then return end
+    settings._whisperDrafts = settings._whisperDrafts or { "" }
+    if #settings._whisperDrafts <= 1 then
+      GRIP:Print("Must have at least 1 template.")
+      return
+    end
+    local idx = settings._whisperIdx or 1
+    table.remove(settings._whisperDrafts, idx)
+    if idx > #settings._whisperDrafts then idx = #settings._whisperDrafts end
+    ShowWhisperTemplate(settings, idx)
+  end)
+  settings.whisperRemove:SetPoint("LEFT", settings.whisperAdd, "RIGHT", 4, 0)
+
+  -- Edit box (anchored to navigation bar; layout hook re-anchors + sizes it)
   settings.whisperSF, settings.whisperEdit = W.CreateMultilineEdit(s, 1, 60)
-  settings.whisperSF:SetPoint("TOPLEFT", settings.whisperHdr, "BOTTOMLEFT", 0, -6)
+  settings.whisperSF:SetPoint("TOPLEFT", settings.whisperPrev, "BOTTOMLEFT", 0, -6)
 
   -- Expansion-aware "remaining" counter (bottom-right of the edit area).
   settings.whisperRemaining = settings.whisperSF:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -575,7 +689,11 @@ function GRIP:UI_CreateSettings(parent)
 
       settings.whisperEdit._gripDirty = true
 
-      -- Only enforce on actual user edits (typing/paste), not our own ProgrammaticSet.
+      -- Keep draft buffer in sync with live edits.
+      if settings._whisperDrafts and settings._whisperIdx then
+        settings._whisperDrafts[settings._whisperIdx] = eb:GetText() or ""
+      end
+
       if user then
         EnforceWhisperBudget(settings, eb)
       else
@@ -587,45 +705,46 @@ function GRIP:UI_CreateSettings(parent)
   settings.whisperAppendLink = W.CreateUIButton(s, "Insert {guildlink}", 140, 20, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
     local ok = TryInsertTokenAtCursorWithBudget(settings, settings.whisperEdit, "{guildlink}")
-    if not ok then
-      GRIP:Print("No room to insert {guildlink} (max 255 after expansion).")
-    end
+    if not ok then GRIP:Print("No room to insert {guildlink} (max 255 after expansion).") end
   end)
   settings.whisperAppendLink:SetPoint("TOPLEFT", settings.whisperSF, "BOTTOMLEFT", 0, -6)
 
   settings.whisperInsertGuild = W.CreateUIButton(s, "Insert {guild}", 110, 20, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
     local ok = TryInsertTokenAtCursorWithBudget(settings, settings.whisperEdit, "{guild}")
-    if not ok then
-      GRIP:Print("No room to insert {guild} (max 255 after expansion).")
-    end
+    if not ok then GRIP:Print("No room to insert {guild} (max 255 after expansion).") end
   end)
   settings.whisperInsertGuild:SetPoint("LEFT", settings.whisperAppendLink, "RIGHT", 8, 0)
 
   settings.whisperInsertPlayer = W.CreateUIButton(s, "Insert {player}", 120, 20, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
     local ok = TryInsertTokenAtCursorWithBudget(settings, settings.whisperEdit, "{player}")
-    if not ok then
-      GRIP:Print("No room to insert {player} (max 255 after expansion).")
-    end
+    if not ok then GRIP:Print("No room to insert {player} (max 255 after expansion).") end
   end)
   settings.whisperInsertPlayer:SetPoint("LEFT", settings.whisperInsertGuild, "RIGHT", 8, 0)
 
-  settings.whisperSave = W.CreateUIButton(s, "Save", 70, 20, function()
+  settings.whisperSave = W.CreateUIButton(s, "Save All", 70, 20, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
     settings.whisperEdit:ClearFocus()
+    SaveCurrentDraft(settings)
 
-    -- Should already be enforced, but keep the check.
-    UpdateWhisperBudgetUI(settings)
-    local bytes = EstimateWhisperRenderedBytes(settings.whisperEdit:GetText() or "")
-    if bytes > MAX_WHISPER_BYTES then
-      GRIP:Print("Whisper message is too long after token expansion (max 255).")
-      return
+    -- Validate all templates before saving.
+    local drafts = settings._whisperDrafts or {}
+    for i = 1, #drafts do
+      if EstimateWhisperRenderedBytes(drafts[i]) > MAX_WHISPER_BYTES then
+        GRIP:Print(("Template %d is too long after token expansion (max 255)."):format(i))
+        ShowWhisperTemplate(settings, i)
+        return
+      end
     end
 
-    GRIPDB.config.whisperMessage = settings.whisperEdit:GetText() or GRIPDB.config.whisperMessage
+    GRIPDB.config.whisperMessages = {}
+    for i = 1, #drafts do
+      GRIPDB.config.whisperMessages[i] = drafts[i]
+    end
+    GRIPDB.config.whisperMessage = GRIPDB.config.whisperMessages[1] or ""
     ClearDirty(settings.whisperEdit)
-    GRIP:Print("Whisper message saved.")
+    GRIP:Print(("Saved %d whisper template(s)."):format(#drafts))
     GRIP:UpdateUI()
   end)
   settings.whisperSave:SetPoint("TOPLEFT", settings.whisperAppendLink, "BOTTOMLEFT", 0, -6)
@@ -636,7 +755,7 @@ function GRIP:UI_CreateSettings(parent)
     UpdateWhisperBudgetUI(settings)
     local bytes = EstimateWhisperRenderedBytes(settings.whisperEdit:GetText() or "")
     if bytes > MAX_WHISPER_BYTES then
-      GRIP:Print("Whisper message is too long after token expansion (max 255).")
+      GRIP:Print("Template is too long after token expansion (max 255).")
       return
     end
 
@@ -644,6 +763,25 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:Print("Preview: " .. msg)
   end)
   settings.whisperPreview:SetPoint("LEFT", settings.whisperSave, "RIGHT", 8, 0)
+
+  -- Rotation mode selector
+  settings.whisperRotLbl = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  settings.whisperRotLbl:SetPoint("LEFT", settings.whisperPreview, "RIGHT", 16, 0)
+  settings.whisperRotLbl:SetText("Rotation:")
+
+  settings.whisperRotSeq = W.CreateUIButton(s, "Sequential", 80, 20, function()
+    if not HasDB() then return end
+    GRIPDB.config.whisperRotation = "sequential"
+    UpdateRotationHighlight(settings)
+  end)
+  settings.whisperRotSeq:SetPoint("LEFT", settings.whisperRotLbl, "RIGHT", 4, 0)
+
+  settings.whisperRotRand = W.CreateUIButton(s, "Random", 60, 20, function()
+    if not HasDB() then return end
+    GRIPDB.config.whisperRotation = "random"
+    UpdateRotationHighlight(settings)
+  end)
+  settings.whisperRotRand:SetPoint("LEFT", settings.whisperRotSeq, "RIGHT", 4, 0)
 
   -- Initial layout pass (UI.lua will also call this on resize).
   pcall(function() GRIP:UI_LayoutSettings() end)
@@ -688,6 +826,12 @@ function GRIP:UI_UpdateSettings()
     SetEnabledSafe(s.whisperInsertPlayer, false)
     SetEnabledSafe(s.whisperSave, false)
     SetEnabledSafe(s.whisperPreview, false)
+    SetEnabledSafe(s.whisperPrev, false)
+    SetEnabledSafe(s.whisperNext, false)
+    SetEnabledSafe(s.whisperAdd, false)
+    SetEnabledSafe(s.whisperRemove, false)
+    SetEnabledSafe(s.whisperRotSeq, false)
+    SetEnabledSafe(s.whisperRotRand, false)
 
     if s.whisperRemaining then s.whisperRemaining:SetText("") end
     pcall(function() GRIP:UI_LayoutSettings() end)
@@ -716,6 +860,9 @@ function GRIP:UI_UpdateSettings()
   SetEnabledSafe(s.whisperAppendLink, true)
   SetEnabledSafe(s.whisperInsertGuild, true)
   SetEnabledSafe(s.whisperInsertPlayer, true)
+  SetEnabledSafe(s.whisperAdd, true)
+  SetEnabledSafe(s.whisperRotSeq, true)
+  SetEnabledSafe(s.whisperRotRand, true)
 
   W.SetTextIfUnfocused(s.minEdit, tostring(GRIPDB.config.scanMinLevel or 1))
   W.SetTextIfUnfocused(s.maxEdit, tostring(GRIPDB.config.scanMaxLevel or 90))
@@ -726,9 +873,14 @@ function GRIP:UI_UpdateSettings()
   s.raceList:Render(GRIPDB.lists.races, GRIPDB.filters.races)
   s.classList:Render(GRIPDB.lists.classes, GRIPDB.filters.classes)
 
-  W.SetTextIfUnfocused(s.whisperEdit, GRIPDB.config.whisperMessage or "")
-
-  -- Enforce + refresh budget and Save/Preview enabled state based on current text.
+  -- Multi-template: reload drafts when edit box isn't actively being used.
+  if not s.whisperEdit:HasFocus() and not s.whisperEdit._gripDirty then
+    LoadWhisperDrafts(s)
+    ShowWhisperTemplate(s, s._whisperIdx or 1)
+  else
+    UpdateWhisperNavText(s)
+  end
+  UpdateRotationHighlight(s)
   EnforceWhisperBudget(s, s.whisperEdit)
 
   -- Keep layout responsive (UI.lua calls it too, but this makes Settings robust if called directly).

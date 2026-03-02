@@ -18,6 +18,8 @@ local DEFAULT_DB = {
     -- Whisper settings
     whisperEnabled = true,
     whisperMessage = "Hey {player}! We're recruiting for {guild}. Interested? 🙂 {guildlink}",
+    whisperMessages = {},
+    whisperRotation = "sequential",
     whisperDelay = 2.5,
 
     -- Optional: hide outgoing whisper echo lines ("To X: ...") in your chat frame
@@ -342,6 +344,15 @@ function GRIP:EnsureDB()
   local cfg = GRIPDB.config
   if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB.config.whisperDailyCap end
   if type(cfg.optOutDetection) ~= "boolean" then cfg.optOutDetection = DEFAULT_DB.config.optOutDetection end
+
+  -- Migrate single whisperMessage → whisperMessages array
+  if type(cfg.whisperMessages) ~= "table" or #cfg.whisperMessages == 0 then
+    cfg.whisperMessages = { cfg.whisperMessage or DEFAULT_DB.config.whisperMessage }
+  end
+  cfg.whisperMessage = cfg.whisperMessages[1]
+  if cfg.whisperRotation ~= "random" then
+    cfg.whisperRotation = "sequential"
+  end
 
   NormalizeConfigAliases(cfg)
 
