@@ -90,8 +90,9 @@ local function EstimateWhisperRenderedBytes(rawText)
   local out = rawText
   out = out:gsub("{player}", playerStub)
   out = out:gsub("{name}", playerStub)
-  out = out:gsub("{guild}", guildName)
+  -- Replace {guildlink} BEFORE {guild} — {guild} is a substring of {guildlink}.
   out = out:gsub("{guildlink}", link)
+  out = out:gsub("{guild}", guildName)
 
   out = SanitizeOneLine(out)
   return #out
