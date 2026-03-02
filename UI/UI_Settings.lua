@@ -255,6 +255,11 @@ local function UpdateScrollContentHeight(settings)
   consider(settings.whisperSF)
   consider(settings.whisperHdr)
 
+  consider(settings.ghostApply)
+  consider(settings.ghostMaxLbl)
+  consider(settings.ghostEnabled)
+  consider(settings.ghostHdr)
+
   consider(settings.soundCapWarning)
   consider(settings.soundScanComplete)
   consider(settings.soundInviteAccepted)
@@ -832,6 +837,45 @@ function GRIP:UI_CreateSettings(parent)
   end)
   settings.soundCapWarning:SetPoint("TOPLEFT", settings.soundScanComplete, "BOTTOMLEFT", 0, -2)
 
+  -- Ghost Mode section
+  settings.ghostHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  settings.ghostHdr:SetPoint("TOPLEFT", settings.soundCapWarning, "BOTTOMLEFT", -16, -16)
+  settings.ghostHdr:SetText("Ghost Mode (Experimental)")
+
+  settings.ghostEnabled = W.CreateCheckbox(s, "Enable Ghost Mode", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    GRIPDB.config.ghostModeEnabled = btn:GetChecked() and true or false
+    GRIP:UpdateUI()
+  end)
+  settings.ghostEnabled:SetPoint("TOPLEFT", settings.ghostHdr, "BOTTOMLEFT", 0, -4)
+
+  settings.ghostMaxLbl, settings.ghostMaxEdit = W.CreateLabeledEdit(s, "Session max (min)", 50)
+  settings.ghostMaxLbl:SetPoint("TOPLEFT", settings.ghostEnabled, "BOTTOMLEFT", 16, -6)
+  settings.ghostMaxEdit:SetPoint("LEFT", settings.ghostMaxLbl, "RIGHT", 8, 0)
+
+  settings.ghostCoolLbl, settings.ghostCoolEdit = W.CreateLabeledEdit(s, "Cooldown (min)", 50)
+  settings.ghostCoolLbl:SetPoint("LEFT", settings.ghostMaxEdit, "RIGHT", 16, 0)
+  settings.ghostCoolEdit:SetPoint("LEFT", settings.ghostCoolLbl, "RIGHT", 8, 0)
+
+  settings.ghostApply = W.CreateUIButton(s, "Apply", 60, 22, function()
+    if not HasDB() then return end
+    settings.ghostMaxEdit:ClearFocus()
+    settings.ghostCoolEdit:ClearFocus()
+    local maxV = tonumber(settings.ghostMaxEdit:GetText())
+    local coolV = tonumber(settings.ghostCoolEdit:GetText())
+    if maxV then
+      GRIPDB.config.ghostSessionMaxMinutes = GRIP:Clamp(maxV, 5, 120)
+    end
+    if coolV then
+      GRIPDB.config.ghostCooldownMinutes = GRIP:Clamp(coolV, 1, 60)
+    end
+    ClearDirty(settings.ghostMaxEdit, settings.ghostCoolEdit)
+    GRIP:Print(("Ghost Mode: session max %d min, cooldown %d min"):format(
+      GRIPDB.config.ghostSessionMaxMinutes, GRIPDB.config.ghostCooldownMinutes))
+    GRIP:UpdateUI()
+  end)
+  settings.ghostApply:SetPoint("LEFT", settings.ghostCoolEdit, "RIGHT", 12, 0)
+
   -- Initial layout pass (UI.lua will also call this on resize).
   pcall(function() GRIP:UI_LayoutSettings() end)
 
@@ -887,6 +931,11 @@ function GRIP:UI_UpdateSettings()
     SetEnabledSafe(s.soundInviteAccepted, false)
     SetEnabledSafe(s.soundScanComplete, false)
     SetEnabledSafe(s.soundCapWarning, false)
+
+    SetEnabledSafe(s.ghostEnabled, false)
+    SetEnabledSafe(s.ghostMaxEdit, false)
+    SetEnabledSafe(s.ghostCoolEdit, false)
+    SetEnabledSafe(s.ghostApply, false)
 
     if s.whisperRemaining then s.whisperRemaining:SetText("") end
     pcall(function() GRIP:UI_LayoutSettings() end)
@@ -950,6 +999,16 @@ function GRIP:UI_UpdateSettings()
   s.soundInviteAccepted:SetChecked(GRIPDB.config.soundInviteAccepted and true or false)
   s.soundScanComplete:SetChecked(GRIPDB.config.soundScanComplete and true or false)
   s.soundCapWarning:SetChecked(GRIPDB.config.soundCapWarning and true or false)
+
+  -- Ghost Mode
+  local ghostOn = GRIPDB.config.ghostModeEnabled and true or false
+  SetEnabledSafe(s.ghostEnabled, true)
+  s.ghostEnabled:SetChecked(ghostOn)
+  SetEnabledSafe(s.ghostMaxEdit, ghostOn)
+  SetEnabledSafe(s.ghostCoolEdit, ghostOn)
+  SetEnabledSafe(s.ghostApply, ghostOn)
+  W.SetTextIfUnfocused(s.ghostMaxEdit, tostring(GRIPDB.config.ghostSessionMaxMinutes or 60))
+  W.SetTextIfUnfocused(s.ghostCoolEdit, tostring(GRIPDB.config.ghostCooldownMinutes or 10))
 
   -- Keep layout responsive (UI.lua calls it too, but this makes Settings robust if called directly).
   pcall(function() GRIP:UI_LayoutSettings() end)

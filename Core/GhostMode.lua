@@ -197,6 +197,28 @@ function Ghost:IsSessionActive()
   return state.ghost and state.ghost.sessionActive == true
 end
 
+function Ghost:GetSessionElapsed()
+  if not self:IsSessionActive() then return 0 end
+  local started = state.ghost and state.ghost.sessionStartedAt
+  if not started then return 0 end
+  return time() - started
+end
+
+function Ghost:GetSessionMaxSeconds()
+  local cfg = GetCfg()
+  local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, 5, 120)
+  return maxMin * 60
+end
+
+function Ghost:GetCooldownRemaining()
+  local cfg = GetCfg()
+  if not cfg then return 0 end
+  local until_t = tonumber(cfg.ghostCooldownUntil) or 0
+  local remaining = until_t - time()
+  if remaining < 0 then remaining = 0 end
+  return remaining
+end
+
 function Ghost:StartSession()
   local cfg = GetCfg()
   if not cfg then return false, "no_config" end

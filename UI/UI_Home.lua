@@ -905,16 +905,33 @@ local function LayoutButtons(home)
 
     home.btnWhisperInvite:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -6)
     home.btnPostNext:SetPoint("LEFT", home.btnWhisperInvite, "RIGHT", 8, 0)
-
-    home.hint:ClearAllPoints()
-    home.hint:SetPoint("TOPLEFT", home.btnWhisperInvite, "BOTTOMLEFT", 0, -6)
   else
     home.btnWhisperInvite:SetPoint("LEFT", home.btnScan, "RIGHT", 8, 0)
     home.btnPostNext:SetPoint("LEFT", home.btnWhisperInvite, "RIGHT", 8, 0)
     home.btnClear:SetPoint("TOPRIGHT", home, "TOPRIGHT", -padR, yTop)
+  end
 
-    home.hint:ClearAllPoints()
-    home.hint:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -6)
+  -- Ghost strip anchors below the button rows
+  if home.ghostStrip then
+    home.ghostStrip:ClearAllPoints()
+    if narrow then
+      home.ghostStrip:SetPoint("TOPLEFT", home.btnWhisperInvite, "BOTTOMLEFT", 0, -4)
+    else
+      home.ghostStrip:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -4)
+    end
+    home.ghostStrip:SetPoint("RIGHT", home, "RIGHT", -4, 0)
+  end
+
+  -- Hint always below ghost strip (if shown) or below buttons
+  home.hint:ClearAllPoints()
+  if home.ghostStrip and home.ghostStrip:IsShown() then
+    home.hint:SetPoint("TOPLEFT", home.ghostStrip, "BOTTOMLEFT", 0, -4)
+  else
+    if narrow then
+      home.hint:SetPoint("TOPLEFT", home.btnWhisperInvite, "BOTTOMLEFT", 0, -6)
+    else
+      home.hint:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -6)
+    end
   end
 end
 
@@ -929,6 +946,11 @@ local function LayoutHomePanels(home)
 
   if home.btnWhisperInvite and home.btnWhisperInvite:GetPoint(1) == "TOPLEFT" then
     topY = -96
+  end
+
+  -- Add ghost strip height if visible
+  if home.ghostStrip and home.ghostStrip:IsShown() then
+    topY = topY - 28
   end
 
   local w = tonumber(home:GetWidth()) or 0
@@ -1307,6 +1329,53 @@ local function UpdatePotentialRows(home)
   end
 end
 
+function GRIP:UpdateGhostStrip()
+  if not state.ui or not state.ui.home then return end
+  local home = state.ui.home
+  if not home.ghostStrip then return end
+
+  local Ghost = GRIP.Ghost
+  if not Ghost or not Ghost.IsEnabled then
+    home.ghostStrip:Hide()
+    return
+  end
+  if not Ghost:IsEnabled() then
+    home.ghostStrip:Hide()
+    return
+  end
+
+  home.ghostStrip:Show()
+
+  local function FmtTime(sec)
+    sec = math.max(0, math.floor(sec))
+    return ("%d:%02d"):format(math.floor(sec / 60), sec % 60)
+  end
+
+  if Ghost:IsSessionActive() then
+    local elapsed = Ghost:GetSessionElapsed()
+    local maxSec = Ghost:GetSessionMaxSeconds()
+    local pending = Ghost:GetNumPending()
+    local actions = (state.ghost and state.ghost.sessionActionCount) or 0
+    home.ghostLabel:SetText(
+      ("|cff00ff00Ghost: Active|r  %s / %s  |  Queue: %d  |  Actions: %d"):format(
+        FmtTime(elapsed), FmtTime(maxSec), pending, actions))
+    home.ghostBtn:SetText("Stop")
+    SetEnabledSafe(home.ghostBtn, true)
+  else
+    local cooldown = Ghost:GetCooldownRemaining()
+    if cooldown > 0 then
+      home.ghostLabel:SetText(
+        ("|cffff8800Ghost: Cooldown|r  %s remaining"):format(FmtTime(cooldown)))
+      home.ghostBtn:SetText("Start")
+      SetEnabledSafe(home.ghostBtn, false)
+    else
+      home.ghostLabel:SetText("|cff888888Ghost: Ready|r")
+      home.ghostBtn:SetText("Start")
+      SetEnabledSafe(home.ghostBtn, true)
+    end
+  end
+end
+
 function GRIP:UI_LayoutHome()
   if not state.ui or not state.ui.home then return end
   local home = state.ui.home
@@ -1383,8 +1452,41 @@ function GRIP:UI_CreateHome(parent)
   end)
   home.btnClear:SetPoint("TOPRIGHT", home, "TOPRIGHT", -4, -24)
 
+  -- Ghost Mode status strip
+  home.ghostStrip = CreateFrame("Frame", nil, home)
+  home.ghostStrip:SetHeight(24)
+  home.ghostStrip:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -4)
+  home.ghostStrip:SetPoint("RIGHT", home, "RIGHT", -4, 0)
+
+  home.ghostLabel = home.ghostStrip:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  home.ghostLabel:SetPoint("LEFT", home.ghostStrip, "LEFT", 0, 0)
+  home.ghostLabel:SetJustifyH("LEFT")
+  home.ghostLabel:SetText("")
+
+  home.ghostBtn = W.CreateUIButton(home.ghostStrip, "Start", 60, 20, function()
+    if not HasDB() then return end
+    local Ghost = GRIP.Ghost
+    if not Ghost then return end
+    if Ghost:IsSessionActive() then
+      Ghost:StopSession("manual")
+      GRIP:Print("Ghost Mode session stopped.")
+    else
+      Ghost:StartSession()
+    end
+    GRIP:UpdateUI()
+  end)
+  home.ghostBtn:SetPoint("LEFT", home.ghostLabel, "RIGHT", 8, 0)
+
+  home.ghostStrip._lastUpdate = 0
+  home.ghostStrip:SetScript("OnUpdate", function(self, elapsed)
+    self._lastUpdate = (self._lastUpdate or 0) + elapsed
+    if self._lastUpdate < 1 then return end
+    self._lastUpdate = 0
+    GRIP:UpdateGhostStrip()
+  end)
+
   home.hint = home:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  home.hint:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -6)
+  home.hint:SetPoint("TOPLEFT", home.ghostStrip, "BOTTOMLEFT", 0, -4)
   home.hint:SetText("Tip: /grip help  •  None selected in filters = allow all")
 
   EnsurePotentialTable(home)
@@ -1424,6 +1526,8 @@ function GRIP:UI_UpdateHome()
     SetEnabledSafe(home.btnWhisperInvite, false)
     SetEnabledSafe(home.btnPostNext, false)
     SetEnabledSafe(home.btnClear, false)
+
+    if home.ghostStrip then home.ghostStrip:Hide() end
 
     if home.potEmpty then
       home.potEmpty:SetText("Initializing…")
@@ -1508,6 +1612,7 @@ function GRIP:UI_UpdateHome()
     home.btnPostNext:Enable()
   end
 
+  self:UpdateGhostStrip()
   UpdatePotentialRows(home)
   UpdateBlacklistRows(home)
 end
