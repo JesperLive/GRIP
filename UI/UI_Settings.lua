@@ -7,6 +7,7 @@ local W = GRIP.UIW
 
 local MAX_WHISPER_BYTES = 255
 local MAX_WHISPER_TEMPLATES = 10
+local GUILDLINK_BUDGET_BYTES = 120  -- worst-case clickable link length
 
 local PAD_L = 4
 local PAD_R = 24 -- leave room from right edge inside scroll content
@@ -79,13 +80,18 @@ local function EstimateWhisperRenderedBytes(rawText)
   local inGuild = (guildName ~= "")
 
   -- {guildlink} should budget for the ACTUAL payload string that would be sent.
-  -- If clickable link isn't available, fall back to the guild name (still stable).
+  -- If clickable link isn't available, budget for worst-case link length when
+  -- the template uses {guildlink}, so the counter is conservative (not optimistic).
   local link = ""
   if inGuild and GRIP.GetGuildFinderLink then
     link = GRIP:GetGuildFinderLink() or ""
   end
   if IsBlank(link) then
-    link = inGuild and guildName or "your guild"
+    if rawText:find("{guildlink}") then
+      link = string.rep("X", GUILDLINK_BUDGET_BYTES)
+    else
+      link = inGuild and guildName or "your guild"
+    end
   end
 
   local out = rawText

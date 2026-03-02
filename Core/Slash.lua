@@ -410,19 +410,61 @@ function GRIP:HandleSlash(msg)
 
   if cmd == "link" then
     local guildName = self:GetGuildName()
-    local link = ""
-    if guildName ~= "" then
-      link = self:GetGuildFinderLink() or ""
-    end
-
     if guildName == "" then
       self:Print("Not in a guild (or guild data not loaded yet).")
-    elseif link == "" then
-      self:Print("Guild: " .. guildName)
-      self:Print("No Guild Finder link available (guild may not have an active listing).")
-    else
-      self:Print("Guild: " .. guildName)
+      return
+    end
+    self:Print("Guild: " .. guildName)
+
+    local clubId
+    if C_Club and C_Club.GetGuildClubId then
+      local ok, cid = pcall(C_Club.GetGuildClubId)
+      if ok and cid then clubId = cid end
+    end
+    self:Print("ClubId: " .. (clubId and tostring(clubId) or "nil"))
+
+    -- Path 1: C_ClubFinder API
+    local p1 = "nil"
+    if clubId and C_ClubFinder and C_ClubFinder.GetRecruitingClubInfoFromClubID then
+      local ok, info = pcall(C_ClubFinder.GetRecruitingClubInfoFromClubID, clubId)
+      if ok and info and info.clubFinderGUID then
+        p1 = info.clubFinderGUID
+      end
+    end
+    self:Print("Path 1 (C_ClubFinder): " .. p1)
+
+    -- Path 2: ClubFinderGetCurrentClubListingInfo
+    local p2 = "nil"
+    if clubId and ClubFinderGetCurrentClubListingInfo then
+      local ok, listing = pcall(ClubFinderGetCurrentClubListingInfo, clubId)
+      if ok and listing and listing.clubFinderGUID then
+        p2 = listing.clubFinderGUID
+      end
+    end
+    self:Print("Path 2 (ClubListingInfo): " .. p2)
+
+    -- Path 3: SV cache
+    local p3 = "nil"
+    if _G.GRIPDB and GRIPDB._guildLinkCache and GRIPDB._guildLinkCache.guid then
+      p3 = GRIPDB._guildLinkCache.guid .. " (age: " ..
+        math.floor(time() - (GRIPDB._guildLinkCache.at or 0)) .. "s)"
+    end
+    self:Print("Path 3 (SV cache): " .. p3)
+
+    -- Final resolved link
+    local link = self:GetGuildFinderLink() or ""
+    if link ~= "" then
       self:Print("Link: " .. link)
+      self:Print("Link bytes: " .. #link)
+    else
+      self:Print("Link: (none)")
+      -- Try to prime the pump
+      if clubId and C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
+        pcall(C_ClubFinder.RequestPostingInformationFromClubId, clubId)
+        self:Print("Requested posting data. Try /grip link again in a few seconds.")
+      else
+        self:Print("Open your Communities window once, then try again.")
+      end
     end
     return
   end

@@ -146,13 +146,44 @@ function GRIP:_TryLoadClubFinder()
     pcall(load, "Blizzard_ClubFinder")
   end
 
+  -- Prime the C_ClubFinder data cache (async — fires CLUB_FINDER_RECRUITMENT_POST_RETURNED)
+  if C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
+    local ok, cid = pcall(C_Club.GetGuildClubId)
+    if ok and cid and not state._gripGuildLinkRequested then
+      pcall(C_ClubFinder.RequestPostingInformationFromClubId, cid)
+      state._gripGuildLinkRequested = true
+    end
+  end
+
   return (ClubFinderGetCurrentClubListingInfo ~= nil) and (GetClubFinderLink ~= nil)
 end
 
+-- Store a successful guild link in both runtime and SV caches.
+local function CacheGuildLink(link, guid, guildName)
+  state._gripGuildLinkCache = link
+  state._gripGuildLinkCacheAt = GetTime()
+  state._gripGuildLinkTraced = nil
+
+  if _G.GRIPDB then
+    GRIPDB._guildLinkCache = {
+      link = link,
+      guid = guid,
+      name = guildName,
+      at   = time(),
+    }
+  end
+end
+
 -- Clickable Guild Finder link (if available)
--- Uses ClubFinder listing APIs when present. Cached for 5 minutes.
+-- Multi-path resolution: runtime cache → SV cache → C_ClubFinder API → ClubListingInfo → SV GUID → async request.
 function GRIP:GetGuildFinderLink()
-  -- Return cached link if still fresh.
+  -- If we're not in a guild, invalidate SV cache and bail.
+  if IsInGuild and not IsInGuild() then
+    if _G.GRIPDB then GRIPDB._guildLinkCache = nil end
+    return ""
+  end
+
+  -- Path 0: Runtime cache (5 min TTL)
   local now = GetTime()
   if state._gripGuildLinkCache and state._gripGuildLinkCacheAt then
     if (now - state._gripGuildLinkCacheAt) < 300 then
@@ -160,16 +191,21 @@ function GRIP:GetGuildFinderLink()
     end
   end
 
+  -- Path 0b: SV cache (10 min TTL, survives /reload)
+  if _G.GRIPDB and GRIPDB._guildLinkCache then
+    local sv = GRIPDB._guildLinkCache
+    if sv.link and sv.at and (time() - sv.at) < 600 then
+      -- Promote to runtime cache
+      state._gripGuildLinkCache = sv.link
+      state._gripGuildLinkCacheAt = now
+      if self:IsDebugEnabled(3) then
+        self:Trace("GetGuildFinderLink: resolved from SV cache")
+      end
+      return sv.link
+    end
+  end
+
   if not C_Club or not C_Club.GetGuildClubId then
-    return ""
-  end
-
-  -- These globals may not exist until Blizzard_ClubFinder is loaded.
-  if not ClubFinderGetCurrentClubListingInfo or not GetClubFinderLink then
-    self:_TryLoadClubFinder()
-  end
-
-  if not ClubFinderGetCurrentClubListingInfo or not GetClubFinderLink then
     return ""
   end
 
@@ -178,25 +214,71 @@ function GRIP:GetGuildFinderLink()
     return ""
   end
 
-  local ok2, listing = pcall(ClubFinderGetCurrentClubListingInfo, clubId)
-  if not ok2 or not listing then
-    -- Log once per session to avoid spam.
-    if self:IsDebugEnabled(3) and not state._gripGuildLinkTraced then
-      state._gripGuildLinkTraced = true
-      self:Trace("GetGuildFinderLink: no listing info (guild listing may not be published or not cached yet)")
-    end
-    return ""
-  end
-  if not listing.clubFinderGUID or not listing.name then
-    return ""
+  -- Ensure Blizzard_ClubFinder addon is loaded (needed for GetClubFinderLink global)
+  if not GetClubFinderLink then
+    self:_TryLoadClubFinder()
   end
 
-  local ok3, link = pcall(GetClubFinderLink, listing.clubFinderGUID, listing.name)
-  if ok3 and type(link) == "string" and link ~= "" then
-    state._gripGuildLinkCache = link
-    state._gripGuildLinkCacheAt = now
-    state._gripGuildLinkTraced = nil  -- reset trace flag on success
-    return link
+  local guildName = self:GetGuildName()
+
+  -- Path 1: C_ClubFinder.GetRecruitingClubInfoFromClubID (no UI dependency)
+  if C_ClubFinder and C_ClubFinder.GetRecruitingClubInfoFromClubID then
+    local ok1, info = pcall(C_ClubFinder.GetRecruitingClubInfoFromClubID, clubId)
+    if ok1 and info and info.clubFinderGUID then
+      if self:IsDebugEnabled(3) then
+        self:Trace("GetGuildFinderLink: Path 1 hit (C_ClubFinder), guid=", info.clubFinderGUID)
+      end
+      if GetClubFinderLink then
+        local ok2, link = pcall(GetClubFinderLink, info.clubFinderGUID, info.name or guildName)
+        if ok2 and type(link) == "string" and link ~= "" then
+          CacheGuildLink(link, info.clubFinderGUID, info.name or guildName)
+          return link
+        end
+      end
+    end
+  end
+
+  -- Path 2: ClubFinderGetCurrentClubListingInfo (requires Communities frame opened)
+  if ClubFinderGetCurrentClubListingInfo and GetClubFinderLink then
+    local ok1, listing = pcall(ClubFinderGetCurrentClubListingInfo, clubId)
+    if ok1 and listing and listing.clubFinderGUID and listing.name then
+      if self:IsDebugEnabled(3) then
+        self:Trace("GetGuildFinderLink: Path 2 hit (ClubListingInfo)")
+      end
+      local ok2, link = pcall(GetClubFinderLink, listing.clubFinderGUID, listing.name)
+      if ok2 and type(link) == "string" and link ~= "" then
+        CacheGuildLink(link, listing.clubFinderGUID, listing.name)
+        return link
+      end
+    end
+  end
+
+  -- Path 3: Reconstruct from SV-cached GUID (if we have one but it was expired above)
+  if _G.GRIPDB and GRIPDB._guildLinkCache and GRIPDB._guildLinkCache.guid and GetClubFinderLink then
+    local sv = GRIPDB._guildLinkCache
+    if self:IsDebugEnabled(3) then
+      self:Trace("GetGuildFinderLink: Path 3 trying SV GUID reconstruction")
+    end
+    local ok1, link = pcall(GetClubFinderLink, sv.guid, sv.name or guildName)
+    if ok1 and type(link) == "string" and link ~= "" then
+      CacheGuildLink(link, sv.guid, sv.name or guildName)
+      return link
+    end
+  end
+
+  -- Path 4: Async request (prime the pump for next call)
+  if C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId and not state._gripGuildLinkRequested then
+    pcall(C_ClubFinder.RequestPostingInformationFromClubId, clubId)
+    state._gripGuildLinkRequested = true
+    if self:IsDebugEnabled(3) then
+      self:Trace("GetGuildFinderLink: Path 4 — requested posting data (async)")
+    end
+  end
+
+  -- Log once per session if all paths failed
+  if self:IsDebugEnabled(3) and not state._gripGuildLinkTraced then
+    state._gripGuildLinkTraced = true
+    self:Trace("GetGuildFinderLink: all paths returned nil (listing may not be published or cached yet)")
   end
 
   return ""

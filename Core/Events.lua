@@ -167,6 +167,7 @@ eventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
 eventFrame:RegisterEvent("PLAYER_GUILD_UPDATE")
 eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
 eventFrame:RegisterEvent("INITIAL_CLUBS_LOADED")
+eventFrame:RegisterEvent("CLUB_FINDER_RECRUITMENT_POST_RETURNED")
 eventFrame:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST")
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
@@ -244,6 +245,16 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     return
   end
 
+  if event == "CLUB_FINDER_RECRUITMENT_POST_RETURNED" then
+    -- Data is now cached from our RequestPostingInformationFromClubId call.
+    local link = GRIP:GetGuildFinderLink()
+    if GRIP:IsDebugEnabled(2) then
+      GRIP:Debug("Guild link warmed on CLUB_FINDER_RECRUITMENT_POST_RETURNED:",
+        (link ~= "") and "success" or "still empty")
+    end
+    return
+  end
+
   if event == "INITIAL_CLUBS_LOADED" then
     -- C_Club.GetGuildClubId() becomes available now; warm guild link cache.
     GRIP:GetGuildName()
@@ -253,6 +264,25 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
         GRIP.state._gripLastGuildName or "?",
         "link=", (GRIP.state._gripGuildLinkCache and GRIP.state._gripGuildLinkCache ~= "") and "yes" or "no")
     end
+
+    -- Request posting data from C_ClubFinder (async — fires CLUB_FINDER_RECRUITMENT_POST_RETURNED)
+    if C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
+      local ok, cid = pcall(C_Club.GetGuildClubId)
+      if ok and cid and not GRIP.state._gripGuildLinkRequested then
+        pcall(C_ClubFinder.RequestPostingInformationFromClubId, cid)
+        GRIP.state._gripGuildLinkRequested = true
+      end
+    end
+
+    -- Delayed retry: C_ClubFinder data may take a few seconds to cache
+    C_Timer.After(8, function()
+      local link = GRIP:GetGuildFinderLink()
+      if GRIP:IsDebugEnabled(2) then
+        GRIP:Debug("Guild link delayed retry (8s):",
+          (link ~= "") and "success" or "still empty")
+      end
+    end)
+
     return
   end
 
