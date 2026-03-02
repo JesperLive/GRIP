@@ -367,6 +367,11 @@ function GRIP:EnsureDB()
     cfg.whisperRotation = "sequential"
   end
 
+  -- Defensive cap: max 10 templates (protects against manual WTF edits)
+  while type(cfg.whisperMessages) == "table" and #cfg.whisperMessages > 10 do
+    table.remove(cfg.whisperMessages)
+  end
+
   NormalizeConfigAliases(cfg)
 
   SeedClasses(GRIPDB.lists.classes)

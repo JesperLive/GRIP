@@ -36,6 +36,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip post       - send next queued post (requires hardware event)")
   self:Print("  /grip clear      - clear Potential list")
   self:Print("  /grip status     - print counts")
+  self:Print("  /grip link           - show current guild name + Guild Finder link resolution")
   self:Print("  /grip templates list|add|remove|rotation  - manage whisper templates")
   self:Print("  /grip permbl list|add|remove|clear   - manage permanent blacklist (ignore list)")
   self:Print("  /grip tracegate on|off|toggle        - execution gate diagnostics (trace mode)")
@@ -72,6 +73,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip set dailycap <number>              (daily whisper cap; 0 = unlimited)")
   self:Print("  /grip set optout on|off                  (auto-blacklist opt-out replies)")
   self:Print("  /grip set sound on|off                   (master toggle for sound feedback)")
+  self:Print("Note: {guildlink} in whisper/post messages requires an active Guild Finder listing.")
 end
 
 local function PrintPermBLUsage()
@@ -402,6 +404,25 @@ function GRIP:HandleSlash(msg)
     self:Print(("  Templates: %d (%s)"):format(tplCount, GRIPDB.config.whisperRotation or "sequential"))
     self:Print(("  Sound: %s"):format(GRIPDB.config.soundEnabled and "ON" or "OFF"))
     self:Debug("Status requested.")
+    return
+  end
+
+  if cmd == "link" then
+    local guildName = self:GetGuildName()
+    local link = ""
+    if guildName ~= "" then
+      link = self:GetGuildFinderLink() or ""
+    end
+
+    if guildName == "" then
+      self:Print("Not in a guild (or guild data not loaded yet).")
+    elseif link == "" then
+      self:Print("Guild: " .. guildName)
+      self:Print("No Guild Finder link available (guild may not have an active listing).")
+    else
+      self:Print("Guild: " .. guildName)
+      self:Print("Link: " .. link)
+    end
     return
   end
 
