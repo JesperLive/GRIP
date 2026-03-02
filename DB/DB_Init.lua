@@ -143,6 +143,8 @@ local PLAYABLE_RACE_IDS = {
 local function SeedRaces(list)
   if not C_CreatureInfo or not C_CreatureInfo.GetRaceInfo then return end
 
+  wipe(list)
+
   for _, id in ipairs(PLAYABLE_RACE_IDS) do
     local info = C_CreatureInfo.GetRaceInfo(id)
     if info and info.raceName and info.raceName ~= "" then

@@ -226,8 +226,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
   if event == "PLAYER_GUILD_UPDATE" or event == "GUILD_ROSTER_UPDATE" then
     -- GetGuildInfo("player") becomes available after these events fire.
     GRIP:GetGuildName()
-    if GRIP:IsDebugEnabled(2) then
-      GRIP:Debug("Guild cache warmed on", event, "guild=", GRIP.state._gripLastGuildName or "?")
+    if GRIP:IsDebugEnabled(3) then
+      GRIP:Trace("Guild cache warmed on", event, "guild=", GRIP.state._gripLastGuildName or "?")
     end
     return
   end
