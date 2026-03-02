@@ -131,14 +131,16 @@ local function SeedClasses(list)
 end
 
 local PLAYABLE_RACE_IDS = {
-  1, 2, 3, 4, 5, 6, 7, 8, 10, 11,           -- Classic
-  22, 24, 25, 26, 27, 28, 29, 30, 31, 32,    -- Allied Races
-  34, 35, 36, 37,                              -- Vulpera, Mechagnome, Dracthyr
-  52, 70, 84, 85,                              -- Earthen, Haranir
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,        -- Core races
+  22, 24, 25, 26,                              -- Worgen, Pandaren (3 variants)
+  27, 28, 29, 30, 31, 32,                      -- Allied: Nightborne → Kul Tiran
+  34, 35, 36, 37,                              -- Allied: Dark Iron → Mechagnome
+  52, 70,                                      -- Dracthyr (Alliance, Horde)
+  84, 85,                                      -- Earthen (Horde, Alliance)
+  86, 91,                                      -- Haranir (2 variants)
 }
 
 local function SeedRaces(list)
-  if #list > 0 then return end
   if not C_CreatureInfo or not C_CreatureInfo.GetRaceInfo then return end
 
   for _, id in ipairs(PLAYABLE_RACE_IDS) do
