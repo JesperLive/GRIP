@@ -457,6 +457,17 @@ function GRIP:SendChatMessageCompat(msg, chatType, languageID, target)
     end
   end
 
+  -- ChatThrottleLib integration: route whispers through CTL for CPS fairness.
+  -- CTL queues to OnUpdate which breaks CHANNEL (hardware-event restricted).
+  -- WHISPER is NOT hardware-event restricted, so CTL queueing is safe.
+  if chatType == "WHISPER" and _G.ChatThrottleLib then
+    if GateTraceEnabled() and self.IsDebugEnabled and self:IsDebugEnabled(3) then
+      self:Trace("SEND ROUTE: ChatThrottleLib", "type=WHISPER", "target=", tostring(target))
+    end
+    _G.ChatThrottleLib:SendChatMessage("NORMAL", "GRIP", msg, "WHISPER", languageID, target)
+    return true
+  end
+
   if C_ChatInfo and C_ChatInfo.SendChatMessage then
     return C_ChatInfo.SendChatMessage(msg, chatType, languageID, target)
   end
