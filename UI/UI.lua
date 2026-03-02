@@ -279,6 +279,12 @@ local function HookAllEditBoxesForEsc(root)
 
     if eb.HookScript then
       eb:HookScript("OnKeyDown", function(self, key)
+        if key == "PRINTSCREEN" then
+          if self.SetPropagateKeyboardInput then
+            self:SetPropagateKeyboardInput(true)
+          end
+          return
+        end
         if key == "ESCAPE" then
           if self.ClearFocus then pcall(self.ClearFocus, self) end
           ConsumeEscAndHide(self)
@@ -296,6 +302,12 @@ local function HookAllEditBoxesForEsc(root)
       end)
     else
       eb:SetScript("OnKeyDown", function(self, key)
+        if key == "PRINTSCREEN" then
+          if self.SetPropagateKeyboardInput then
+            self:SetPropagateKeyboardInput(true)
+          end
+          return
+        end
         if key == "ESCAPE" then
           if self.ClearFocus then pcall(self.ClearFocus, self) end
           ConsumeEscAndHide(self)
@@ -349,6 +361,13 @@ local function MakeFrameTopmostAndModal(f)
 
   -- Main frame swallows all keys while shown (ESC closes).
   f:SetScript("OnKeyDown", function(self, key)
+    if key == "PRINTSCREEN" then
+      if self.SetPropagateKeyboardInput then
+        self:SetPropagateKeyboardInput(true)
+      end
+      return
+    end
+
     if self.SetPropagateKeyboardInput then
       self:SetPropagateKeyboardInput(false)
     end
