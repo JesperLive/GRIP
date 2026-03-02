@@ -1405,9 +1405,14 @@ function GRIP:UI_UpdateHome()
   local whisperOn = state.whisperTicker and "ON" or "OFF"
   local whoPending = state.pendingWho and " (waiting…)" or ""
 
+  local sent, cap = GRIP:GetWhisperCapStatus()
+  local capStr = ""
+  if cap > 0 then
+    capStr = ("   Whispers: %d/%d"):format(sent, cap)
+  end
   home.status:SetText(
-    ("Potential: %d   Blacklist: perm %d, temp %d\nWho: %d/%d%s   WhisperQ: %d (%s)   PostQ: %d"):format(
-      pot, blPerm, blTemp, whoPos, whoTotal, whoPending, wq, whisperOn, pq
+    ("Potential: %d   Blacklist: perm %d, temp %d\nWho: %d/%d%s   WhisperQ: %d (%s)   PostQ: %d%s"):format(
+      pot, blPerm, blTemp, whoPos, whoTotal, whoPending, wq, whisperOn, pq, capStr
     )
   )
 

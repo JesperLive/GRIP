@@ -68,6 +68,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip set debugwindow <ChatWindowName>   (default: Debug)")
   self:Print("  /grip set verbosity <1|2|3>              (1=info 2=debug 3=trace)")
   self:Print("  /grip set hidewhispers on|off            (hide outgoing whisper echoes in chat)")
+  self:Print("  /grip set dailycap <number>              (daily whisper cap; 0 = unlimited)")
 end
 
 local function PrintPermBLUsage()
@@ -324,6 +325,12 @@ function GRIP:HandleSlash(msg)
       #state.whoQueue,
       #state.postQueue
     ))
+    local sent, cap = self:GetWhisperCapStatus()
+    if cap > 0 then
+      self:Print(("  Whispers today: %d/%d"):format(sent, cap))
+    else
+      self:Print(("  Whispers today: %d (no cap)"):format(sent))
+    end
     self:Debug("Status requested.")
     return
   end
@@ -581,6 +588,22 @@ function GRIP:HandleSlash(msg)
       cfg.suppressWhisperEcho = v
       cfg.hideOutgoingWhispers = v
       self:Print("Hide outgoing whispers: " .. (v and "ON" or "OFF"))
+      return
+    end
+
+    if key == "dailycap" then
+      local n = tonumber(val)
+      if not n or n < 0 then
+        self:Print("Usage: /grip set dailycap <number> (0 = unlimited)")
+        return
+      end
+      n = math.floor(n)
+      GRIPDB.config.whisperDailyCap = n
+      if n == 0 then
+        self:Print("Daily whisper cap disabled (unlimited).")
+      else
+        self:Print(("Daily whisper cap set to %d."):format(n))
+      end
       return
     end
 

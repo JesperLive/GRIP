@@ -38,6 +38,9 @@ local DEFAULT_DB = {
     postMessageTrade = "{guild} recruiting! PvE/PvP/social – whisper for details 🙂 {guildlink}",
     postQueueMax = 20,
 
+    -- Daily whisper cap (0 = unlimited)
+    whisperDailyCap = 500,
+
     -- Safety throttles
     minWhoInterval = 15,
     minPostInterval = 8,
@@ -96,6 +99,8 @@ local DEFAULT_DB = {
   counters = {
     -- [fullName] = count
     noResponse = {},
+    whispersSent = 0,
+    whispersSentDate = "",
   },
 
   -- Persisted debug capture (SavedVariables/WTF)
@@ -306,6 +311,22 @@ function GRIP:EnsureDB()
   if type(GRIPDB.counters) ~= "table" then GRIPDB.counters = { noResponse = {} } end
   if type(GRIPDB.counters.noResponse) ~= "table" then GRIPDB.counters.noResponse = {} end
 
+  -- Reset whisper counter if date has changed (inline because Whisper.lua loads after DB_Init)
+  local ctr = GRIPDB.counters
+  if type(ctr.whispersSent) ~= "number" then ctr.whispersSent = 0 end
+  if type(ctr.whispersSentDate) ~= "string" then ctr.whispersSentDate = "" end
+  local t = C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime()
+  local today
+  if t and t.year and t.month and t.monthDay then
+    today = ("%04d-%02d-%02d"):format(t.year, t.month, t.monthDay)
+  else
+    today = date("%Y-%m-%d")
+  end
+  if ctr.whispersSentDate ~= today then
+    ctr.whispersSent = 0
+    ctr.whispersSentDate = today
+  end
+
   if type(GRIPDB.debugLog) ~= "table" then GRIPDB.debugLog = { lines = {}, dropped = 0, lastAt = "" } end
   if type(GRIPDB.debugLog.lines) ~= "table" then GRIPDB.debugLog.lines = {} end
   GRIPDB.debugLog.dropped = tonumber(GRIPDB.debugLog.dropped) or 0
@@ -315,7 +336,10 @@ function GRIP:EnsureDB()
   if type(GRIPDB.filters) ~= "table" then GRIPDB.filters = { zones = {}, races = {}, classes = {} } end
   if type(GRIPDB.minimap) ~= "table" then GRIPDB.minimap = { hide = false, angle = 225 } end
 
-  NormalizeConfigAliases(GRIPDB.config)
+  local cfg = GRIPDB.config
+  if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB.config.whisperDailyCap end
+
+  NormalizeConfigAliases(cfg)
 
   SeedClasses(GRIPDB.lists.classes)
   SeedRaces(GRIPDB.lists.races)

@@ -17,6 +17,34 @@ local function IsBlank(s)
   return s:gsub("%s+", "") == ""
 end
 
+local function GetTodayDateString()
+  local t = C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime()
+  if t and t.year and t.month and t.monthDay then
+    return ("%04d-%02d-%02d"):format(t.year, t.month, t.monthDay)
+  end
+  return date("%Y-%m-%d")
+end
+
+local function ResetIfNewDay(counters)
+  local today = GetTodayDateString()
+  if counters.whispersSentDate ~= today then
+    counters.whispersSent = 0
+    counters.whispersSentDate = today
+  end
+end
+
+local function IsDailyCapReached(cfg)
+  if not cfg.whisperDailyCap or cfg.whisperDailyCap <= 0 then return false end
+  if not _G.GRIPDB or not GRIPDB.counters then return false end
+  ResetIfNewDay(GRIPDB.counters)
+  return GRIPDB.counters.whispersSent >= cfg.whisperDailyCap
+end
+
+local function IncrementWhisperCount()
+  if not _G.GRIPDB or not GRIPDB.counters then return end
+  GRIPDB.counters.whispersSent = (GRIPDB.counters.whispersSent or 0) + 1
+end
+
 local function ResolvePotentialName(nameMaybe)
   if not nameMaybe or nameMaybe == "" then return nil end
   local pot = GetPotential()
@@ -107,6 +135,18 @@ local function PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
   end
 end
 
+function GRIP:GetWhisperCapStatus()
+  local cfg = GetCfg()
+  if not cfg then return 0, 0 end
+  local cap = cfg.whisperDailyCap or 0
+  local sent = 0
+  if _G.GRIPDB and GRIPDB.counters then
+    ResetIfNewDay(GRIPDB.counters)
+    sent = GRIPDB.counters.whispersSent or 0
+  end
+  return sent, cap
+end
+
 function GRIP:BuildWhisperQueue()
   state.whisperQueue = state.whisperQueue or {}
   wipe(state.whisperQueue)
@@ -115,6 +155,7 @@ function GRIP:BuildWhisperQueue()
   local pot = GetPotential()
   if not cfg or not pot then return end
   if not cfg.whisperEnabled then return end
+  if IsDailyCapReached(cfg) then return end
 
   for name, entry in pairs(pot) do
     if entry and not entry.whisperAttempted and not IsWhisperBlocked(self, name, GateCtx("build")) then
@@ -140,6 +181,11 @@ function GRIP:StartWhispers()
 
   if not cfg.whisperEnabled then
     self:Print("Whispers are disabled in config.")
+    return
+  end
+
+  if IsDailyCapReached(cfg) then
+    self:Print(("Daily whisper cap reached (%d). Resets tomorrow."):format(cfg.whisperDailyCap))
     return
   end
 
@@ -239,6 +285,22 @@ function GRIP:WhisperTick()
     didUIChange = true
     if didUIChange then self:UpdateUI() end
     return
+  end
+
+  -- Daily cap check (GRIP-sent whispers only)
+  if cfg.whisperDailyCap and cfg.whisperDailyCap > 0 then
+    ResetIfNewDay(GRIPDB.counters)
+    if GRIPDB.counters.whispersSent >= cfg.whisperDailyCap then
+      self:Print(("Daily whisper cap reached (%d). Queue stopped. Resets tomorrow."):format(cfg.whisperDailyCap))
+      self:StopWhispers()
+      return
+    end
+    IncrementWhisperCount()
+    -- Soft warning at ~80% of cap
+    local ratio = GRIPDB.counters.whispersSent / cfg.whisperDailyCap
+    if ratio >= 0.8 and ratio < 0.85 then
+      self:Print(("Approaching daily whisper limit: %d/%d"):format(GRIPDB.counters.whispersSent, cfg.whisperDailyCap))
+    end
   end
 
   self:Debug("Whisper ->", name, msg)
