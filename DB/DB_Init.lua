@@ -20,7 +20,7 @@ local DEFAULT_DB = {
     whisperMessage = "Hey {player}! We're recruiting for {guild}. Interested? 🙂 {guildlink}",
     whisperMessages = {},
     whisperRotation = "sequential",
-    whisperDelay = 2.5,
+    whisperDelay = 3.0,
 
     -- Optional: hide outgoing whisper echo lines ("To X: ...") in your chat frame
     -- (CHAT_MSG_WHISPER_INFORM still fires; this is only a visual filter)
@@ -31,11 +31,11 @@ local DEFAULT_DB = {
 
     -- Invite settings
     inviteEnabled = true,
-    blacklistDays = 7,
+    blacklistDays = 14,
 
     -- Trade/General posts (queued; click to send)
     postEnabled = true,
-    postIntervalMinutes = 15,
+    postIntervalMinutes = 20,
     postMessageGeneral = "{guild} recruiting! Friendly, active, and helpful. Whisper me for info 🙂 {guildlink}",
     postMessageTrade = "{guild} recruiting! PvE/PvP/social – whisper for details 🙂 {guildlink}",
     postQueueMax = 20,
@@ -52,6 +52,9 @@ local DEFAULT_DB = {
     soundInviteAccepted = true,
     soundScanComplete = false,
     soundCapWarning = true,
+
+    -- Ghost Mode (experimental, disabled by default)
+    ghostModeEnabled = false,
 
     -- Safety throttles
     minWhoInterval = 15,
