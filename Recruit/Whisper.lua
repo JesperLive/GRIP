@@ -505,7 +505,12 @@ function GRIP:OnWhisperInform(targetName)
     self:Debug("Whisper success:", full, "(invites disabled -> blacklist)")
     self:MaybeFinalize(full)
   else
-    self:Debug("Whisper success:", full)
+    -- Phase 2d: auto-queue invite through Ghost overlay after whisper success
+    if GRIP.Ghost and GRIP.Ghost:IsSessionActive() and type(self.AutoQueueGhostInvite) == "function" then
+      self:AutoQueueGhostInvite(full)
+    else
+      self:Debug("Whisper success:", full)
+    end
   end
 
   self:UpdateUI()

@@ -355,6 +355,81 @@ function GRIP:InviteNext()
   end
 end
 
+function GRIP:AutoQueueGhostInvite(name)
+  local cfg = GetCfg()
+  local pot = GetPotential()
+  if not cfg or not pot then return end
+  if not cfg.inviteEnabled then return end
+  if not GRIP.Ghost or not GRIP.Ghost:IsSessionActive() then return end
+
+  local entry = pot[name]
+  if not entry then return end
+  if entry.inviteAttempted then return end
+  if entry.invitePending then return end
+
+  state.pendingInvite = state.pendingInvite or {}
+  if state.pendingInvite[name] then return end
+
+  if not self:BL_ExecutionGate(name, GateCtx("auto-ghost")) then return end
+  if not IsInGuild or not IsInGuild() then return end
+  if CanGuildInvite and not CanGuildInvite() then return end
+
+  entry.inviteAttempted = true
+  entry.invitePending = true
+  entry.inviteSuccess = nil
+  entry.inviteLastAt = self:Now()
+  state.pendingInvite[name] = true
+
+  local inviteName = name  -- capture for closure
+
+  GRIP.Ghost:QueueAction("invite", function()
+    -- Re-check gate at execution time (time passes between queue and drain)
+    if not GRIP:BL_ExecutionGate(inviteName, GateCtx("auto-ghost:exec")) then
+      if state.pendingInvite then state.pendingInvite[inviteName] = nil end
+      local p = GetPotential()
+      if p and p[inviteName] then
+        p[inviteName].invitePending = false
+        p[inviteName].inviteSuccess = false
+      end
+      GRIP:MaybeFinalize(inviteName)
+      GRIP:UpdateUI()
+      return
+    end
+    GRIP:SafeGuildInvite(inviteName)
+    GRIP:RecordCampaignAction("invite")
+    GRIP:Debug("GuildInvite (ghost-auto) ->", inviteName)
+  end, { target = inviteName })
+
+  -- 70-second no-response timeout (starts at queue time, not execution time)
+  C_Timer.After(NO_RESPONSE_TIMEOUT, function()
+    if state.pendingInvite and state.pendingInvite[inviteName] then
+      state.pendingInvite[inviteName] = nil
+      if _G.GRIPDB and GRIPDB.potential and GRIPDB.potential[inviteName] then
+        GRIPDB.potential[inviteName].invitePending = false
+      end
+      if GRIP:BL_ExecutionGate(inviteName, GateCtx("no-response-timeout")) == false then
+        GRIP:MaybeFinalize(inviteName)
+        GRIP:UpdateUI()
+        return
+      end
+      local count = IncNoResponseCounter(inviteName)
+      local c = GetCfg()
+      if count and count >= NO_RESPONSE_ESCALATE_COUNT then
+        GRIP:Blacklist(inviteName, GetBlacklistDays(c))
+        GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", count, "-> blacklistDays")
+      else
+        GRIP:BlacklistForSeconds(inviteName, NO_RESPONSE_SECONDS)
+        GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", tostring(count or "?"), "-> 24h temp blacklist")
+      end
+      GRIP:RemovePotential(inviteName)
+      GRIP:UpdateUI()
+    end
+  end)
+
+  self:Debug("Auto-queued invite (ghost):", name)
+  self:UpdateUI()
+end
+
 function GRIP:OnInviteSystemSuccess(targetName)
   local cfg = GetCfg()
   local pot = GetPotential()
