@@ -169,6 +169,8 @@ eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
 eventFrame:RegisterEvent("INITIAL_CLUBS_LOADED")
 eventFrame:RegisterEvent("CLUB_FINDER_RECRUITMENT_POST_RETURNED")
 eventFrame:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST")
+eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
   if event == "ADDON_LOADED" then
@@ -320,6 +322,16 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
   if event == "CALENDAR_UPDATE_EVENT_LIST" then
     GRIP:RefreshSeasonalFromCalendar()
+    return
+  end
+
+  if event == "PLAYER_REGEN_DISABLED" then
+    if GRIP.Ghost then GRIP.Ghost:OnCombatEnter() end
+    return
+  end
+
+  if event == "PLAYER_REGEN_ENABLED" then
+    if GRIP.Ghost then GRIP.Ghost:OnCombatLeave() end
     return
   end
 

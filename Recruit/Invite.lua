@@ -298,6 +298,19 @@ function GRIP:InviteNext()
     return
   end
 
+  -- Ghost Mode: queue invite instead of executing directly
+  if GRIP.Ghost:IsSessionActive() then
+    local inviteName = name  -- capture for closure
+    GRIP.Ghost:QueueAction("invite", function()
+      GRIP:SafeGuildInvite(inviteName)
+      GRIP:RecordCampaignAction("invite")
+      GRIP:Debug("GuildInvite (ghost) ->", inviteName)
+    end, { target = inviteName })
+    self:Print(("Queued invite (Ghost): %s"):format(name))
+    if didUIChange then self:UpdateUI() end
+    return
+  end
+
   self:SafeGuildInvite(name)
   self:RecordCampaignAction("invite")
   self:Debug("GuildInvite ->", name)

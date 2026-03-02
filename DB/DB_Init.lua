@@ -59,8 +59,14 @@ local DEFAULT_DB = {
     campaignGapResetMinutes = 5,
     campaignHardPauseEnabled = true,
 
-    -- Ghost Mode (experimental, disabled by default)
+    -- Ghost Mode
     ghostModeEnabled = false,
+    ghostModeMinInterval = 0.5,
+    ghostModeMaxQueue = 50,
+    ghostModeQueueAll = false,
+    ghostSessionMaxMinutes = 60,
+    ghostCooldownMinutes = 10,
+    ghostCooldownUntil = 0,
 
     -- Safety throttles
     minWhoInterval = 15,

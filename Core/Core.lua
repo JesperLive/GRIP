@@ -103,6 +103,13 @@ function GRIP:ReconcileAfterReload()
     st.campaignLastActionAt = nil
     st.campaignSoftWarned = false
     st.campaignHardPaused = false
+
+    -- Ghost Mode session (runtime only; ghostCooldownUntil persists in GRIPDB.config)
+    st.ghost = st.ghost or {}
+    st.ghost.queue = {}
+    st.ghost.sessionActive = false
+    st.ghost.sessionStartedAt = nil
+    st.ghost.sessionActionCount = 0
   end
 
   if not _G.GRIPDB or type(GRIPDB.potential) ~= "table" then

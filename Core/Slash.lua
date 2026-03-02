@@ -39,6 +39,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip link           - show current guild name + Guild Finder link resolution")
   self:Print("  /grip templates list|add|remove|rotation  - manage whisper templates")
   self:Print("  /grip permbl list|add|remove|clear   - manage permanent blacklist (ignore list)")
+  self:Print("  /grip ghost [start|stop|status]       - Ghost Mode session control")
   self:Print("  /grip tracegate on|off|toggle        - execution gate diagnostics (trace mode)")
 
   self:Print("Debug:")
@@ -231,6 +232,50 @@ function GRIP:HandleSlash(msg)
     return
   end
 
+  if cmd == "ghost" then
+    local sub = (rest or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+    if sub == "start" then
+      local ok, reason = GRIP.Ghost:StartSession()
+      if ok then
+        self:Print("Ghost Mode session started. Queue actions will execute from any input.")
+      end
+    elseif sub == "stop" then
+      GRIP.Ghost:StopSession("manual")
+      self:Print("Ghost Mode session stopped.")
+    elseif sub == "status" then
+      local cfg = GRIPDB.config
+      if GRIP.Ghost:IsSessionActive() then
+        local elapsed = math.floor((time() - (state.ghost.sessionStartedAt or time())) / 60)
+        local maxMin = cfg and cfg.ghostSessionMaxMinutes or 60
+        self:Print(("Ghost Mode: ACTIVE (%d/%d min, %d actions, %d queued)"):format(
+          elapsed, maxMin, state.ghost.sessionActionCount or 0, GRIP.Ghost:GetNumPending()))
+      else
+        local now = time()
+        local cdUntil = tonumber(cfg and cfg.ghostCooldownUntil) or 0
+        if now < cdUntil then
+          local remaining = math.ceil((cdUntil - now) / 60)
+          self:Print(("Ghost Mode: COOLDOWN (%d min remaining)"):format(remaining))
+        else
+          self:Print("Ghost Mode: inactive (ready)")
+        end
+      end
+    elseif sub == "" then
+      -- Toggle: start if inactive, stop if active
+      if GRIP.Ghost:IsSessionActive() then
+        GRIP.Ghost:StopSession("manual")
+        self:Print("Ghost Mode session stopped.")
+      else
+        local ok, reason = GRIP.Ghost:StartSession()
+        if ok then
+          self:Print("Ghost Mode session started.")
+        end
+      end
+    else
+      self:Print("Usage: /grip ghost [start|stop|status]")
+    end
+    return
+  end
+
   if cmd == "permbl" or cmd == "permblacklist" then
     local sub, subrest = SplitArgs(rest)
     subrest = Trim(subrest)
@@ -418,6 +463,14 @@ function GRIP:HandleSlash(msg)
       end
     else
       self:Print("  Campaign cooldown: disabled")
+    end
+    -- Ghost Mode status
+    if GRIP.Ghost:IsSessionActive() then
+      local elapsed = math.floor((time() - (state.ghost.sessionStartedAt or time())) / 60)
+      self:Print(("  Ghost Mode: ACTIVE (%d min, %d actions, %d queued)"):format(
+        elapsed, state.ghost.sessionActionCount or 0, GRIP.Ghost:GetNumPending()))
+    elseif cfg_s.ghostModeEnabled then
+      self:Print("  Ghost Mode: enabled (no active session)")
     end
     self:Debug("Status requested.")
     return

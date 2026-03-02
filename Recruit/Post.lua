@@ -301,6 +301,21 @@ function GRIP:PostNext()
     return
   end
 
+  -- Ghost Mode: queue post instead of executing directly
+  if GRIP.Ghost:IsSessionActive() then
+    local postMsg = task.msg
+    local postChannelId = channelId
+    local postChannelName = channelName or task.channelToken
+    GRIP.Ghost:QueueAction("post", function()
+      GRIP:SendChatMessageCompat(postMsg, "CHANNEL", nil, postChannelId)
+      GRIP:Print(("Posted (ghost) to %s"):format(postChannelName))
+      GRIP:Debug("Post (ghost) ->", postChannelName, postMsg)
+    end, { channel = task.channelToken })
+    state.lastPostSentAt = now
+    if didChange then self:UpdateUI() end
+    return
+  end
+
   state.lastPostSentAt = now
   self:Debug("Post ->", task.channelToken, channelId, task.msg)
 
