@@ -436,6 +436,7 @@ function GRIP:WhisperTick()
   self:Debug("Whisper ->", name, msg)
   -- Whisper is not #hwevent restricted, but is server rate-limited.
   self:SendChatMessageCompat(msg, "WHISPER", nil, name)
+  self:RecordCampaignAction("whisper")
 
   C_Timer.After(8, function()
     if state.pendingWhisper and state.pendingWhisper[name] then

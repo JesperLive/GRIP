@@ -56,6 +56,13 @@ GRIP.state = GRIP.state or {
   -- Debug chat window cache (used by logger)
   debugFrame = nil,
   debugFrameIndex = nil,
+
+  -- Campaign cooldown
+  campaignActivityStart = nil,
+  campaignActionCount = 0,
+  campaignLastActionAt = nil,
+  campaignSoftWarned = false,
+  campaignHardPaused = false,
 }
 
 local function Join(...)
@@ -89,6 +96,13 @@ function GRIP:ReconcileAfterReload()
 
     -- Cooldowns are runtime-only; clear them so UI doesn't “stick”.
     st.actionCooldownUntil = 0
+
+    -- Campaign cooldown
+    st.campaignActivityStart = nil
+    st.campaignActionCount = 0
+    st.campaignLastActionAt = nil
+    st.campaignSoftWarned = false
+    st.campaignHardPaused = false
   end
 
   if not _G.GRIPDB or type(GRIPDB.potential) ~= "table" then
@@ -128,6 +142,66 @@ function GRIP:ReconcileAfterReload()
       "normalizedPending=", changed,
       "retryEnabled=", retryEnabled
     )
+  end
+end
+
+-- ------------------------------------------------------------
+-- Campaign cooldown — session fatigue protection
+-- ------------------------------------------------------------
+
+function GRIP:RecordCampaignAction(actionType)
+  local cfg = (_G.GRIPDB and GRIPDB.config) or nil
+  if not cfg or not cfg.campaignCooldownEnabled then return end
+
+  local now = time()
+  local st = self.state
+  local gap = self:Clamp(tonumber(cfg.campaignGapResetMinutes) or 5, 1, 30) * 60
+  local threshold = self:Clamp(tonumber(cfg.campaignCooldownMinutes) or 30, 5, 120) * 60
+
+  -- Gap reset: if idle longer than gap, reset window
+  if st.campaignLastActionAt and (now - st.campaignLastActionAt) > gap then
+    st.campaignActivityStart = nil
+    st.campaignActionCount = 0
+    st.campaignSoftWarned = false
+    st.campaignHardPaused = false
+  end
+
+  -- Start new window if needed
+  if not st.campaignActivityStart then
+    st.campaignActivityStart = now
+    st.campaignActionCount = 0
+    st.campaignSoftWarned = false
+    st.campaignHardPaused = false
+  end
+
+  st.campaignLastActionAt = now
+  st.campaignActionCount = (st.campaignActionCount or 0) + 1
+
+  local elapsed = now - st.campaignActivityStart
+
+  -- Hard pause at 2x threshold
+  if cfg.campaignHardPauseEnabled and elapsed >= (threshold * 2) and not st.campaignHardPaused then
+    st.campaignHardPaused = true
+    self:Print(("Whisper queue auto-paused after %d minutes of continuous recruiting. Take a break, then /grip whisper to resume."):format(math.floor(elapsed / 60)))
+    if cfg.soundCapWarning ~= false then
+      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+    end
+    self:StopWhispers()
+    -- Reset window so resuming starts fresh
+    st.campaignActivityStart = nil
+    st.campaignActionCount = 0
+    st.campaignSoftWarned = false
+    st.campaignHardPaused = false
+    return
+  end
+
+  -- Soft warning at 1x threshold
+  if elapsed >= threshold and not st.campaignSoftWarned then
+    st.campaignSoftWarned = true
+    self:Print(("You've been recruiting for %d minutes (%d actions). Consider taking a 5-minute break to reduce Silence risk."):format(math.floor(elapsed / 60), st.campaignActionCount))
+    if cfg.soundCapWarning ~= false then
+      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+    end
   end
 end
 

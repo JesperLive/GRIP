@@ -74,6 +74,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip set optout on|off                  (auto-blacklist opt-out replies)")
   self:Print("  /grip set sound on|off                   (master toggle for sound feedback)")
   self:Print("  /grip set ghostmode on|off               (experimental: queue CHANNEL sends)")
+  self:Print("  /grip set cooldown <min>|on|off           (campaign cooldown break reminder)")
   self:Print("Note: {guildlink} in whisper/post messages requires an active Guild Finder listing.")
 end
 
@@ -404,6 +405,20 @@ function GRIP:HandleSlash(msg)
     local tplCount = type(GRIPDB.config.whisperMessages) == "table" and #GRIPDB.config.whisperMessages or 0
     self:Print(("  Templates: %d (%s)"):format(tplCount, GRIPDB.config.whisperRotation or "sequential"))
     self:Print(("  Sound: %s"):format(GRIPDB.config.soundEnabled and "ON" or "OFF"))
+    -- Campaign cooldown status
+    local cfg_s = GRIPDB.config
+    if cfg_s.campaignCooldownEnabled then
+      if state.campaignActivityStart then
+        local elapsed = math.floor((time() - state.campaignActivityStart) / 60)
+        local threshold = cfg_s.campaignCooldownMinutes or 30
+        self:Print(("  Campaign: %d min active (%d actions), warning at %d min"):format(
+          elapsed, state.campaignActionCount or 0, threshold))
+      else
+        self:Print(("  Campaign cooldown: enabled (%d min threshold)"):format(cfg_s.campaignCooldownMinutes or 30))
+      end
+    else
+      self:Print("  Campaign cooldown: disabled")
+    end
     self:Debug("Status requested.")
     return
   end
@@ -764,6 +779,29 @@ function GRIP:HandleSlash(msg)
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       cfg.ghostModeEnabled = v
       self:Print("Ghost Mode: " .. (v and "ON (experimental)" or "OFF"))
+      return
+    end
+
+    if key == "cooldown" then
+      if val == "off" then
+        cfg.campaignCooldownEnabled = false
+        self:Print("Campaign cooldown disabled.")
+      elseif val == "on" then
+        cfg.campaignCooldownEnabled = true
+        self:Print(("Campaign cooldown enabled (%d min)."):format(cfg.campaignCooldownMinutes or 30))
+      else
+        local n = tonumber(val)
+        if n and n >= 5 and n <= 120 then
+          cfg.campaignCooldownMinutes = n
+          cfg.campaignCooldownEnabled = true
+          self:Print(("Campaign cooldown set to %d minutes."):format(n))
+        elseif n and n == 0 then
+          cfg.campaignCooldownEnabled = false
+          self:Print("Campaign cooldown disabled.")
+        else
+          self:Print("Usage: /grip set cooldown <5-120|on|off>")
+        end
+      end
       return
     end
 

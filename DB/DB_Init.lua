@@ -53,6 +53,12 @@ local DEFAULT_DB = {
     soundScanComplete = false,
     soundCapWarning = true,
 
+    -- Campaign cooldown (session fatigue protection)
+    campaignCooldownEnabled = true,
+    campaignCooldownMinutes = 30,
+    campaignGapResetMinutes = 5,
+    campaignHardPauseEnabled = true,
+
     -- Ghost Mode (experimental, disabled by default)
     ghostModeEnabled = false,
 

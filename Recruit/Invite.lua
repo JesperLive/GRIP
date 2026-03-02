@@ -299,6 +299,7 @@ function GRIP:InviteNext()
   end
 
   self:SafeGuildInvite(name)
+  self:RecordCampaignAction("invite")
   self:Debug("GuildInvite ->", name)
 
   C_Timer.After(NO_RESPONSE_TIMEOUT, function()
