@@ -3,7 +3,7 @@
 
 local ADDON_NAME, GRIP = ...
 
-local type, tostring, pairs, ipairs, pcall = type, tostring, pairs, ipairs, pcall
+local type, tostring, pairs, ipairs, pcall, wipe = type, tostring, pairs, ipairs, pcall, wipe
 local time = time
 
 local state = GRIP.state
@@ -303,5 +303,43 @@ function GRIP:PromptBlacklistAdd(name)
     GRIP:ClearNameFromQueues(name)
     GRIP:Print(("Blacklisted %s."):format(name))
     GRIP:UpdateUI()
+  end
+end
+
+-- ----------------------------
+-- Clear Potential confirmation
+-- ----------------------------
+
+local function EnsureClearConfirmPopup()
+  if not StaticPopupDialogs then return end
+  if StaticPopupDialogs["GRIP_CLEAR_POTENTIAL_CONFIRM"] then return end
+
+  StaticPopupDialogs["GRIP_CLEAR_POTENTIAL_CONFIRM"] = {
+    text = "Clear all %s candidates from the Potential list?",
+    button1 = "Clear",
+    button2 = "Cancel",
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+    OnAccept = function(self)
+      if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.potential) ~= "table" then return end
+      wipe(GRIPDB_CHAR.potential)
+      local st = GRIP.state
+      if st then
+        if type(st.whisperQueue) == "table" then wipe(st.whisperQueue) end
+        if type(st.pendingWhisper) == "table" then wipe(st.pendingWhisper) end
+        if type(st.pendingInvite) == "table" then wipe(st.pendingInvite) end
+      end
+      GRIP:Print("Cleared Potential list.")
+      GRIP:UpdateUI()
+    end,
+  }
+end
+
+function GRIP:ConfirmClearPotential(count)
+  EnsureClearConfirmPopup()
+  if StaticPopup_Show then
+    StaticPopup_Show("GRIP_CLEAR_POTENTIAL_CONFIRM", tostring(count or 0))
   end
 end

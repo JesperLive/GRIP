@@ -8,7 +8,7 @@ local type, pairs, pcall = type, pairs, pcall
 local HasDB = function() return GRIP:HomeHasDB() end
 
 -- Constants
-local HEADER_H = 20
+local HEADER_H = 38
 local BL_ROW_H = 18
 
 -- ----------------------------
@@ -88,12 +88,21 @@ function GRIP:EnsureBlacklistShell(home)
   header.line:SetHeight(1)
   header.line:SetColorTexture(1, 1, 1, 0.10)
 
+  -- Title row (top half)
   header.title = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  header.title:SetPoint("LEFT", header, "LEFT", 6, 0)
+  header.title:SetPoint("TOPLEFT", header, "TOPLEFT", 6, -4)
   header.title:SetJustifyH("LEFT")
   header.title:SetText("Blacklist")
 
-  -- Column labels
+  -- Mid separator between title and column labels
+  header.midLine = header:CreateTexture(nil, "BORDER")
+  header.midLine:SetPoint("LEFT", header, "LEFT", 4, 0)
+  header.midLine:SetPoint("RIGHT", header, "RIGHT", -4, 0)
+  header.midLine:SetPoint("TOP", header, "TOP", 0, -18)
+  header.midLine:SetHeight(1)
+  header.midLine:SetColorTexture(1, 1, 1, 0.06)
+
+  -- Column labels (bottom half)
   local function H(text)
     local fs = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     fs:SetText(text)
@@ -132,7 +141,7 @@ function GRIP:EnsureBlacklistShell(home)
 
     frame.stripe = frame:CreateTexture(nil, "BACKGROUND")
     frame.stripe:SetAllPoints(frame)
-    frame.stripe:SetColorTexture(1, 1, 1, 0.035)
+    frame.stripe:SetColorTexture(1, 1, 1, 0.07)
     frame.stripe:Hide()
 
     frame:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
@@ -153,6 +162,29 @@ function GRIP:EnsureBlacklistShell(home)
       local n = self._nameKey
       if type(n) ~= "string" or n == "" then return end
       GRIP:ConfirmUnblacklist(n)
+    end)
+
+    frame:SetScript("OnEnter", function(self)
+      local n = self._nameKey
+      if not n or not _G.GRIPDB or not GRIPDB.blacklistPerm then return end
+      local e = GRIPDB.blacklistPerm[n]
+      if not e then return end
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      GameTooltip:AddLine(n, 1, 1, 1)
+      if type(e) == "table" then
+        if e.reason and e.reason ~= "" then
+          GameTooltip:AddLine("Reason: " .. e.reason, 0.8, 0.8, 0.6, true)
+        end
+        if e.at and type(e.at) == "number" and e.at > 0 then
+          GameTooltip:AddLine("Added: " .. date("%Y-%m-%d", e.at), 0.6, 0.6, 0.6)
+        end
+      end
+      GameTooltip:AddLine(" ")
+      GameTooltip:AddLine("Click to remove from blacklist", 0.5, 0.5, 0.5)
+      GameTooltip:Show()
+    end)
+    frame:SetScript("OnLeave", function(self)
+      GameTooltip:Hide()
     end)
   end
 
@@ -225,12 +257,12 @@ function GRIP:LayoutBlacklistPanel(home)
 
   local x = pad
   bl.hName:ClearAllPoints()
-  bl.hName:SetPoint("LEFT", bl.header, "LEFT", x, 0)
+  bl.hName:SetPoint("LEFT", bl.header, "LEFT", x, -9)
   ClampFontString(bl.hName, wName)
   x = x + wName + pad
 
   bl.hReason:ClearAllPoints()
-  bl.hReason:SetPoint("LEFT", bl.header, "LEFT", x, 0)
+  bl.hReason:SetPoint("LEFT", bl.header, "LEFT", x, -9)
   ClampFontString(bl.hReason, wReason)
 
   ResizeBlacklistRows(home)

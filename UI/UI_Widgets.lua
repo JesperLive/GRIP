@@ -615,4 +615,40 @@ function W.BuildInsertedTextAtCursor(eb, token)
   return before .. token .. after
 end
 
+-- ---------------------------
+-- Tooltip helper
+-- ---------------------------
+
+function GRIP:AttachTooltip(frame, titleOrFunc, bodyOrFunc)
+    if not frame then return end
+    if not frame.EnableMouse then return end
+    if not frame:IsObjectType("Button") then
+        frame:EnableMouse(true)
+    end
+    local function OnEnter(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        local t = (type(titleOrFunc) == "function") and titleOrFunc() or titleOrFunc
+        if type(t) == "string" and t ~= "" then
+            GameTooltip:AddLine(t, 1, 1, 1, true)
+        end
+        local b = (type(bodyOrFunc) == "function") and bodyOrFunc() or bodyOrFunc
+        if type(b) == "string" and b ~= "" then
+            for line in b:gmatch("[^\n]+") do
+                GameTooltip:AddLine(line, 0.8, 0.8, 0.6, true)
+            end
+        end
+        GameTooltip:Show()
+    end
+    local function OnLeave(self)
+        GameTooltip:Hide()
+    end
+    if frame:GetScript("OnEnter") then
+        frame:HookScript("OnEnter", OnEnter)
+        frame:HookScript("OnLeave", OnLeave)
+    else
+        frame:SetScript("OnEnter", OnEnter)
+        frame:SetScript("OnLeave", OnLeave)
+    end
+end
+
 -- ── End shared UI helpers ──────────────────────────────────────────────

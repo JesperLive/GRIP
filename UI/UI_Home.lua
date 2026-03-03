@@ -224,6 +224,13 @@ local function LayoutButtons(home)
       home.hint:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -6)
     end
   end
+
+  -- Hint separator
+  if home.hintSep then
+    home.hintSep:ClearAllPoints()
+    home.hintSep:SetPoint("TOPLEFT", home.hint, "BOTTOMLEFT", 0, -3)
+    home.hintSep:SetPoint("RIGHT", home, "RIGHT", -4, 0)
+  end
 end
 
 local function LayoutHomePanels(home)
@@ -321,6 +328,19 @@ local function EnsurePotentialTable(home)
   home.hW      = H("W")
   home.hI      = H("I")
 
+  -- Tooltip overlays for W/I column headers
+  home.hWBtn = CreateFrame("Button", nil, header)
+  home.hWBtn:SetAllPoints(home.hW)
+  home.hWBtn:EnableMouse(true)
+  if home.hWBtn.SetPassThroughButtons then home.hWBtn:SetPassThroughButtons() end
+  GRIP:AttachTooltip(home.hWBtn, "Whisper Status", "\xE2\x9C\x93 = whisper sent successfully\n\xE2\x9C\x97 = whisper failed\n\xE2\x80\x94 = not yet attempted")
+
+  home.hIBtn = CreateFrame("Button", nil, header)
+  home.hIBtn:SetAllPoints(home.hI)
+  home.hIBtn:EnableMouse(true)
+  if home.hIBtn.SetPassThroughButtons then home.hIBtn:SetPassThroughButtons() end
+  GRIP:AttachTooltip(home.hIBtn, "Invite Status", "\xE2\x9C\x93 = invite accepted\n\xE2\x9C\x97 = declined or failed\n\xE2\x8F\xB3 = pending (waiting for response)\n\xE2\x80\x94 = not yet attempted")
+
   local sf = CreateFrame("ScrollFrame", nil, pot, "FauxScrollFrameTemplate")
   sf:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
   sf:SetPoint("BOTTOMRIGHT", pot, "BOTTOMRIGHT", -2, 0)
@@ -339,7 +359,7 @@ local function EnsurePotentialTable(home)
 
     frame.stripe = frame:CreateTexture(nil, "BACKGROUND")
     frame.stripe:SetAllPoints(frame)
-    frame.stripe:SetColorTexture(1, 1, 1, 0.045)
+    frame.stripe:SetColorTexture(1, 1, 1, 0.08)
     frame.stripe:Hide()
 
     frame:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
@@ -386,6 +406,39 @@ local function EnsurePotentialTable(home)
       local n = self._nameKey
       if type(n) ~= "string" or n == "" then return end
       GRIP:ShowRowMenu(self._home, self, n)
+    end)
+
+    frame:SetScript("OnEnter", function(self)
+      local n = self._nameKey
+      if not n or not HasDB() then return end
+      local e = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[n]
+      if not e then return end
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      GameTooltip:AddLine(n, 1, 1, 1)
+      local details = {}
+      if e.level then details[#details+1] = "Level " .. e.level end
+      if e.class then details[#details+1] = tostring(e.class) end
+      if e.race then details[#details+1] = tostring(e.race) end
+      if #details > 0 then
+        GameTooltip:AddLine(table.concat(details, "  \xC2\xB7  "), 0.8, 0.8, 0.6)
+      end
+      if e.zone or e.area then
+        GameTooltip:AddLine("Zone: " .. (e.zone or e.area or "Unknown"), 0.8, 0.8, 0.6)
+      end
+      if e.whisperAttempted then
+        local ws = e.whisperSuccess == true and "|cff00ff00Sent|r" or e.whisperSuccess == false and "|cffff0000Failed|r" or "|cffffff00Pending|r"
+        GameTooltip:AddLine("Whisper: " .. ws, 0.8, 0.8, 0.8)
+      end
+      if e.inviteAttempted then
+        local is = e.invitePending and "|cffffff00Pending|r" or e.inviteSuccess == true and "|cff00ff00Accepted|r" or e.inviteSuccess == false and "|cffff0000Declined|r" or "|cff888888Unknown|r"
+        GameTooltip:AddLine("Invite: " .. is, 0.8, 0.8, 0.8)
+      end
+      GameTooltip:AddLine(" ")
+      GameTooltip:AddLine("Right-click for options", 0.5, 0.5, 0.5)
+      GameTooltip:Show()
+    end)
+    frame:SetScript("OnLeave", function(self)
+      GameTooltip:Hide()
     end)
   end
 
@@ -584,10 +637,18 @@ local function UpdatePotentialRows(home)
       row._nameKey = name
       row.name:SetText(name)
 
+      -- Class-colored name
+      local token = ClassTokenFromEntryClass(e.class)
+      local cc = token and (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token] or RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
+      if cc then
+        row.name:SetTextColor(cc.r, cc.g, cc.b)
+      else
+        row.name:SetTextColor(1, 1, 1)
+      end
+
       local lvl = e.level and tostring(e.level) or "?"
       row.lvl:SetText(lvl)
 
-      local token = ClassTokenFromEntryClass(e.class)
       if token and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[token] then
         row.classIcon:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CharacterCreate-Classes")
         local tc = CLASS_ICON_TCOORDS[token]
@@ -682,7 +743,14 @@ function GRIP:UI_CreateHome(parent)
   home.status = home:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   home.status:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -2)
   home.status:SetJustifyH("LEFT")
-  home.status:SetText("…")
+  home.status:SetText("\xE2\x80\xA6")
+
+  -- Separator between status bar and buttons
+  home.statusSep = home:CreateTexture(nil, "ARTWORK")
+  home.statusSep:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -22)
+  home.statusSep:SetPoint("TOPRIGHT", home, "TOPRIGHT", -4, -22)
+  home.statusSep:SetHeight(1)
+  home.statusSep:SetColorTexture(1, 1, 1, 0.08)
 
   home.btnScan = W.CreateUIButton(home, "Scan", 90, 24, function()
     if not HasDB() then
@@ -731,7 +799,11 @@ function GRIP:UI_CreateHome(parent)
       GRIP:Print("Home unavailable yet (DB not initialized).")
       return
     end
-
+    local count = GRIP:Count(GRIPDB_CHAR.potential)
+    if count > 10 then
+      GRIP:ConfirmClearPotential(count)
+      return
+    end
     wipe(GRIPDB_CHAR.potential)
     wipe(state.whisperQueue)
     wipe(state.pendingWhisper)
@@ -740,6 +812,31 @@ function GRIP:UI_CreateHome(parent)
     GRIP:UpdateUI()
   end)
   home.btnClear:SetPoint("TOPRIGHT", home, "TOPRIGHT", -4, -24)
+
+  -- Destructive action visual cue
+  local clearText = home.btnClear:GetFontString()
+  if clearText then
+    clearText:SetTextColor(1, 0.6, 0.6)
+  end
+
+  -- Button tooltips
+  GRIP:AttachTooltip(home.btnScan, "Scan", function()
+    local pos = math.max(0, (state.whoIndex or 1) - 1)
+    local total = #state.whoQueue
+    return "Send next /who query.\nRequires keybind or button click.\nQueue: " .. pos .. "/" .. total .. " remaining"
+  end)
+  GRIP:AttachTooltip(home.btnWhisperInvite, "Whisper+Invite Next", function()
+    local wq = #state.whisperQueue
+    local pending = 0
+    if state.pendingInvite and type(state.pendingInvite) == "table" then
+      for _ in pairs(state.pendingInvite) do pending = pending + 1 end
+    end
+    return "Whisper the next candidate, then queue\na guild invite.\nRequires keybind or button click.\nWhisper queue: " .. wq .. "  |  Pending invites: " .. pending
+  end)
+  GRIP:AttachTooltip(home.btnPostNext, "Post Next", function()
+    return "Send next Trade/General channel post.\nRequires keybind or button click.\nQueue: " .. #state.postQueue .. " posts remaining"
+  end)
+  GRIP:AttachTooltip(home.btnClear, "Clear Potential List", "Remove all candidates from the Potential list.\nDoes NOT affect blacklists or whisper history.")
 
   -- Ghost Mode status strip
   home.ghostStrip = CreateFrame("Frame", nil, home)
@@ -776,7 +873,13 @@ function GRIP:UI_CreateHome(parent)
 
   home.hint = home:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   home.hint:SetPoint("TOPLEFT", home.ghostStrip, "BOTTOMLEFT", 0, -4)
-  home.hint:SetText("Tip: /grip help  •  None selected in filters = allow all")
+  home.hint:SetPoint("RIGHT", home, "RIGHT", -4, 0)
+  home.hint:SetText("Tip: /grip help  \xC2\xB7  None selected in filters = allow all")
+
+  -- Separator between hint line and table
+  home.hintSep = home:CreateTexture(nil, "ARTWORK")
+  home.hintSep:SetHeight(1)
+  home.hintSep:SetColorTexture(1, 1, 1, 0.08)
 
   EnsurePotentialTable(home)
 
@@ -864,15 +967,50 @@ function GRIP:UI_UpdateHome()
   local whoPending = state.pendingWho and " (waiting…)" or ""
 
   local sent, cap = GRIP:GetWhisperCapStatus()
-  local capStr = ""
+
+  local whisperColor = state.whisperTicker and "|cff00ff00" or "|cffff0000"
+  local whisperLabel = whisperColor .. whisperOn .. "|r"
+  local blTempColor = blTemp > 0 and "|cffff8800" or "|cff888888"
+  local capColor = ""
+  local capEnd = ""
+  if cap > 0 and sent >= cap * 0.8 then
+    capColor = "|cffff4444"
+    capEnd = "|r"
+  end
+  local capLine = ""
   if cap > 0 then
-    capStr = ("   Whispers: %d/%d"):format(sent, cap)
+    capLine = ("   |   Sent: %s%d/%d%s"):format(capColor, sent, cap, capEnd)
   end
   home.status:SetText(
-    ("Potential: %d   Blacklist: perm %d, temp %d\nWho: %d/%d%s   WhisperQ: %d (%s)   PostQ: %d%s"):format(
-      pot, blPerm, blTemp, whoPos, whoTotal, whoPending, wq, whisperOn, pq, capStr
+    ("Potential: |cffffffff%d|r   |   BL: |cff888888perm %d|r  %stemp %d|r\n"
+  .. "Who: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"):format(
+      pot, blPerm, blTempColor, blTemp,
+      whoPos, whoTotal, whoPending, wq, whisperLabel, pq, capLine
     )
   )
+
+  -- Contextual hint
+  local hintText = nil
+  local Ghost = GRIP.Ghost
+  if Ghost and Ghost.IsEnabled and Ghost:IsEnabled() and Ghost.IsSessionActive and Ghost:IsSessionActive() then
+    hintText = nil  -- Ghost strip takes over
+  elseif pot == 0 and whoTotal == 0 then
+    hintText = "Click Scan or press your Scan keybind to find unguilded players"
+  elseif wq > 0 and not state.whisperTicker then
+    hintText = ("Whisper queue has %d candidates \xE2\x80\x94 click Whisper+Invite to start"):format(wq)
+  elseif blTemp > 20 then
+    local days = tonumber(GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.config.blacklistDays) or 14
+    hintText = ("%d temp-blacklisted players will expire in ~%d days"):format(blTemp, days)
+  else
+    hintText = "Tip: /grip help  \xC2\xB7  Right-click rows for options"
+  end
+  if hintText then
+    home.hint:SetText(hintText)
+    home.hint:Show()
+  else
+    home.hint:SetText("")
+    home.hint:Hide()
+  end
 
   if home.blFrame and home.blFrame.header and home.blFrame.header.title then
     home.blFrame.header.title:SetText(("Blacklist (perm %d; temp %d)"):format(blPerm or 0, blTemp or 0))
