@@ -287,7 +287,7 @@ function GRIP:PostNext()
   local didChange = false
 
   -- Purge any now-blocked targeted posts before acting (bad SV /reload safety + live blacklist changes).
-  if PurgeBlacklistedFromPostQueue(self) then
+  if PurgeBlacklistedFromPostQueue(GRIP) then
     didChange = true
   end
 
@@ -298,7 +298,7 @@ function GRIP:PostNext()
   end
 
   -- Purge again in case manual enqueue created something that is now blocked.
-  if PurgeBlacklistedFromPostQueue(self) then
+  if PurgeBlacklistedFromPostQueue(GRIP) then
     didChange = true
   end
 
