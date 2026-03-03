@@ -355,6 +355,17 @@ function Ghost:QueueAction(actionType, actionFn, meta)
     return false, "queue_full"
   end
 
+  -- Dedup: skip if same actionType + target already queued
+  if meta and meta.target and meta.target ~= "" then
+    for _, entry in ipairs(state.ghost.queue) do
+      if entry.actionType == actionType
+        and entry.meta and entry.meta.target == meta.target then
+        Dbg("Ghost: dedup skip", tostring(actionType), meta.target)
+        return false, "duplicate"
+      end
+    end
+  end
+
   state.ghost.queue[#state.ghost.queue + 1] = {
     action = actionFn,
     actionType = actionType or "unknown",

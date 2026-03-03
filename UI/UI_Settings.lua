@@ -109,11 +109,7 @@ local function EnforceWhisperBudget(s, eb)
   if cursor < 0 then cursor = 0 end
   if cursor > #txt then cursor = #txt end
 
-  local trimmed = txt
-  -- Simple, reliable approach: drop from the END until it fits.
-  while #trimmed > 0 and EstimateWhisperRenderedBytes(trimmed) > MAX_WHISPER_BYTES do
-    trimmed = trimmed:sub(1, -2)
-  end
+  local trimmed = GRIP:TrimToBudget(txt, MAX_WHISPER_BYTES, EstimateWhisperRenderedBytes)
 
   W.ProgrammaticSet(eb, trimmed)
   eb._gripDirty = true

@@ -602,3 +602,40 @@ function GRIP:GlobalStringToPattern(gs)
   pat = pat:gsub("%%d", "(%%d+)")
   return "^" .. pat .. "$"
 end
+
+-- Find the longest prefix of `s` (in whole UTF-8 characters) where
+-- `costFn(prefix) <= maxCost`. Uses binary search on character count.
+function GRIP:TrimToBudget(s, maxCost, costFn)
+  if type(s) ~= "string" or s == "" then return s end
+  if costFn(s) <= maxCost then return s end
+  -- Collect UTF-8 character boundary positions
+  local boundaries = {1}  -- byte positions where each char starts
+  local i = 1
+  local len = #s
+  while i <= len do
+    local b = s:byte(i)
+    local charLen
+    if b < 0x80 then charLen = 1
+    elseif b < 0xE0 then charLen = 2
+    elseif b < 0xF0 then charLen = 3
+    else charLen = 4
+    end
+    i = i + charLen
+    if i <= len + 1 then
+      boundaries[#boundaries + 1] = i
+    end
+  end
+  -- Binary search: find largest char count where cost <= maxCost
+  local lo, hi = 0, #boundaries - 1
+  while lo < hi do
+    local mid = lo + math.ceil((hi - lo) / 2)
+    local prefix = s:sub(1, boundaries[mid + 1] - 1)
+    if costFn(prefix) <= maxCost then
+      lo = mid
+    else
+      hi = mid - 1
+    end
+  end
+  if lo == 0 then return "" end
+  return s:sub(1, boundaries[lo + 1] - 1)
+end

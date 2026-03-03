@@ -473,7 +473,7 @@ function GRIP:CreateUI()
     HookAllEditBoxesForEsc(f)
 
     if not f._ticker and C_Timer and C_Timer.NewTicker then
-      f._ticker = C_Timer.NewTicker(0.2, function()
+      f._ticker = C_Timer.NewTicker(0.5, function()
         if f:IsShown() then GRIP:UpdateUI() end
       end)
     end

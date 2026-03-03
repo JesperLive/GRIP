@@ -96,10 +96,7 @@ local function EnforceChannelBudget(ads, eb, editKey)
   if cursor < 0 then cursor = 0 end
   if cursor > #txt then cursor = #txt end
 
-  local trimmed = txt
-  while #trimmed > 0 and EstimateChannelRenderedBytes(trimmed) > MAX_CHANNEL_BYTES do
-    trimmed = trimmed:sub(1, -2)
-  end
+  local trimmed = GRIP:TrimToBudget(txt, MAX_CHANNEL_BYTES, EstimateChannelRenderedBytes)
 
   W.ProgrammaticSet(eb, trimmed)
   eb._gripDirty = true
