@@ -287,10 +287,15 @@ function GRIP:UI_LayoutAds()
     end
   end
 
-  -- Re-anchor Trade header below the General editor's last button row.
-  if ads.tradeHdr and genLastBtn then
+  -- Re-anchor separator + Trade header below the General editor's last button row.
+  if ads.sep2 and genLastBtn then
+    ads.sep2:ClearAllPoints()
+    ads.sep2:SetPoint("TOPLEFT", genLastBtn, "BOTTOMLEFT", 0, -6)
+    ads.sep2:SetPoint("RIGHT", ads.content, "RIGHT", -PAD_R, 0)
+  end
+  if ads.tradeHdr then
     ads.tradeHdr:ClearAllPoints()
-    ads.tradeHdr:SetPoint("TOPLEFT", genLastBtn, "BOTTOMLEFT", 0, -12)
+    ads.tradeHdr:SetPoint("TOPLEFT", ads.sep2 or genLastBtn, "BOTTOMLEFT", 0, -6)
   end
 
   -- Trade editor button row
@@ -309,10 +314,15 @@ function GRIP:UI_LayoutAds()
     end
   end
 
-  -- Re-anchor Save row below the Trade editor's last button row.
-  if ads.save and tradeLastBtn then
+  -- Re-anchor separator + Save row below the Trade editor's last button row.
+  if ads.sep3 and tradeLastBtn then
+    ads.sep3:ClearAllPoints()
+    ads.sep3:SetPoint("TOPLEFT", tradeLastBtn, "BOTTOMLEFT", 0, -4)
+    ads.sep3:SetPoint("RIGHT", ads.content, "RIGHT", -PAD_R, 0)
+  end
+  if ads.save then
     ads.save:ClearAllPoints()
-    ads.save:SetPoint("TOPLEFT", tradeLastBtn, "BOTTOMLEFT", 0, -10)
+    ads.save:SetPoint("TOPLEFT", ads.sep3 or tradeLastBtn, "BOTTOMLEFT", 0, -6)
   end
 
   -- Bottom action row: Save + Queue Now + Post Next
@@ -385,12 +395,21 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.apply:SetPoint("TOPLEFT", ads.intLbl, "BOTTOMLEFT", 0, -8)
+  GRIP:AttachTooltip(ads.enabled, "Enable Scheduler", "Automatically queues one General + one Trade post\nevery interval. Posts still require a hardware event to send.")
+  GRIP:AttachTooltip(ads.apply, "Apply Interval", "Save the post interval.")
+
+  -- Separator: enable/interval → General editor
+  ads.sep1 = a:CreateTexture(nil, "ARTWORK")
+  ads.sep1:SetHeight(1)
+  ads.sep1:SetPoint("TOPLEFT", ads.apply, "BOTTOMLEFT", 0, -6)
+  ads.sep1:SetPoint("RIGHT", a, "RIGHT", -PAD_R, 0)
+  ads.sep1:SetColorTexture(1, 1, 1, 0.08)
 
   -- =======================================================================
   -- General message editor
   -- =======================================================================
-  ads.generalHdr = a:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  ads.generalHdr:SetPoint("TOPLEFT", ads.apply, "BOTTOMLEFT", 0, -12)
+  ads.generalHdr = a:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  ads.generalHdr:SetPoint("TOPLEFT", ads.sep1, "BOTTOMLEFT", 0, -6)
   ads.generalHdr:SetText("General message (supports {guild} {guildlink})")
 
   ads.genSF, ads.genEdit = W.CreateMultilineEdit(a, 1, 70)
@@ -427,6 +446,7 @@ function GRIP:UI_CreateAds(parent)
     end
   end)
   ads.genInsertGuild:SetPoint("TOPLEFT", ads.genSF, "BOTTOMLEFT", 0, -6)
+  GRIP:AttachTooltip(ads.genInsertGuild, "Insert {guild}", "Inserts your guild name at cursor.")
 
   ads.genInsertLink = W.CreateUIButton(a, "Insert {guildlink}", 140, 20, function()
     if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
@@ -436,6 +456,7 @@ function GRIP:UI_CreateAds(parent)
     end
   end)
   ads.genInsertLink:SetPoint("LEFT", ads.genInsertGuild, "RIGHT", 8, 0)
+  GRIP:AttachTooltip(ads.genInsertLink, "Insert {guildlink}", "Inserts a clickable Guild Finder link at cursor.")
 
   ads.genPreview = W.CreateUIButton(a, "Preview", 80, 20, function()
     if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
@@ -449,12 +470,20 @@ function GRIP:UI_CreateAds(parent)
     GRIP:Print("General preview: " .. msg)
   end)
   ads.genPreview:SetPoint("LEFT", ads.genInsertLink, "RIGHT", 8, 0)
+  GRIP:AttachTooltip(ads.genPreview, "Preview", "Expands tokens and prints the General message to chat.")
+
+  -- Separator: General editor → Trade editor
+  ads.sep2 = a:CreateTexture(nil, "ARTWORK")
+  ads.sep2:SetHeight(1)
+  ads.sep2:SetPoint("TOPLEFT", ads.genInsertGuild, "BOTTOMLEFT", 0, -6)
+  ads.sep2:SetPoint("RIGHT", a, "RIGHT", -PAD_R, 0)
+  ads.sep2:SetColorTexture(1, 1, 1, 0.08)
 
   -- =======================================================================
   -- Trade message editor
   -- =======================================================================
-  ads.tradeHdr = a:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  ads.tradeHdr:SetPoint("TOPLEFT", ads.genInsertGuild, "BOTTOMLEFT", 0, -12)
+  ads.tradeHdr = a:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  ads.tradeHdr:SetPoint("TOPLEFT", ads.sep2, "BOTTOMLEFT", 0, -6)
   ads.tradeHdr:SetText("Trade message (supports {guild} {guildlink})")
 
   ads.tradeSF, ads.tradeEdit = W.CreateMultilineEdit(a, 1, 70)
@@ -491,6 +520,7 @@ function GRIP:UI_CreateAds(parent)
     end
   end)
   ads.tradeInsertGuild:SetPoint("TOPLEFT", ads.tradeSF, "BOTTOMLEFT", 0, -6)
+  GRIP:AttachTooltip(ads.tradeInsertGuild, "Insert {guild}", "Inserts your guild name at cursor.")
 
   ads.tradeInsertLink = W.CreateUIButton(a, "Insert {guildlink}", 140, 20, function()
     if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
@@ -500,6 +530,7 @@ function GRIP:UI_CreateAds(parent)
     end
   end)
   ads.tradeInsertLink:SetPoint("LEFT", ads.tradeInsertGuild, "RIGHT", 8, 0)
+  GRIP:AttachTooltip(ads.tradeInsertLink, "Insert {guildlink}", "Inserts a clickable Guild Finder link at cursor.")
 
   ads.tradePreview = W.CreateUIButton(a, "Preview", 80, 20, function()
     if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
@@ -513,6 +544,14 @@ function GRIP:UI_CreateAds(parent)
     GRIP:Print("Trade preview: " .. msg)
   end)
   ads.tradePreview:SetPoint("LEFT", ads.tradeInsertLink, "RIGHT", 8, 0)
+  GRIP:AttachTooltip(ads.tradePreview, "Preview", "Expands tokens and prints the Trade message to chat.")
+
+  -- Separator: Trade editor → bottom action row
+  ads.sep3 = a:CreateTexture(nil, "ARTWORK")
+  ads.sep3:SetHeight(1)
+  ads.sep3:SetPoint("TOPLEFT", ads.tradeInsertGuild, "BOTTOMLEFT", 0, -4)
+  ads.sep3:SetPoint("RIGHT", a, "RIGHT", -PAD_R, 0)
+  ads.sep3:SetColorTexture(1, 1, 1, 0.08)
 
   -- =======================================================================
   -- Bottom row: Save (both editors) + Queue + Post
@@ -540,7 +579,8 @@ function GRIP:UI_CreateAds(parent)
     GRIP:Print("Ad messages saved.")
     GRIP:UpdateUI()
   end)
-  ads.save:SetPoint("TOPLEFT", ads.tradeInsertGuild, "BOTTOMLEFT", 0, -10)
+  ads.save:SetPoint("TOPLEFT", ads.sep3, "BOTTOMLEFT", 0, -6)
+  GRIP:AttachTooltip(ads.save, "Save", "Save both General and Trade messages to SavedVariables.")
 
   ads.queueNow = W.CreateUIButton(a, "Queue Now", 90, 20, function()
     if not HasCfg() then
@@ -552,6 +592,7 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.queueNow:SetPoint("LEFT", ads.save, "RIGHT", 8, 0)
+  GRIP:AttachTooltip(ads.queueNow, "Queue Now", "Immediately queues one General + one Trade post.\nUse Post Next to send them.")
 
   ads.postNext = W.CreateUIButton(a, "Post Next", 90, 20, function()
     if not HasCfg() then
@@ -576,6 +617,13 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.postNext:SetPoint("LEFT", ads.queueNow, "RIGHT", 8, 0)
+  GRIP:AttachTooltip(ads.postNext, "Post Next", "Sends the next queued channel post.\nRequires a keybind or button click (hardware event).")
+
+  -- Button accent underlines
+  W.AddButtonAccent(ads.apply, 1, 0.82, 0)
+  W.AddButtonAccent(ads.save, 1, 0.82, 0)
+  W.AddButtonAccent(ads.queueNow, 1, 0.82, 0)
+  W.AddButtonAccent(ads.postNext, 1, 0.82, 0)
 
   -- Initial sizing pass (helps first render before the next resize tick)
   if GRIP and GRIP.UI_LayoutAds then

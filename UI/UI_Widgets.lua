@@ -657,4 +657,14 @@ function GRIP:AttachTooltip(frame, titleOrFunc, bodyOrFunc)
     end
 end
 
+function W.AddButtonAccent(btn, r, g, b)
+  if not btn then return end
+  local accent = btn:CreateTexture(nil, "ARTWORK")
+  accent:SetHeight(2)
+  accent:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, -1)
+  accent:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, -1)
+  accent:SetColorTexture(r, g, b, 0.6)
+  btn._accent = accent
+end
+
 -- ── End shared UI helpers ──────────────────────────────────────────────
