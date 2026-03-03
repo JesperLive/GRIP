@@ -540,7 +540,11 @@ function GRIP:CreateUI()
 
     -- Modal: while shown, NEVER propagate keys to the game.
     if f.SetPropagateKeyboardInput then
-      f:SetPropagateKeyboardInput(false)
+      if InCombatLockdown and InCombatLockdown() then
+        GRIP:Debug("UI OnShow: skipping SetPropagateKeyboardInput (combat lockdown)")
+      else
+        f:SetPropagateKeyboardInput(false)
+      end
     end
 
     -- Re-scan for editboxes on show (safe + catches late-created widgets)
