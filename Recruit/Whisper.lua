@@ -109,16 +109,16 @@ local function GateCtx(phase, extra)
   return GRIP:BuildGateCtx("whisper", "Recruit/Whisper", phase, extra)
 end
 
-local function IsWhisperBlocked(self, name, context)
-  local ok = self:BL_ExecutionGate(name, context or GateCtx("unspecified"))
+local function IsWhisperBlocked(name, context)
+  local ok = GRIP:BL_ExecutionGate(name, context or GateCtx("unspecified"))
   return not ok
 end
 
 -- Last-line execution gate:
 -- Returns true if the target is blocked and we should skip/clean up.
-local function WhisperBlacklistGate(self, name, pot, cfg, context)
+local function WhisperBlacklistGate(name, pot, cfg, context)
   if not name or name == "" then return true end
-  if not IsWhisperBlocked(self, name, context or GateCtx("whisper")) then return false end
+  if not IsWhisperBlocked(name, context or GateCtx("whisper")) then return false end
 
   -- Clean up any bad/legacy state safely.
   state.pendingWhisper = state.pendingWhisper or {}
@@ -128,28 +128,28 @@ local function WhisperBlacklistGate(self, name, pot, cfg, context)
   if entry then
     entry.whisperAttempted = true
     entry.whisperSuccess = false
-    entry.whisperLastAt = self:Now()
+    entry.whisperLastAt = GRIP:Now()
   end
 
-  self:Debug("Blacklist gate (whisper): blocked execution for", name)
-  self:MaybeFinalize(name)
+  GRIP:Debug("Blacklist gate (whisper): blocked execution for", name)
+  GRIP:MaybeFinalize(name)
 
   return true
 end
 
-local function PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
+local function PurgeBlacklistedFromPendingAndQueue(pot, cfg)
   state.pendingWhisper = state.pendingWhisper or {}
   state.whisperQueue = state.whisperQueue or {}
 
   -- Pending: remove any blocked keys (bad SV state safety).
   local blockedPending = {}
   for name in pairs(state.pendingWhisper) do
-    if IsWhisperBlocked(self, name, GateCtx("pending")) then
+    if IsWhisperBlocked(name, GateCtx("pending")) then
       blockedPending[#blockedPending + 1] = name
     end
   end
   for _, name in ipairs(blockedPending) do
-    WhisperBlacklistGate(self, name, pot, cfg, GateCtx("pending"))
+    WhisperBlacklistGate(name, pot, cfg, GateCtx("pending"))
   end
 
   -- Queue: remove blocked names before processing.
@@ -157,9 +157,9 @@ local function PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
     local i = 1
     while i <= #state.whisperQueue do
       local name = state.whisperQueue[i]
-      if IsWhisperBlocked(self, name, GateCtx("queue")) then
+      if IsWhisperBlocked(name, GateCtx("queue")) then
         table.remove(state.whisperQueue, i)
-        WhisperBlacklistGate(self, name, pot, cfg, GateCtx("queue"))
+        WhisperBlacklistGate(name, pot, cfg, GateCtx("queue"))
       else
         i = i + 1
       end
@@ -252,7 +252,7 @@ function GRIP:BuildWhisperQueue()
   if IsDailyCapReached(cfg) then return end
 
   for name, entry in pairs(pot) do
-    if entry and not entry.whisperAttempted and not IsWhisperBlocked(self, name, GateCtx("build")) then
+    if entry and not entry.whisperAttempted and not IsWhisperBlocked(name, GateCtx("build")) then
       state.whisperQueue[#state.whisperQueue + 1] = name
     end
   end
@@ -289,7 +289,7 @@ function GRIP:StartWhispers()
   self:BuildWhisperQueue()
 
   -- Bad-state safety: purge blocked targets from pending/queue before starting.
-  PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
+  PurgeBlacklistedFromPendingAndQueue(pot, cfg)
 
   if #state.whisperQueue == 0 then
     self:Print("No candidates in Potential list need whispers.")
@@ -338,13 +338,13 @@ function GRIP:WhisperTick()
   state.whisperQueue = state.whisperQueue or {}
 
   -- Bad-state safety every tick (covers /reload with tampered SavedVariables).
-  PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
+  PurgeBlacklistedFromPendingAndQueue(pot, cfg)
 
   if #state.whisperQueue == 0 then
     -- Ghost Mode: rebuild queue from Potential (new candidates from ongoing scans)
     if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
       self:BuildWhisperQueue()
-      PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
+      PurgeBlacklistedFromPendingAndQueue(pot, cfg)
       if #state.whisperQueue == 0 then
         return  -- no new candidates yet; try again next tick
       end
@@ -363,7 +363,7 @@ function GRIP:WhisperTick()
   if entry.whisperAttempted then self:UpdateUI() return end
 
   -- Gate early (queue already popped).
-  if WhisperBlacklistGate(self, name, pot, cfg, GateCtx("tick-early")) then
+  if WhisperBlacklistGate(name, pot, cfg, GateCtx("tick-early")) then
     didUIChange = true
     if didUIChange then self:UpdateUI() end
     return
@@ -389,7 +389,7 @@ function GRIP:WhisperTick()
   didUIChange = true
 
   -- LAST-LINE DEFENSE: re-check right before execution.
-  if WhisperBlacklistGate(self, name, pot, cfg, GateCtx("pre-exec")) then
+  if WhisperBlacklistGate(name, pot, cfg, GateCtx("pre-exec")) then
     didUIChange = true
     if didUIChange then self:UpdateUI() end
     return
@@ -455,7 +455,7 @@ function GRIP:OnWhisperInform(targetName)
   if not full then return end
 
   -- Last-line defense for inform path (no further pipeline effects for blocked targets).
-  if WhisperBlacklistGate(self, full, pot, cfg, GateCtx("inform", targetName)) then
+  if WhisperBlacklistGate(full, pot, cfg, GateCtx("inform", targetName)) then
     self:UpdateUI()
     return
   end
@@ -502,7 +502,7 @@ function GRIP:OnWhisperFailed(targetName)
   if not full then return end
 
   -- Last-line defense for fail path too.
-  if WhisperBlacklistGate(self, full, pot, cfg, GateCtx("failed", targetName)) then
+  if WhisperBlacklistGate(full, pot, cfg, GateCtx("failed", targetName)) then
     self:UpdateUI()
     return
   end

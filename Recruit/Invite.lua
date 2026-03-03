@@ -35,8 +35,8 @@ local function GateCtx(phase, extra)
   return GRIP:BuildGateCtx("invite", "Recruit/Invite", phase, extra)
 end
 
-local function IsInviteBlocked(self, name, context)
-  local ok = self:BL_ExecutionGate(name, context or GateCtx("unspecified"))
+local function IsInviteBlocked(name, context)
+  local ok = GRIP:BL_ExecutionGate(name, context or GateCtx("unspecified"))
   return not ok
 end
 
@@ -47,7 +47,7 @@ local function PickNextInviteTarget()
   local names = GRIP:SortPotentialNames()
   for _, name in ipairs(names) do
     local entry = pot[name]
-    if entry and not entry.inviteAttempted and not entry.invitePending and not IsInviteBlocked(GRIP, name, GateCtx("pick")) then
+    if entry and not entry.inviteAttempted and not entry.invitePending and not IsInviteBlocked(name, GateCtx("pick")) then
       return name
     end
   end
@@ -95,12 +95,12 @@ end
 
 -- Last-line execution gate for invite pipeline (whisper+invite).
 -- Returns true if target is blocked and we should stop/clean up.
-local function InviteBlacklistGate(self, name, pot, cfg, phase, ctx)
+local function InviteBlacklistGate(name, pot, cfg, phase, ctx)
   if not name or name == "" then return true end
   -- Fix GateCtx argument order (phase should be the real phase)
   local context = ctx or GateCtx(phase, "gate")
 
-  if not IsInviteBlocked(self, name, context) then return false end
+  if not IsInviteBlocked(name, context) then return false end
 
   state.pendingWhisper = state.pendingWhisper or {}
   state.pendingInvite  = state.pendingInvite or {}
@@ -114,46 +114,46 @@ local function InviteBlacklistGate(self, name, pot, cfg, phase, ctx)
     if phase == "whisper" then
       entry.whisperAttempted = true
       entry.whisperSuccess = false
-      entry.whisperLastAt = self:Now()
+      entry.whisperLastAt = GRIP:Now()
     elseif phase == "invite" then
       entry.inviteAttempted = true
       entry.invitePending = false
       entry.inviteSuccess = false
-      entry.inviteLastAt = self:Now()
+      entry.inviteLastAt = GRIP:Now()
     else
       -- generic cleanup
       entry.invitePending = false
     end
   end
 
-  self:Debug("Blacklist gate (invite pipeline): blocked", tostring(phase or "?"), "for", name)
-  self:MaybeFinalize(name)
+  GRIP:Debug("Blacklist gate (invite pipeline): blocked", tostring(phase or "?"), "for", name)
+  GRIP:MaybeFinalize(name)
 
   return true
 end
 
-local function PurgeBlacklistedPending(self, pot, cfg)
+local function PurgeBlacklistedPending(pot, cfg)
   state.pendingWhisper = state.pendingWhisper or {}
   state.pendingInvite  = state.pendingInvite or {}
 
   local blockedWhispers = {}
   for name in pairs(state.pendingWhisper) do
-    if IsInviteBlocked(self, name, GateCtx("pending:whisper")) then
+    if IsInviteBlocked(name, GateCtx("pending:whisper")) then
       blockedWhispers[#blockedWhispers + 1] = name
     end
   end
   for _, name in ipairs(blockedWhispers) do
-    InviteBlacklistGate(self, name, pot, cfg, "whisper", GateCtx("pending:whisper"))
+    InviteBlacklistGate(name, pot, cfg, "whisper", GateCtx("pending:whisper"))
   end
 
   local blockedInvites = {}
   for name in pairs(state.pendingInvite) do
-    if IsInviteBlocked(self, name, GateCtx("pending:invite")) then
+    if IsInviteBlocked(name, GateCtx("pending:invite")) then
       blockedInvites[#blockedInvites + 1] = name
     end
   end
   for _, name in ipairs(blockedInvites) do
-    InviteBlacklistGate(self, name, pot, cfg, "invite", GateCtx("pending:invite"))
+    InviteBlacklistGate(name, pot, cfg, "invite", GateCtx("pending:invite"))
   end
 end
 
@@ -169,7 +169,7 @@ function GRIP:InviteNext()
   state.pendingInvite = state.pendingInvite or {}
 
   -- Bad-state safety: purge any blocked targets sitting in pending state (SV tamper /reload).
-  PurgeBlacklistedPending(self, pot, cfg)
+  PurgeBlacklistedPending(pot, cfg)
 
   if not cfg.inviteEnabled then
     self:Print("Guild invites are disabled in config.")
@@ -198,7 +198,7 @@ function GRIP:InviteNext()
   end
 
   -- Last-line defense even though PickNextInviteTarget filters.
-  if InviteBlacklistGate(self, name, pot, cfg, "pick", GateCtx("pick")) then
+  if InviteBlacklistGate(name, pot, cfg, "pick", GateCtx("pick")) then
     self:UpdateUI()
     return
   end
@@ -216,7 +216,7 @@ function GRIP:InviteNext()
   -- Whisper (not #hwevent restricted, but we do it here so one click = one candidate)
   if cfg.whisperEnabled and not entry.whisperAttempted then
     -- Gate before whisper execution.
-    if InviteBlacklistGate(self, name, pot, cfg, "whisper", GateCtx("whisper:pre")) then
+    if InviteBlacklistGate(name, pot, cfg, "whisper", GateCtx("whisper:pre")) then
       didUIChange = true
       if didUIChange then self:UpdateUI() end
       return
@@ -238,7 +238,7 @@ function GRIP:InviteNext()
 
       -- LAST-LINE DEFENSE for whisper execution (blacklist could change between template and send).
       -- Keep this as the final step immediately before the send.
-      if InviteBlacklistGate(self, name, pot, cfg, "whisper", GateCtx("whisper:pre-exec")) then
+      if InviteBlacklistGate(name, pot, cfg, "whisper", GateCtx("whisper:pre-exec")) then
         didUIChange = true
         if didUIChange then self:UpdateUI() end
         return
@@ -263,7 +263,7 @@ function GRIP:InviteNext()
 
   -- LAST-LINE DEFENSE: do not attempt protected call if blocked.
   -- Keep this as the final step immediately before GuildInvite.
-  if InviteBlacklistGate(self, name, pot, cfg, "invite", GateCtx("invite:pre-exec")) then
+  if InviteBlacklistGate(name, pot, cfg, "invite", GateCtx("invite:pre-exec")) then
     entry.invitePending = false
     state.pendingInvite[name] = nil
     didUIChange = true
@@ -414,7 +414,7 @@ function GRIP:OnInviteSystemSuccess(targetName)
   state.pendingInvite = state.pendingInvite or {}
 
   -- If blocked, ensure pending is cleared and exit (no further pipeline side effects).
-  if InviteBlacklistGate(self, full, pot, cfg, "invite_success", GateCtx("system:success", targetName)) then
+  if InviteBlacklistGate(full, pot, cfg, "invite_success", GateCtx("system:success", targetName)) then
     self:UpdateUI()
     return
   end
@@ -450,7 +450,7 @@ function GRIP:OnInviteSystemFail(targetName, reason)
   state.pendingInvite = state.pendingInvite or {}
 
   -- If blocked, ensure pending is cleared and exit (no further pipeline side effects).
-  if InviteBlacklistGate(self, full, pot, cfg, "invite_fail", GateCtx("system:fail", { target = targetName, reason = reason })) then
+  if InviteBlacklistGate(full, pot, cfg, "invite_fail", GateCtx("system:fail", { target = targetName, reason = reason })) then
     self:UpdateUI()
     return
   end
