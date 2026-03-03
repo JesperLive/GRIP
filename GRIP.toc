@@ -41,6 +41,9 @@ Recruit/Post.lua
 
 # -- UI layer
 UI/UI_Widgets.lua
+UI/UI_Home_Popups.lua
+UI/UI_Home_Blacklist.lua
+UI/UI_Home_Menu.lua
 UI/UI_Home.lua
 UI/UI_Settings.lua
 UI/UI_Ads.lua

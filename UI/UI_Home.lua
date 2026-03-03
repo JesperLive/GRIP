@@ -1,5 +1,6 @@
 -- GRIP: UI Home Page
--- Potential candidate list, blacklist panel, action buttons, row context menu.
+-- Potential candidate list, buttons, Ghost strip, layout orchestration.
+-- Popup dialogs → UI_Home_Popups.lua | Blacklist panel → UI_Home_Blacklist.lua | Context menu → UI_Home_Menu.lua
 
 local ADDON_NAME, GRIP = ...
 
@@ -24,34 +25,18 @@ local POT_HEADER_H = 20
 local POT_ROW_H    = 18
 local POT_ROWS_MIN = 10
 
--- Blacklist panel shell/constants
+-- Blacklist panel layout constants (also in UI_Home_Blacklist.lua)
 local BL_PANEL_WIDE_WIDTH = 320
 local BL_PANEL_STACK_H    = 160
 local BL_GAP              = 10
-
--- Blacklist list constants
-local BL_ROW_H    = 18
 
 -- Minimum width for the Potential panel when in two-column mode.
 -- This is sized so the header can always fit through Zone + W + I without crossing into the Blacklist region.
 local POT_MIN_TWO_COL_W = 500
 
-local function EnsureHomeDBTables()
-  if not _G.GRIPDB then return false end
-  if not _G.GRIPDB_CHAR then return false end
+local HasDB = function() return GRIP:HomeHasDB() end
 
-  if type(GRIPDB_CHAR.config) ~= "table" then GRIPDB_CHAR.config = {} end
-  if type(GRIPDB_CHAR.potential) ~= "table" then GRIPDB_CHAR.potential = {} end
-  if type(GRIPDB.blacklist) ~= "table" then GRIPDB.blacklist = {} end
-  if type(GRIPDB.blacklistPerm) ~= "table" then GRIPDB.blacklistPerm = {} end
-
-  return true
-end
-
-local function HasDB()
-  if not EnsureHomeDBTables() then return false end
-  return (type(GRIPDB_CHAR.config) == "table") and true or false
-end
+local ClampFontString = function(fs, w) GRIP:ClampFontString(fs, w) end
 
 local function GetScanCooldown()
   local cfg = (GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
@@ -180,602 +165,6 @@ local function BuildPotentialNameList()
   return SortPotentialNewestFirst(t)
 end
 
-local function ClampFontString(fs, w)
-  if not fs then return end
-  if fs.SetWidth then fs:SetWidth(w) end
-  if fs.SetWordWrap then fs:SetWordWrap(false) end
-  if fs.SetJustifyH then fs:SetJustifyH("LEFT") end
-end
-
--- ----------------------------
--- Blacklist helpers
--- ----------------------------
-
-local function BuildBlacklistNameList()
-  local t = {}
-  if not (GRIPDB and GRIPDB.blacklistPerm) then return t end
-
-  -- Prefer canonical helper (also normalizes legacy boolean entries)
-  if GRIP and type(GRIP.GetPermanentBlacklistNames) == "function" then
-    local ok, names = pcall(function() return GRIP:GetPermanentBlacklistNames() end)
-    if ok and type(names) == "table" then
-      return names
-    end
-  end
-
-  for name, v in pairs(GRIPDB.blacklistPerm) do
-    if type(name) == "string" and name ~= "" then
-      if v == true or type(v) == "table" or type(v) == "string" then
-        t[#t + 1] = name
-      end
-    end
-  end
-  table.sort(t, function(a, b) return tostring(a) < tostring(b) end)
-  return t
-end
-
-local function GetBlacklistReason(e)
-  if type(e) == "string" then return e end
-  if e == true then return "" end
-  if type(e) ~= "table" then return "" end
-  local r = e.reason or e.note or e.msg or e.text
-  if type(r) ~= "string" then return "" end
-  return r
-end
-
-local function EnsureUnblacklistPopup()
-  if not StaticPopupDialogs then return end
-  if StaticPopupDialogs["GRIP_UNBLACKLIST_CONFIRM"] then return end
-
-  StaticPopupDialogs["GRIP_UNBLACKLIST_CONFIRM"] = {
-    text = "Remove %s from permanent blacklist?",
-    button1 = "Remove",
-    button2 = "Cancel",
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-    OnAccept = function(self)
-      local n = self.data
-      if not n or not HasDB() then return end
-
-      local removed = false
-      if GRIP and type(GRIP.UnblacklistPermanent) == "function" then
-        local ok, r = pcall(function() return GRIP:UnblacklistPermanent(n) end)
-        removed = (ok and r) and true or false
-      end
-      if not removed and GRIPDB.blacklistPerm and GRIPDB.blacklistPerm[n] ~= nil then
-        GRIPDB.blacklistPerm[n] = nil
-        removed = true
-      end
-
-      if removed then
-        GRIP:Print(("Removed %s from permanent blacklist."):format(n))
-      end
-
-      GRIP:UpdateUI()
-    end,
-  }
-end
-
-local function ConfirmUnblacklist(name)
-  if not (HasDB() and type(name) == "string" and name ~= "") then return end
-  EnsureUnblacklistPopup()
-  if StaticPopup_Show then
-    StaticPopup_Show("GRIP_UNBLACKLIST_CONFIRM", name, nil, name)
-  else
-    -- Fallback: no popup system available; remove directly.
-    if GRIP and type(GRIP.UnblacklistPermanent) == "function" then
-      pcall(function() GRIP:UnblacklistPermanent(name) end)
-    end
-    if GRIPDB.blacklistPerm then
-      GRIPDB.blacklistPerm[name] = nil
-    end
-    GRIP:Print(("Removed %s from permanent blacklist."):format(name))
-    GRIP:UpdateUI()
-  end
-end
-
-local function Lower(s)
-  if type(s) ~= "string" then return "" end
-  return s:lower()
-end
-
-local function EntryNameOf(v)
-  if type(v) == "string" then return v end
-  if type(v) ~= "table" then return nil end
-  return v.fullName or v.name or v.target or v.player
-end
-
-local function RemoveFromArray(t, nameLower)
-  if type(t) ~= "table" or type(nameLower) ~= "string" or nameLower == "" then return false end
-  local changed = false
-  for i = #t, 1, -1 do
-    local v = t[i]
-    local n = EntryNameOf(v)
-    if type(n) == "string" and Lower(GRIP:Trim(n)) == nameLower then
-      table.remove(t, i)
-      changed = true
-    end
-  end
-  return changed
-end
-
-local function RemoveFromMapByName(map, nameLower)
-  if type(map) ~= "table" or type(nameLower) ~= "string" or nameLower == "" then return false end
-  local changed = false
-  for k, v in pairs(map) do
-    if type(k) == "string" and Lower(GRIP:Trim(k)) == nameLower then
-      map[k] = nil
-      changed = true
-    else
-      local n = EntryNameOf(v)
-      if type(n) == "string" and Lower(GRIP:Trim(n)) == nameLower then
-        map[k] = nil
-        changed = true
-      end
-    end
-  end
-  return changed
-end
-
-local function ClearNameFromQueues(name)
-  if type(name) ~= "string" or name == "" then return end
-
-  local variants = GRIP:BuildNameKeyVariants(name)
-  if #variants == 0 then variants = { name, Lower(name) } end
-
-  -- Clear from Potential using variants (direct + API if present)
-  if type(GRIP.RemovePotential) == "function" then
-    for _, k in ipairs(variants) do
-      pcall(function() GRIP:RemovePotential(k) end)
-    end
-  end
-  if GRIPDB_CHAR and type(GRIPDB_CHAR.potential) == "table" then
-    for _, k in ipairs(variants) do
-      if GRIPDB_CHAR.potential[k] ~= nil then
-        GRIPDB_CHAR.potential[k] = nil
-      end
-    end
-  end
-
-  -- Best-effort clear of queued/pending state (both state and db, if present)
-  local queueKeys = {
-    "whisperQueue", "inviteQueue", "recruitQueue", "actionQueue", "postQueue",
-    "pendingWhisper", "pendingInvite", "pendingRecruit", "pendingAction",
-    "lastWhisperTarget", "lastInviteTarget", "lastRecruitTarget", "lastActionTarget"
-  }
-
-  for _, key in ipairs(queueKeys) do
-    local t = state and state[key]
-    local dbt = GRIPDB_CHAR and GRIPDB_CHAR[key]
-
-    for _, k in ipairs(variants) do
-      local kl = Lower(GRIP:Trim(k))
-
-      if type(t) == "table" then
-        RemoveFromArray(t, kl)
-        RemoveFromMapByName(t, kl)
-        -- If it's a "pending" record table that stores a single target field, nuke it if it matches.
-        local tn = EntryNameOf(t)
-        if type(tn) == "string" and Lower(GRIP:Trim(tn)) == kl then
-          state[key] = {}
-        end
-      elseif type(t) == "string" then
-        if Lower(GRIP:Trim(t)) == kl then state[key] = nil end
-      end
-
-      if type(dbt) == "table" then
-        RemoveFromArray(dbt, kl)
-        RemoveFromMapByName(dbt, kl)
-      elseif type(dbt) == "string" then
-        if Lower(GRIP:Trim(dbt)) == kl then GRIPDB_CHAR[key] = nil end
-      end
-    end
-  end
-end
-
-local function EnsureBlacklistAddPopup()
-  if not StaticPopupDialogs then return end
-  if StaticPopupDialogs["GRIP_BLACKLIST_ADD"] then return end
-
-  StaticPopupDialogs["GRIP_BLACKLIST_ADD"] = {
-    text = "Add %s to permanent blacklist?\n(Optional reason)",
-    button1 = "Blacklist",
-    button2 = "Cancel",
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-    hasEditBox = true,
-    editBoxWidth = 220,
-    maxLetters = 120,
-    OnShow = function(self)
-      if self.editBox then
-        self.editBox:SetText("")
-        self.editBox:SetFocus()
-        self.editBox:HighlightText()
-      end
-    end,
-    OnAccept = function(self)
-      local n = self.data
-      if not (HasDB() and type(n) == "string" and n ~= "") then return end
-
-      local reason = ""
-      if self.editBox then
-        reason = GRIP:Trim(self.editBox:GetText() or "")
-      end
-
-      -- Canonical schema: permanent entries go in blacklistPerm as {at, reason}.
-      if GRIP and type(GRIP.BlacklistPermanent) == "function" then
-        pcall(function() GRIP:BlacklistPermanent(n, reason) end)
-      else
-        GRIPDB.blacklistPerm[n] = { at = (GRIP and GRIP.Now and GRIP:Now()) or (time and time() or 0), reason = tostring(reason or "") }
-      end
-
-      -- If this name was also in temp blacklist, clear the exact key to avoid confusing counts.
-      if GRIPDB.blacklist and GRIPDB.blacklist[n] ~= nil then
-        GRIPDB.blacklist[n] = nil
-      end
-
-      -- Remove from potential and any action queues/pending
-      ClearNameFromQueues(n)
-
-      GRIP:Print(reason ~= "" and ("Blacklisted %s: %s"):format(n, reason) or ("Blacklisted %s."):format(n))
-      GRIP:UpdateUI()
-    end,
-    EditBoxOnEnterPressed = function(self)
-      local parent = self:GetParent()
-      if parent and parent.button1 and parent.button1.Click then
-        parent.button1:Click()
-      end
-    end,
-    EditBoxOnEscapePressed = function(self)
-      local parent = self:GetParent()
-      if parent and parent.button2 and parent.button2.Click then
-        parent.button2:Click()
-      end
-    end,
-  }
-end
-
-local function PromptBlacklistAdd(name)
-  if not (HasDB() and type(name) == "string" and name ~= "") then return end
-  EnsureBlacklistAddPopup()
-  if StaticPopup_Show then
-    StaticPopup_Show("GRIP_BLACKLIST_ADD", name, nil, name)
-  else
-    -- Fallback: no popup, blacklist directly with empty reason.
-    if GRIP and type(GRIP.BlacklistPermanent) == "function" then
-      pcall(function() GRIP:BlacklistPermanent(name, "") end)
-    else
-      GRIPDB.blacklistPerm[name] = { at = (GRIP and GRIP.Now and GRIP:Now()) or (time and time() or 0), reason = "" }
-    end
-    if GRIPDB.blacklist then GRIPDB.blacklist[name] = nil end
-    ClearNameFromQueues(name)
-    GRIP:Print(("Blacklisted %s."):format(name))
-    GRIP:UpdateUI()
-  end
-end
-
-local function IsCurrentlyBlacklisted(name)
-  if not (HasDB() and type(name) == "string" and name ~= "") then return false end
-
-  if GRIP and type(GRIP.IsBlacklisted) == "function" then
-    local ok, r = pcall(function() return GRIP:IsBlacklisted(name) end)
-    if ok then return r and true or false end
-  end
-
-  if GRIPDB.blacklistPerm and GRIPDB.blacklistPerm[name] ~= nil then
-    return true
-  end
-
-  if GRIPDB.blacklist and type(GRIPDB.blacklist[name]) == "number" then
-    local now = (time and time()) or 0
-    return (GRIPDB.blacklist[name] > now) and true or false
-  end
-
-  return false
-end
-
--- ----------------------------
--- Row context menu (right-click)
--- ----------------------------
-
-local function ShowRowMenu(home, anchor, name)
-  if type(name) ~= "string" or name == "" then return end
-  if not (MenuUtil and MenuUtil.CreateContextMenu) then return end
-
-  MenuUtil.CreateContextMenu(anchor, function(owner, rootDescription)
-    rootDescription:CreateTitle(name)
-
-    -- Blacklist action (perm)
-    local alreadyBL = IsCurrentlyBlacklisted(name)
-    local blBtn = rootDescription:CreateButton(
-      alreadyBL and "Blacklist\226\128\166 (already blacklisted)" or "Blacklist\226\128\166",
-      function()
-        if not HasDB() then return end
-        PromptBlacklistAdd(name)
-      end
-    )
-    blBtn:SetEnabled(not alreadyBL)
-
-    -- Invite to Guild
-    local inCombat = (InCombatLockdown and InCombatLockdown()) and true or false
-    local canInvite = (not inCombat) and (C_GuildInfo and C_GuildInfo.Invite or GuildInvite) ~= nil
-    local invBtn = rootDescription:CreateButton(
-      inCombat and "Invite to Guild (disabled in combat)" or "Invite to Guild",
-      function()
-        if not HasDB() then return end
-        if InCombatLockdown and InCombatLockdown() then
-          GRIP:Print("Cannot invite in combat.")
-          return
-        end
-        if (C_GuildInfo and C_GuildInfo.Invite) or GuildInvite then
-          local okGate, why = false, "missing-gate"
-          if GRIP and type(GRIP.BL_ExecutionGate) == "function" then
-            okGate, why = GRIP:BL_ExecutionGate(name, { op = "ui_menu_invite", src = "home" })
-          end
-          if not okGate then
-            GRIP:Print(("Invite blocked (%s): %s"):format(tostring(why or "blocked"), name))
-            return
-          end
-          GRIP:Debug("UI: Menu invite " .. name)
-          pcall(function() GRIP:SafeGuildInvite(name) end)
-        end
-      end
-    )
-    invBtn:SetEnabled(canInvite)
-  end)
-end
-
--- ----------------------------
--- Blacklist panel (real)
--- ----------------------------
-
-local function EnsureBlacklistShell(home)
-  if not home or home._blReady then return end
-  home._blReady = true
-
-  local bl = CreateFrame("Frame", nil, home)
-  bl:Hide()
-  home.blFrame = bl
-
-  local header = CreateFrame("Frame", nil, bl)
-  header:SetHeight(POT_HEADER_H)
-  header:SetPoint("TOPLEFT", bl, "TOPLEFT", 0, 0)
-  header:SetPoint("TOPRIGHT", bl, "TOPRIGHT", 0, 0)
-  bl.header = header
-
-  header.bg = header:CreateTexture(nil, "BACKGROUND")
-  header.bg:SetAllPoints(header)
-  header.bg:SetColorTexture(1, 1, 1, 0.06)
-
-  header.line = header:CreateTexture(nil, "BORDER")
-  header.line:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
-  header.line:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
-  header.line:SetHeight(1)
-  header.line:SetColorTexture(1, 1, 1, 0.10)
-
-  header.title = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  header.title:SetPoint("LEFT", header, "LEFT", 6, 0)
-  header.title:SetJustifyH("LEFT")
-  header.title:SetText("Blacklist")
-
-  -- Column labels
-  local function H(text)
-    local fs = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    fs:SetText(text)
-    fs:SetJustifyH("LEFT")
-    if fs.SetWordWrap then fs:SetWordWrap(false) end
-    return fs
-  end
-  bl.hName = H("Name")
-  bl.hReason = H("Reason")
-
-  -- Body background (subtle)
-  bl.bg = bl:CreateTexture(nil, "BACKGROUND")
-  bl.bg:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
-  bl.bg:SetPoint("BOTTOMRIGHT", bl, "BOTTOMRIGHT", 0, 0)
-  bl.bg:SetColorTexture(1, 1, 1, 0.02)
-
-  -- FauxScrollFrame
-  local sf = CreateFrame("ScrollFrame", nil, bl, "FauxScrollFrameTemplate")
-  sf:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
-  sf:SetPoint("BOTTOMRIGHT", bl, "BOTTOMRIGHT", -2, 0)
-  bl.scroll = sf
-
-  -- Empty state
-  bl.empty = bl:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-  bl.empty:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 6, -10)
-  bl.empty:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", -6, -10)
-  bl.empty:SetJustifyH("LEFT")
-  bl.empty:SetJustifyV("TOP")
-  bl.empty:SetText("Permanent blacklist is empty.\nTip: right-click a Potential entry to add it.")
-  bl.empty:Hide()
-
-  -- Row pool (dynamic row count based on visible height)
-  local function initBlRow(frame)
-    frame:SetHeight(BL_ROW_H)
-    frame:Hide()
-
-    frame.stripe = frame:CreateTexture(nil, "BACKGROUND")
-    frame.stripe:SetAllPoints(frame)
-    frame.stripe:SetColorTexture(1, 1, 1, 0.035)
-    frame.stripe:Hide()
-
-    frame:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-    frame:RegisterForClicks("LeftButtonUp")
-
-    frame.name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.name:SetJustifyH("LEFT")
-    if frame.name.SetWordWrap then frame.name:SetWordWrap(false) end
-
-    frame.reason = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    frame.reason:SetJustifyH("LEFT")
-    if frame.reason.SetWordWrap then frame.reason:SetWordWrap(false) end
-
-    frame._nameKey = nil
-
-    frame:SetScript("OnClick", function(self)
-      if not HasDB() then return end
-      local n = self._nameKey
-      if type(n) ~= "string" or n == "" then return end
-      ConfirmUnblacklist(n)
-    end)
-  end
-
-  local function resetBlRow(pool, frame)
-    frame:Hide()
-    frame:ClearAllPoints()
-    frame._nameKey = nil
-    if frame.stripe then frame.stripe:Hide() end
-  end
-
-  bl._rowPool = CreateFramePool("Button", bl, nil, resetBlRow, false, initBlRow)
-  bl.rows = {}
-
-  local function OnScroll()
-    GRIP:UI_UpdateHome()
-  end
-  sf:SetScript("OnVerticalScroll", function(self, offset)
-    FauxScrollFrame_OnVerticalScroll(self, offset, BL_ROW_H, OnScroll)
-  end)
-end
-
-local function ResizeBlacklistRows(home)
-  if not home or not home.blFrame or not home.blFrame.scroll or not home.blFrame._rowPool then return end
-  local bl = home.blFrame
-  local sf = bl.scroll
-  local h = tonumber(sf:GetHeight()) or 0
-  if h <= 0 then return end
-  local needed = math.floor(h / BL_ROW_H) + 1
-  if needed < 4 then needed = 4 end
-  local current = #bl.rows
-  if needed == current then return end
-  if needed > current then
-    for i = current + 1, needed do
-      local row = bl._rowPool:Acquire()
-      bl.rows[i] = row
-    end
-  else
-    for i = needed + 1, current do
-      bl._rowPool:Release(bl.rows[i])
-      bl.rows[i] = nil
-    end
-  end
-end
-
-local function LayoutBlacklistPanel(home)
-  if not home or not home.blFrame or not home.blFrame.header then return end
-  local bl = home.blFrame
-  local w = tonumber(bl:GetWidth()) or 0
-  if w <= 0 then return end
-
-  local usable = w - 12
-  if usable < 140 then usable = 140 end
-
-  local pad = 6
-  local wName = 110
-  local minReason = 60
-  local wReason = usable - (pad + wName + pad)
-  if wReason < minReason then
-    wReason = minReason
-    wName = math.max(80, usable - (pad + wReason + pad))
-  end
-
-  local x = pad
-  bl.hName:ClearAllPoints()
-  bl.hName:SetPoint("LEFT", bl.header, "LEFT", x, 0)
-  ClampFontString(bl.hName, wName)
-  x = x + wName + pad
-
-  bl.hReason:ClearAllPoints()
-  bl.hReason:SetPoint("LEFT", bl.header, "LEFT", x, 0)
-  ClampFontString(bl.hReason, wReason)
-
-  ResizeBlacklistRows(home)
-
-  for i = 1, #(bl.rows or {}) do
-    local row = bl.rows[i]
-    row:ClearAllPoints()
-    if i == 1 then
-      row:SetPoint("TOPLEFT", bl.scroll, "TOPLEFT", 0, 0)
-      row:SetPoint("TOPRIGHT", bl.scroll, "TOPRIGHT", 0, 0)
-    else
-      row:SetPoint("TOPLEFT", bl.rows[i - 1], "BOTTOMLEFT", 0, 0)
-      row:SetPoint("TOPRIGHT", bl.rows[i - 1], "BOTTOMRIGHT", 0, 0)
-    end
-
-    local rx = pad
-    row.name:ClearAllPoints()
-    row.name:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.name, wName)
-    rx = rx + wName + pad
-
-    row.reason:ClearAllPoints()
-    row.reason:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.reason, wReason)
-  end
-end
-
-local function UpdateBlacklistRows(home)
-  if not home or not home.blFrame or not home.blFrame.scroll or not home.blFrame.rows then return end
-  if not HasDB() then return end
-
-  local bl = home.blFrame
-  local names = BuildBlacklistNameList()
-  bl._names = names
-
-  local total = #names
-  local scroll = bl.scroll
-  local offset = FauxScrollFrame_GetOffset(scroll) or 0
-
-  FauxScrollFrame_Update(scroll, total, #bl.rows, BL_ROW_H)
-
-  local tempCount = (GRIP and GRIP.Count and GRIP:Count(GRIPDB.blacklist)) or 0
-  if total == 0 then
-    if bl.empty then
-      if tempCount > 0 then
-        bl.empty:SetText(("No permanent blacklist entries.\nTemp blacklist active: %d.\nTip: right-click a Potential entry to add a permanent entry."):format(tempCount))
-      else
-        bl.empty:SetText("Permanent blacklist is empty.\nTip: right-click a Potential entry to add it.")
-      end
-      bl.empty:Show()
-    end
-  else
-    if bl.empty then bl.empty:Hide() end
-  end
-
-  for i = 1, #bl.rows do
-    local row = bl.rows[i]
-    local idx = i + offset
-    local name = names[idx]
-    if name then
-      local e = GRIPDB.blacklistPerm[name]
-      row._nameKey = name
-      row.name:SetText(name)
-
-      local reason = GetBlacklistReason(e)
-      if reason == "" then
-        row.reason:SetText("Click to remove")
-      else
-        row.reason:SetText(reason)
-      end
-
-      if row.stripe then
-        if (idx % 2) == 0 then row.stripe:Show() else row.stripe:Hide() end
-      end
-
-      row:Show()
-    else
-      row._nameKey = nil
-      if row.stripe then row.stripe:Hide() end
-      row:Hide()
-    end
-  end
-end
-
 -- ----------------------------
 -- Layout
 -- ----------------------------
@@ -839,7 +228,7 @@ end
 
 local function LayoutHomePanels(home)
   if not home or not home.potFrame then return end
-  EnsureBlacklistShell(home)
+  GRIP:EnsureBlacklistShell(home)
 
   local topY = -74
   local bottomY = 4
@@ -996,7 +385,7 @@ local function EnsurePotentialTable(home)
       if not HasDB() then return end
       local n = self._nameKey
       if type(n) ~= "string" or n == "" then return end
-      ShowRowMenu(self._home, self, n)
+      GRIP:ShowRowMenu(self._home, self, n)
     end)
   end
 
@@ -1020,7 +409,7 @@ local function EnsurePotentialTable(home)
     FauxScrollFrame_OnVerticalScroll(self, offset, POT_ROW_H, OnScroll)
   end)
 
-  EnsureBlacklistShell(home)
+  GRIP:EnsureBlacklistShell(home)
 end
 
 local function ResizePotentialRows(home)
@@ -1283,7 +672,7 @@ function GRIP:UI_LayoutHome()
   LayoutButtons(home)
   LayoutHomePanels(home)
   LayoutPotentialTable(home)
-  LayoutBlacklistPanel(home)
+  GRIP:LayoutBlacklistPanel(home)
 end
 
 function GRIP:UI_CreateHome(parent)
@@ -1394,7 +783,7 @@ function GRIP:UI_CreateHome(parent)
   LayoutButtons(home)
   LayoutHomePanels(home)
   LayoutPotentialTable(home)
-  LayoutBlacklistPanel(home)
+  GRIP:LayoutBlacklistPanel(home)
 
   return home
 end
@@ -1408,7 +797,7 @@ function GRIP:UI_UpdateHome()
   LayoutButtons(home)
   LayoutHomePanels(home)
   LayoutPotentialTable(home)
-  LayoutBlacklistPanel(home)
+  GRIP:LayoutBlacklistPanel(home)
 
   if not HasDB() then
     if home._initHint then
@@ -1514,5 +903,5 @@ function GRIP:UI_UpdateHome()
 
   self:UpdateGhostStrip()
   UpdatePotentialRows(home)
-  UpdateBlacklistRows(home)
+  GRIP:UpdateBlacklistRows(home)
 end
