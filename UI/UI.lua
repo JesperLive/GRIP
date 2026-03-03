@@ -511,9 +511,21 @@ function GRIP:CreateUI()
   f.btnAds = W.CreateUIButton(f, "Ads", 70, 20, function() GRIP:ShowPage("ads") end)
   f.btnAds:SetPoint("LEFT", f.btnSettings, "RIGHT", 6, 0)
 
+  -- Active tab underline (gold accent)
+  f.tabUnderline = f:CreateTexture(nil, "ARTWORK")
+  f.tabUnderline:SetHeight(2)
+  f.tabUnderline:SetColorTexture(1, 0.82, 0, 0.9)
+
   f.page = CreateFrame("Frame", nil, f)
   f.page:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -56)
   f.page:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 10)
+
+  -- Content accent line (subtle gold divider below tabs)
+  f.contentAccent = f:CreateTexture(nil, "ARTWORK")
+  f.contentAccent:SetHeight(1)
+  f.contentAccent:SetPoint("TOPLEFT", f.page, "TOPLEFT", 0, 1)
+  f.contentAccent:SetPoint("TOPRIGHT", f.page, "TOPRIGHT", 0, 1)
+  f.contentAccent:SetColorTexture(1, 0.82, 0, 0.15)
 
   f.home = SafeCreatePage("UI_CreateHome", f.page)
   f.settings = SafeCreatePage("UI_CreateSettings", f.page)
@@ -598,6 +610,14 @@ function GRIP:ShowPage(which)
   TabStyle(f.btnHome, which == "home")
   TabStyle(f.btnSettings, which == "settings")
   TabStyle(f.btnAds, which == "ads")
+
+  -- Position tab underline under the active tab
+  if f.tabUnderline then
+    local activeBtn = (which == "settings") and f.btnSettings or (which == "ads") and f.btnAds or f.btnHome
+    f.tabUnderline:ClearAllPoints()
+    f.tabUnderline:SetPoint("BOTTOMLEFT", activeBtn, "BOTTOMLEFT", 0, -1)
+    f.tabUnderline:SetPoint("BOTTOMRIGHT", activeBtn, "BOTTOMRIGHT", 0, -1)
+  end
 
   -- Cheap + safe: re-scan for editboxes on tab switch
   HookAllEditBoxesForEsc(f)

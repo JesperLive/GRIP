@@ -182,7 +182,7 @@ local function LayoutButtons(home)
   local usable = w - padL - padR
   if usable < 160 then usable = 160 end
 
-  local yTop = -24
+  local yTop = -44
 
   home.btnScan:ClearAllPoints()
   home.btnWhisperInvite:ClearAllPoints()
@@ -239,13 +239,13 @@ local function LayoutHomePanels(home)
   if not home or not home.potFrame then return end
   GRIP:EnsureBlacklistShell(home)
 
-  local topY = -74
+  local topY = -94
   local bottomY = 4
   local leftX = 4
   local rightX = -HOME_SCROLL_RIGHT_INSET
 
   if home.btnWhisperInvite and home.btnWhisperInvite:GetPoint(1) == "TOPLEFT" then
-    topY = -96
+    topY = -116
   end
 
   -- Add ghost strip height if visible
@@ -293,7 +293,7 @@ local function EnsurePotentialTable(home)
   home._potReady = true
 
   local pot = CreateFrame("Frame", nil, home)
-  pot:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -74)
+  pot:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -94)
   pot:SetPoint("BOTTOMRIGHT", home, "BOTTOMRIGHT", -HOME_SCROLL_RIGHT_INSET, 4)
   home.potFrame = pot
 
@@ -306,7 +306,8 @@ local function EnsurePotentialTable(home)
 
   header.bg = header:CreateTexture(nil, "BACKGROUND")
   header.bg:SetAllPoints(header)
-  header.bg:SetColorTexture(1, 1, 1, 0.06)
+  header.bg:SetTexture("Interface\\Buttons\\WHITE8x8")
+  header.bg:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.03), CreateColor(1, 1, 1, 0.09))
 
   header.line = header:CreateTexture(nil, "BORDER")
   header.line:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
@@ -354,6 +355,14 @@ local function EnsurePotentialTable(home)
   empty:Hide()
   home.potEmpty = empty
 
+  local emptyIcon = pot:CreateTexture(nil, "OVERLAY")
+  emptyIcon:SetSize(32, 32)
+  emptyIcon:SetPoint("BOTTOM", empty, "TOP", 0, 4)
+  emptyIcon:SetTexture("Interface\\COMMON\\UI-Searchbox-Icon")
+  emptyIcon:SetAlpha(0.3)
+  emptyIcon:Hide()
+  home.potEmptyIcon = emptyIcon
+
   -- Row pool (dynamic row count based on visible height)
   local function initPotRow(frame)
     frame:SetHeight(POT_ROW_H)
@@ -364,7 +373,12 @@ local function EnsurePotentialTable(home)
     frame.stripe:SetColorTexture(1, 1, 1, 0.08)
     frame.stripe:Hide()
 
-    frame:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+    -- Class-colored hover background (replaces generic highlight texture)
+    frame.hoverBg = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    frame.hoverBg:SetAllPoints(frame)
+    frame.hoverBg:SetColorTexture(1, 1, 1, 0)
+    frame.hoverBg:Hide()
+
     frame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     frame.name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -418,6 +432,15 @@ local function EnsurePotentialTable(home)
     end)
 
     frame:SetScript("OnEnter", function(self)
+      -- Class-colored hover
+      if self.hoverBg then
+        if self._classColor then
+          self.hoverBg:SetColorTexture(self._classColor.r, self._classColor.g, self._classColor.b, 0.10)
+        else
+          self.hoverBg:SetColorTexture(1, 0.82, 0, 0.08)
+        end
+        self.hoverBg:Show()
+      end
       local n = self._nameKey
       if not n or not HasDB() then return end
       local e = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[n]
@@ -447,6 +470,7 @@ local function EnsurePotentialTable(home)
       GameTooltip:Show()
     end)
     frame:SetScript("OnLeave", function(self)
+      if self.hoverBg then self.hoverBg:Hide() end
       GameTooltip:Hide()
     end)
   end
@@ -455,6 +479,8 @@ local function EnsurePotentialTable(home)
     frame:Hide()
     frame:ClearAllPoints()
     frame._nameKey = nil
+    frame._classColor = nil
+    if frame.hoverBg then frame.hoverBg:Hide() end
     if frame.stripe then frame.stripe:Hide() end
     if frame.classIcon then frame.classIcon:Hide() end
     if frame.wIcon then frame.wIcon:Hide() end
@@ -640,8 +666,10 @@ local function UpdatePotentialRows(home)
 
   if total == 0 then
     if home.potEmpty then home.potEmpty:Show() end
+    if home.potEmptyIcon then home.potEmptyIcon:Show() end
   else
     if home.potEmpty then home.potEmpty:Hide() end
+    if home.potEmptyIcon then home.potEmptyIcon:Hide() end
   end
 
   for i = 1, #home.potRows do
@@ -662,6 +690,8 @@ local function UpdatePotentialRows(home)
       else
         row.name:SetTextColor(1, 1, 1)
       end
+
+      row._classColor = cc or nil
 
       if row.classBar then
         if cc then
@@ -737,7 +767,10 @@ function GRIP:UpdateGhostStrip()
         FmtTime(elapsed), FmtTime(maxSec), pending, actions))
     home.ghostBtn:SetText("Stop")
     W.SetEnabledSafe(home.ghostBtn, true)
-    if home.ghostStrip.bg then home.ghostStrip.bg:SetColorTexture(0, 1, 0, 0.05) end
+    if home.ghostStrip.SetBackdropColor then
+      home.ghostStrip:SetBackdropColor(0, 1, 0, 0.05)
+      home.ghostStrip:SetBackdropBorderColor(0, 1, 0, 0.25)
+    end
   else
     local cooldown = Ghost:GetCooldownRemaining()
     if cooldown > 0 then
@@ -745,12 +778,18 @@ function GRIP:UpdateGhostStrip()
         ("|cffff8800Ghost: Cooldown|r  %s remaining"):format(FmtTime(cooldown)))
       home.ghostBtn:SetText("Start")
       W.SetEnabledSafe(home.ghostBtn, false)
-      if home.ghostStrip.bg then home.ghostStrip.bg:SetColorTexture(1, 0.5, 0, 0.05) end
+      if home.ghostStrip.SetBackdropColor then
+        home.ghostStrip:SetBackdropColor(1, 0.5, 0, 0.05)
+        home.ghostStrip:SetBackdropBorderColor(1, 0.5, 0, 0.25)
+      end
     else
       home.ghostLabel:SetText("|cff888888Ghost: Ready|r")
       home.ghostBtn:SetText("Start")
       W.SetEnabledSafe(home.ghostBtn, true)
-      if home.ghostStrip.bg then home.ghostStrip.bg:SetColorTexture(0, 0, 0, 0) end
+      if home.ghostStrip.SetBackdropColor then
+        home.ghostStrip:SetBackdropColor(0, 0, 0, 0)
+        home.ghostStrip:SetBackdropBorderColor(1, 1, 1, 0)
+      end
     end
   end
 end
@@ -784,15 +823,31 @@ function GRIP:UI_CreateHome(parent)
   local home = CreateFrame("Frame", nil, parent)
   home:SetAllPoints(true)
 
-  home.status = home:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  home.status:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -2)
+  -- Bordered status panel
+  home.statusPanel = CreateFrame("Frame", nil, home, "BackdropTemplate")
+  home.statusPanel:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -2)
+  home.statusPanel:SetPoint("TOPRIGHT", home, "TOPRIGHT", -4, -2)
+  home.statusPanel:SetHeight(38)
+  home.statusPanel:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Buttons\\WHITE8x8",
+    edgeSize = 1,
+    insets = { left = 1, right = 1, top = 1, bottom = 1 },
+  })
+  home.statusPanel:SetBackdropColor(1, 1, 1, 0.03)
+  home.statusPanel:SetBackdropBorderColor(1, 1, 1, 0.08)
+
+  home.status = home.statusPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  home.status:SetPoint("TOPLEFT", home.statusPanel, "TOPLEFT", 8, -4)
+  home.status:SetPoint("BOTTOMRIGHT", home.statusPanel, "BOTTOMRIGHT", -8, 4)
   home.status:SetJustifyH("LEFT")
+  home.status:SetJustifyV("TOP")
   home.status:SetText("\xE2\x80\xA6")
 
-  -- Separator between status bar and buttons
+  -- Separator between status panel and buttons
   home.statusSep = home:CreateTexture(nil, "ARTWORK")
-  home.statusSep:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -22)
-  home.statusSep:SetPoint("TOPRIGHT", home, "TOPRIGHT", -4, -22)
+  home.statusSep:SetPoint("TOPLEFT", home.statusPanel, "BOTTOMLEFT", 0, -2)
+  home.statusSep:SetPoint("TOPRIGHT", home.statusPanel, "BOTTOMRIGHT", 0, -2)
   home.statusSep:SetHeight(1)
   home.statusSep:SetColorTexture(1, 1, 1, 0.08)
 
@@ -809,7 +864,7 @@ function GRIP:UI_CreateHome(parent)
     end
     GRIP:UpdateUI()
   end)
-  home.btnScan:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -24)
+  home.btnScan:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -44)
 
   home.btnWhisperInvite = W.CreateUIButton(home, "Whisper+Invite Next", 160, 24, function()
     if not HasDB() then
@@ -855,7 +910,7 @@ function GRIP:UI_CreateHome(parent)
     GRIP:Print("Cleared Potential list.")
     GRIP:UpdateUI()
   end)
-  home.btnClear:SetPoint("TOPRIGHT", home, "TOPRIGHT", -4, -24)
+  home.btnClear:SetPoint("TOPRIGHT", home, "TOPRIGHT", -4, -44)
 
   -- Destructive action visual cue
   local clearText = home.btnClear:GetFontString()
@@ -887,15 +942,33 @@ function GRIP:UI_CreateHome(parent)
   end)
   GRIP:AttachTooltip(home.btnClear, "Clear Potential List", "Remove all candidates from the Potential list.\nDoes NOT affect blacklists or whisper history.")
 
-  -- Ghost Mode status strip
-  home.ghostStrip = CreateFrame("Frame", nil, home)
+  -- Button accent underlines
+  local function AddButtonAccent(btn, r, g, b)
+    local accent = btn:CreateTexture(nil, "ARTWORK")
+    accent:SetHeight(2)
+    accent:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, -1)
+    accent:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, -1)
+    accent:SetColorTexture(r, g, b, 0.6)
+    btn._accent = accent
+  end
+  AddButtonAccent(home.btnScan, 1, 0.82, 0)
+  AddButtonAccent(home.btnWhisperInvite, 1, 0.82, 0)
+  AddButtonAccent(home.btnPostNext, 1, 0.82, 0)
+  AddButtonAccent(home.btnClear, 0.8, 0.3, 0.3)
+
+  -- Ghost Mode status strip (with BackdropTemplate border)
+  home.ghostStrip = CreateFrame("Frame", nil, home, "BackdropTemplate")
   home.ghostStrip:SetHeight(24)
   home.ghostStrip:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -4)
   home.ghostStrip:SetPoint("RIGHT", home, "RIGHT", -4, 0)
-
-  home.ghostStrip.bg = home.ghostStrip:CreateTexture(nil, "BACKGROUND")
-  home.ghostStrip.bg:SetAllPoints(home.ghostStrip)
-  home.ghostStrip.bg:SetColorTexture(0, 0, 0, 0)
+  home.ghostStrip:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Buttons\\WHITE8x8",
+    edgeSize = 1,
+    insets = { left = 1, right = 1, top = 1, bottom = 1 },
+  })
+  home.ghostStrip:SetBackdropColor(0, 0, 0, 0)
+  home.ghostStrip:SetBackdropBorderColor(1, 1, 1, 0)
 
   home.ghostLabel = home.ghostStrip:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   home.ghostLabel:SetPoint("LEFT", home.ghostStrip, "LEFT", 0, 0)
@@ -919,6 +992,18 @@ function GRIP:UI_CreateHome(parent)
   home.ghostStrip._lastUpdate = 0
   home.ghostStrip:SetScript("OnUpdate", function(self, elapsed)
     self._lastUpdate = (self._lastUpdate or 0) + elapsed
+    -- Visual pulse (runs every frame when ghost session active)
+    local Ghost = GRIP.Ghost
+    if Ghost and Ghost.IsSessionActive and Ghost:IsSessionActive() then
+      self._pulseTime = (self._pulseTime or 0) + elapsed
+      local alpha = 0.03 + 0.04 * (0.5 + 0.5 * math.sin(self._pulseTime * 1.5))
+      if self.SetBackdropColor then
+        self:SetBackdropColor(0, 1, 0, alpha)
+      end
+    else
+      self._pulseTime = nil
+    end
+    -- Timer update (1s throttle)
     if self._lastUpdate < 1 then return end
     self._lastUpdate = 0
     GRIP:UpdateGhostStrip()
@@ -978,6 +1063,7 @@ function GRIP:UI_UpdateHome()
       home.potEmpty:SetText("Initializing…")
       home.potEmpty:Show()
     end
+    if home.potEmptyIcon then home.potEmptyIcon:Hide() end
     for i = 1, #(home.potRows or {}) do
       local r = home.potRows[i]
       if r.stripe then r.stripe:Hide() end

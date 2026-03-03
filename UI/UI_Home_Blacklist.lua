@@ -69,8 +69,16 @@ function GRIP:EnsureBlacklistShell(home)
   if not home or home._blReady then return end
   home._blReady = true
 
-  local bl = CreateFrame("Frame", nil, home)
+  local bl = CreateFrame("Frame", nil, home, "BackdropTemplate")
   bl:Hide()
+  bl:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Buttons\\WHITE8x8",
+    edgeSize = 1,
+    insets = { left = 1, right = 1, top = 1, bottom = 1 },
+  })
+  bl:SetBackdropColor(1, 1, 1, 0.02)
+  bl:SetBackdropBorderColor(1, 1, 1, 0.08)
   home.blFrame = bl
 
   local header = CreateFrame("Frame", nil, bl)
@@ -102,6 +110,13 @@ function GRIP:EnsureBlacklistShell(home)
   header.midLine:SetPoint("TOP", header, "TOP", 0, -18)
   header.midLine:SetHeight(1)
   header.midLine:SetColorTexture(1, 1, 1, 0.06)
+
+  -- Divider between header and scroll body
+  header.divider = bl:CreateTexture(nil, "ARTWORK")
+  header.divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
+  header.divider:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
+  header.divider:SetHeight(1)
+  header.divider:SetColorTexture(1, 1, 1, 0.08)
 
   -- Column labels (bottom half)
   local function H(text)
