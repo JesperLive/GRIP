@@ -415,16 +415,18 @@ function GRIP:GatherZonesGroupedByContinent()
     return nil
   end
 
+  -- Force-build exclude set so EJ dungeon/raid names + BG names are ready
+  self:BuildExcludedZoneNames(true)
+
   local COSMIC_ID = 946
   local TYPE_WORLD = Enum.UIMapType.World
   local TYPE_CONTINENT = Enum.UIMapType.Continent
   local TYPE_ZONE = Enum.UIMapType.Zone
-  local TYPE_DUNGEON = Enum.UIMapType.Dungeon
 
   local displayNames = GRIP.CONTINENT_DISPLAY_NAMES or {}
 
   -- Collect all continent mapIDs with their names
-  local continents = {}  -- { {mapID=N, name="..."}, ... }
+  local continents = {}
   local ok, cosmicChildren = pcall(C_Map.GetMapChildrenInfo, COSMIC_ID)
   if not ok or type(cosmicChildren) ~= "table" then
     return nil
@@ -433,7 +435,6 @@ function GRIP:GatherZonesGroupedByContinent()
   for _, child in ipairs(cosmicChildren) do
     if child and child.mapID and child.mapType then
       if child.mapType == TYPE_WORLD then
-        -- Azeroth (947) — get its continent children
         local ok2, worldChildren = pcall(C_Map.GetMapChildrenInfo, child.mapID)
         if ok2 and type(worldChildren) == "table" then
           for _, wc in ipairs(worldChildren) do
@@ -443,7 +444,6 @@ function GRIP:GatherZonesGroupedByContinent()
           end
         end
       elseif child.mapType == TYPE_CONTINENT and child.name then
-        -- Direct continent children of Cosmic (Outland, Draenor, Broken Isles, Argus, Shadowlands)
         continents[#continents + 1] = { mapID = child.mapID, name = child.name }
       end
     end
@@ -453,30 +453,40 @@ function GRIP:GatherZonesGroupedByContinent()
     return nil
   end
 
-  -- For each continent, gather its zone children
-  -- Group by display name (merges BfA, Legion, etc.)
-  local groupsByDisplay = {}  -- [displayName] = { order=N, zones={} }
+  -- For each continent, gather DIRECT Zone children only (no allDescendants).
+  -- Then walk one sub-level to catch zone sub-zones (e.g., "Azj-Kahet - Lower").
+  -- This naturally excludes zones nested inside Dungeon-type parents.
+  local groupsByDisplay = {}
 
   for _, cont in ipairs(continents) do
     local entry = displayNames[cont.name]
     local displayName = entry and entry.display or cont.name
     local order = entry and entry.order or 0
 
-    local ok3, zoneChildren = pcall(C_Map.GetMapChildrenInfo, cont.mapID, TYPE_ZONE, true)
-    if ok3 and type(zoneChildren) == "table" then
+    -- Direct Zone children of the continent (allDescendants=false)
+    local ok3, directZones = pcall(C_Map.GetMapChildrenInfo, cont.mapID, TYPE_ZONE, false)
+    if ok3 and type(directZones) == "table" then
       if not groupsByDisplay[displayName] then
         groupsByDisplay[displayName] = { order = order, zones = {} }
       end
       local grp = groupsByDisplay[displayName]
-      -- Use lowest non-zero order if merging
       if order > 0 and (grp.order == 0 or order < grp.order) then
         grp.order = order
       end
 
-      for _, z in ipairs(zoneChildren) do
-        if z and z.name and z.mapType ~= TYPE_DUNGEON
-           and self:ShouldIncludeZoneName(z.name) then
+      for _, z in ipairs(directZones) do
+        if z and z.name and z.mapID and self:ShouldIncludeZoneName(z.name) then
           grp.zones[z.name] = true
+
+          -- One-level sub-zone walk: get Zone children of this zone
+          local ok4, subZones = pcall(C_Map.GetMapChildrenInfo, z.mapID, TYPE_ZONE, false)
+          if ok4 and type(subZones) == "table" then
+            for _, sz in ipairs(subZones) do
+              if sz and sz.name and self:ShouldIncludeZoneName(sz.name) then
+                grp.zones[sz.name] = true
+              end
+            end
+          end
         end
       end
     end
@@ -499,13 +509,11 @@ function GRIP:GatherZonesGroupedByContinent()
     end
   end
 
-  -- Sort groups by order (lowest first = newest expansion first)
   tsort(result, function(a, b)
     if a._order ~= b._order then return a._order < b._order end
     return a.name < b.name
   end)
 
-  -- Strip internal _order field
   for _, g in ipairs(result) do
     g._order = nil
   end
