@@ -79,6 +79,21 @@ end
 local DEFAULT_W, DEFAULT_H = 560, 420
 local MIN_W, MIN_H = DEFAULT_W, DEFAULT_H
 
+local SCREEN_MARGIN = 20
+local function GetMaxBounds()
+  local sw = GetScreenWidth and GetScreenWidth() or 1920
+  local sh = GetScreenHeight and GetScreenHeight() or 1080
+  return max(MIN_W, sw - SCREEN_MARGIN), max(MIN_H, sh - SCREEN_MARGIN)
+end
+local function ClampFrameSize(w, h)
+  local maxW, maxH = GetMaxBounds()
+  if w < MIN_W then w = MIN_W end
+  if h < MIN_H then h = MIN_H end
+  if w > maxW then w = maxW end
+  if h > maxH then h = maxH end
+  return w, h
+end
+
 local function GetConfig()
   return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
 end
@@ -95,16 +110,39 @@ local function RestoreFrameGeometry(f)
 
   local w = tonumber(cfg.uiW) or DEFAULT_W
   local h = tonumber(cfg.uiH) or DEFAULT_H
-
-  if w < MIN_W then w = MIN_W end
-  if h < MIN_H then h = MIN_H end
+  w, h = ClampFrameSize(w, h)
 
   f:SetSize(w, h)
 
   local dx = tonumber(cfg.uiDX) or 0
   local dy = tonumber(cfg.uiDY) or 0
+
+  local sw = GetScreenWidth and GetScreenWidth() or 1920
+  local sh = GetScreenHeight and GetScreenHeight() or 1080
+  local maxDX = (sw / 2) - 50
+  local maxDY = (sh / 2) - 50
+  if dx > maxDX then dx = maxDX end
+  if dx < -maxDX then dx = -maxDX end
+  if dy > maxDY then dy = maxDY end
+  if dy < -maxDY then dy = -maxDY end
+
   f:ClearAllPoints()
   f:SetPoint("CENTER", UIParent, "CENTER", dx, dy)
+end
+
+local function ResetFrameGeometry(f)
+  local cfg = GetConfig()
+  if cfg then
+    cfg.uiW = nil
+    cfg.uiH = nil
+    cfg.uiDX = nil
+    cfg.uiDY = nil
+  end
+  if f then
+    f:SetSize(DEFAULT_W, DEFAULT_H)
+    f:ClearAllPoints()
+    f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+  end
 end
 
 local function SaveFrameGeometry(f)
@@ -112,8 +150,9 @@ local function SaveFrameGeometry(f)
   if not (f and cfg and f.GetSize and f.GetCenter) then return end
 
   local w, h = f:GetSize()
-  cfg.uiW = math.floor((w or DEFAULT_W) + 0.5)
-  cfg.uiH = math.floor((h or DEFAULT_H) + 0.5)
+  w, h = ClampFrameSize(w or DEFAULT_W, h or DEFAULT_H)
+  cfg.uiW = math.floor(w + 0.5)
+  cfg.uiH = math.floor(h + 0.5)
 
   local fx, fy = f:GetCenter()
   local px, py = GetUIParentCenter()
@@ -224,6 +263,7 @@ local function RequestUpdateUI(self, forceNow)
   end
 end
 
+local DRAG_THRESHOLD = 3
 local function AttachResizeGrip(f)
   if not f or f._gripResizeGrip then return end
 
@@ -238,8 +278,14 @@ local function AttachResizeGrip(f)
     grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
   end
 
+  -- State for drag detection
+  local startX, startY, startW, startH
+
   grip:SetScript("OnMouseDown", function(_, btn)
     if btn ~= "LeftButton" then return end
+    -- Record cursor + frame size before sizing starts
+    startX, startY = GetCursorPosition()
+    startW, startH = f:GetSize()
     if f.StartSizing then
       f:StartSizing("BOTTOMRIGHT")
     end
@@ -250,8 +296,28 @@ local function AttachResizeGrip(f)
     if f.StopMovingOrSizing then
       f:StopMovingOrSizing()
     end
-    ThrottledLayout(f)
-    ThrottledSaveGeometry(f)
+    -- Check if cursor actually moved (drag threshold)
+    local endX, endY = GetCursorPosition()
+    local dragged = false
+    if startX and endX then
+      local dx = math.abs(endX - startX)
+      local dy = math.abs(endY - startY)
+      dragged = (dx > DRAG_THRESHOLD or dy > DRAG_THRESHOLD)
+    end
+    if dragged then
+      -- Real drag: commit the new size (clamped)
+      local w, h = f:GetSize()
+      w, h = ClampFrameSize(w, h)
+      f:SetSize(w, h)
+      ThrottledLayout(f)
+      ThrottledSaveGeometry(f)
+    else
+      -- Click without drag: revert to original size
+      if startW and startH then
+        f:SetSize(startW, startH)
+      end
+    end
+    startX, startY, startW, startH = nil, nil, nil, nil
   end)
 
   f._gripResizeGrip = grip
@@ -411,10 +477,12 @@ function GRIP:CreateUI()
   end)
 
   f:SetResizable(true)
+  local maxW, maxH = GetMaxBounds()
   if f.SetResizeBounds then
-    f:SetResizeBounds(MIN_W, MIN_H)
+    f:SetResizeBounds(MIN_W, MIN_H, maxW, maxH)
   elseif f.SetMinResize then
     f:SetMinResize(MIN_W, MIN_H)
+    if f.SetMaxResize then f:SetMaxResize(maxW, maxH) end
   end
 
   f:SetClampedToScreen(true)
@@ -538,6 +606,17 @@ function GRIP:ToggleUI()
     EnsureDBSafe()
     state.ui:Show()
   end
+end
+
+function GRIP:ResetUI()
+  self:CreateUI()
+  local f = state.ui
+  ResetFrameGeometry(f)
+  if f and f:IsShown() then
+    ThrottledLayout(f)
+    self:UpdateUI(true)
+  end
+  self:Print("UI position and size reset to defaults.")
 end
 
 -- Coalesced UpdateUI:

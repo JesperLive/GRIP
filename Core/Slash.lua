@@ -45,6 +45,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip templates list|add|remove|rotation  - manage whisper templates")
   self:Print("  /grip permbl list|add|remove|clear   - manage permanent blacklist (ignore list)")
   self:Print("  /grip ghost [start|stop|status]       - Ghost Mode session control")
+  self:Print("  /grip reset              - reset UI window position and size to defaults")
   self:Print("  /grip tracegate on|off|toggle        - execution gate diagnostics (trace mode)")
 
   self:Print("Debug:")
@@ -204,6 +205,11 @@ function GRIP:HandleSlash(msg)
   -- Most commands require a configured DB
   if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then
     self:Print("GRIPDB not initialized yet.")
+    return
+  end
+
+  if cmd == "reset" then
+    GRIP:ResetUI()
     return
   end
 
