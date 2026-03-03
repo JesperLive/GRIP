@@ -355,8 +355,84 @@ function GRIP:ToggleMinimapButton(force)
   self:Print("Minimap button: " .. (GRIPDB_CHAR.minimap.hide and "OFF" or "ON"))
 end
 
+-- Compartment right-click context menu (MenuUtil pattern, same as UI_Home_Menu.lua)
+function GRIP:ShowCompartmentMenu()
+  if not MenuUtil or not MenuUtil.CreateContextMenu then
+    self:ToggleUI()
+    return
+  end
+
+  MenuUtil.CreateContextMenu(UIParent, function(owner, rootDescription)
+    rootDescription:CreateTitle("GRIP v" .. (GRIP.VERSION or "?"))
+
+    rootDescription:CreateButton("Toggle UI", function()
+      GRIP:ToggleUI()
+    end)
+
+    rootDescription:CreateButton("Status", function()
+      if GRIP.HandleSlash then
+        GRIP:HandleSlash("status")
+      end
+    end)
+
+    rootDescription:CreateButton("Build Scan Queue", function()
+      if GRIP.BuildWhoQueue then
+        GRIP:BuildWhoQueue()
+        GRIP:Print("Who queue rebuilt.")
+      end
+    end)
+
+    -- Ghost Mode toggle (only if ghost mode is enabled in config)
+    local cfg = GRIP:GetCfg()
+    if cfg and cfg.ghostModeEnabled then
+      local gm = GRIP.Ghost
+      local sessionActive = gm and gm.IsSessionActive
+        and gm:IsSessionActive()
+      local label = sessionActive
+        and "Stop Ghost Session"
+        or "Start Ghost Session"
+      rootDescription:CreateButton(label, function()
+        if not gm then return end
+        if gm:IsSessionActive() then
+          gm:StopSession("manual")
+          GRIP:Print("Ghost Mode session stopped.")
+        else
+          local ok = gm:StartSession()
+          if ok then
+            GRIP:Print("Ghost Mode session started.")
+          end
+        end
+      end)
+    end
+
+    rootDescription:CreateDivider()
+
+    -- Whisper queue toggle
+    local whisperActive = (GRIP.state and GRIP.state.whisperTicker)
+      and true or false
+    rootDescription:CreateButton(
+      whisperActive and "Stop Whispers" or "Start Whispers",
+      function()
+        if whisperActive and GRIP.StopWhispers then
+          GRIP:StopWhispers()
+        elseif GRIP.StartWhispers then
+          GRIP:StartWhispers()
+        end
+      end
+    )
+  end)
+end
+
 -- Addon Compartment callbacks (called by name from TOC metadata)
-function GRIP_OnCompartmentClick(addonName, buttonName)
+function GRIP_OnCompartmentClick(addonName, buttonOrData)
+  local btn = buttonOrData
+  if type(buttonOrData) == "table" then
+    btn = buttonOrData.buttonName
+  end
+  if btn == "RightButton" then
+    GRIP:ShowCompartmentMenu()
+    return
+  end
   ToggleHome()
 end
 
@@ -364,8 +440,8 @@ function GRIP_OnCompartmentEnter(addonName, menuButtonFrame)
   local anchor = menuButtonFrame or UIParent
   GameTooltip:SetOwner(anchor, "ANCHOR_LEFT")
   GameTooltip:AddLine("GRIP", 1, 1, 1)
-  GameTooltip:AddLine("Click: Toggle window", 0.8, 0.8, 0.8)
-  GameTooltip:AddLine("Right-click minimap button for more options", 0.8, 0.8, 0.8)
+  GameTooltip:AddLine("Left-click: Toggle window", 0.8, 0.8, 0.8)
+  GameTooltip:AddLine("Right-click: Quick actions", 0.8, 0.8, 0.8)
   GameTooltip:Show()
 end
 
