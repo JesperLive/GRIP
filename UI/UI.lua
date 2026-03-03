@@ -429,7 +429,13 @@ local function MakeFrameTopmostAndModal(f)
   if f.GetName then
     local name = f:GetName()
     if name and _G.UISpecialFrames then
-      tinsert(_G.UISpecialFrames, name)
+      local dominated = false
+      for _, v in ipairs(_G.UISpecialFrames) do
+        if v == name then dominated = true; break end
+      end
+      if not dominated then
+        tinsert(_G.UISpecialFrames, name)
+      end
     end
   end
 

@@ -216,7 +216,13 @@ local function ResizeBlacklistRows(home)
   local bl = home.blFrame
   local sf = bl.scroll
   local h = tonumber(sf:GetHeight()) or 0
-  if h <= 0 then return end
+  if h <= 0 then
+    for i = #bl.rows, 1, -1 do
+      bl._rowPool:Release(bl.rows[i])
+      bl.rows[i] = nil
+    end
+    return
+  end
   local needed = math.floor(h / BL_ROW_H) + 1
   if needed < 4 then needed = 4 end
   local current = #bl.rows

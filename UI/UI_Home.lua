@@ -479,7 +479,14 @@ local function ResizePotentialRows(home)
   if not home or not home.potFrame or not home.potScroll or not home._potPool then return end
   local sf = home.potScroll
   local h = tonumber(sf:GetHeight()) or 0
-  if h <= 0 then return end
+  if h <= 0 then
+    -- Release all rows to prevent stale pool on zero-height
+    for i = #home.potRows, 1, -1 do
+      home._potPool:Release(home.potRows[i])
+      home.potRows[i] = nil
+    end
+    return
+  end
   local needed = floor(h / POT_ROW_H) + 1
   if needed < POT_ROWS_MIN then needed = POT_ROWS_MIN end
   local current = #home.potRows

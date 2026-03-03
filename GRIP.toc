@@ -9,6 +9,9 @@
 ## AddonCompartmentFunc: GRIP_OnCompartmentClick
 ## AddonCompartmentFuncOnEnter: GRIP_OnCompartmentEnter
 ## AddonCompartmentFuncOnLeave: GRIP_OnCompartmentLeave
+## X-Curse-Project-ID: 0
+## X-Wago-ID: PLACEHOLDER
+## X-WoWI-ID: 0
 
 # -- Core bootstrap (must load first)
 Core/Core.lua

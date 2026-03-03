@@ -99,8 +99,8 @@ local function HookDirtyTracking(editBox)
 
   -- Helpful defaults for single-line edits
   if editBox.SetScript then
-    editBox:SetScript("OnEscapePressed", editBox.ClearFocus)
-    editBox:SetScript("OnEnterPressed", editBox.ClearFocus)
+    editBox:HookScript("OnEscapePressed", editBox.ClearFocus)
+    editBox:HookScript("OnEnterPressed", editBox.ClearFocus)
   end
 end
 
