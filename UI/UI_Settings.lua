@@ -12,6 +12,7 @@ local floor, ceil, min, max = math.floor, math.ceil, math.min, math.max
 
 -- WoW API
 local UnitName = UnitName
+local GetRealZoneText = GetRealZoneText
 
 local state = GRIP.state
 local W = GRIP.UIW
@@ -605,12 +606,30 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.zoneCurrent = W.CreateUIButton(s, "Current", 56, 18, function()
     if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
-    wipe(GRIPDB_CHAR.filters.zones)
+    local zoneName = GetRealZoneText and GetRealZoneText() or ""
+    if zoneName == "" then
+      GRIP:Print("Could not determine current zone.")
+      return
+    end
+    -- Find this zone in any expansion group and select it
+    local found = false
     local groups = GRIP:GetZonesGroupedForUI()
-    if groups and groups[1] then
-      for _, z in ipairs(groups[1].zones) do
-        GRIPDB_CHAR.filters.zones[z] = true
+    if groups then
+      for _, g in ipairs(groups) do
+        for _, z in ipairs(g.zones) do
+          if z == zoneName then
+            GRIPDB_CHAR.filters.zones[z] = true
+            found = true
+            break
+          end
+        end
+        if found then break end
       end
+    end
+    if found then
+      GRIP:Debug("Zone filter: added current zone", zoneName)
+    else
+      GRIP:Print(("Zone \"%s\" not found in zone lists."):format(zoneName))
     end
     GRIP:UpdateUI()
   end)

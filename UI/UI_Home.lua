@@ -593,7 +593,7 @@ local function ShowRowMenu(home, anchor, name)
     UIDropDownMenu_AddButton(info, level)
 
     local inCombat = (InCombatLockdown and InCombatLockdown()) and true or false
-    local canInvite = (not inCombat) and (GuildInvite ~= nil)
+    local canInvite = (not inCombat) and (C_GuildInfo and C_GuildInfo.Invite or GuildInvite) ~= nil
 
     info = UIDropDownMenu_CreateInfo()
     info.notCheckable = true
@@ -605,7 +605,7 @@ local function ShowRowMenu(home, anchor, name)
         GRIP:Print("Cannot invite in combat.")
         return
       end
-      if GuildInvite then
+      if (C_GuildInfo and C_GuildInfo.Invite) or GuildInvite then
         -- Defense-in-depth: gate immediately before protected invite call.
         local okGate, why = false, "missing-gate"
         if GRIP and type(GRIP.BL_ExecutionGate) == "function" then
@@ -617,7 +617,7 @@ local function ShowRowMenu(home, anchor, name)
         end
 
         GRIP:Debug("UI: Menu invite " .. n)
-        pcall(GuildInvite, n)
+        pcall(function() GRIP:SafeGuildInvite(n) end)
       end
     end
     UIDropDownMenu_AddButton(info, level)

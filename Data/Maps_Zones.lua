@@ -6,7 +6,6 @@ local ADDON_NAME, GRIP = ...
 GRIP.ZONES_BY_EXPANSION = {
   { name = "Midnight", zones = {
     "Harandar",
-    "Zuldazar",
   }},
   { name = "The War Within", zones = {
     "Azj-Kahet",
@@ -94,7 +93,6 @@ GRIP.ZONES_BY_EXPANSION = {
     "Icecrown",
     "Sholazar Basin",
     "The Storm Peaks",
-    "Wintergrasp",
     "Zul'Drak",
   }},
   { name = "The Burning Crusade", zones = {
