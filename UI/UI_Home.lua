@@ -17,14 +17,12 @@ local GetTime = GetTime
 local state = GRIP.state
 local W = GRIP.UIW
 
--- Extra right inset for UIPanelScrollFrameTemplate so the scrollbar/art never clips outside the page.
--- (Matches the same "give it room" approach used in scroll pages.)
+-- Extra right inset so the scrollbar never clips outside the page.
 local HOME_SCROLL_RIGHT_INSET = 34
 
--- FauxScrollFrame padding constants
+-- Potential list layout constants
 local POT_HEADER_H = 20
 local POT_ROW_H    = 18
-local POT_ROWS_MIN = 10
 local CLASS_BAR_W  = 4
 
 -- Blacklist panel layout constants (also in UI_Home_Blacklist.lua)
@@ -344,11 +342,229 @@ local function EnsurePotentialTable(home)
   if home.hIBtn.SetPassThroughButtons then home.hIBtn:SetPassThroughButtons() end
   GRIP:AttachTooltip(home.hIBtn, "Invite Status", "\xE2\x9C\x93 = invite accepted\n\xE2\x9C\x97 = declined or failed\n\xE2\x8F\xB3 = pending (waiting for response)\n\xE2\x80\x94 = not yet attempted")
 
-  local sf = CreateFrame("ScrollFrame", nil, pot, "FauxScrollFrameTemplate")
-  sf:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
-  sf:SetPoint("BOTTOMRIGHT", pot, "BOTTOMRIGHT", -2, 0)
-  home.potScroll = sf
+  -- ScrollBox + ScrollBar (replaces FauxScrollFrame + row pool)
+  local scrollBox = CreateFrame("Frame", nil, pot, "WowScrollBoxList")
+  scrollBox:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
+  scrollBox:SetPoint("BOTTOMRIGHT", pot, "BOTTOMRIGHT", -16, 0)
+  home.potScrollBox = scrollBox
 
+  local scrollBar = CreateFrame("EventFrame", nil, pot, "MinimalScrollBar")
+  scrollBar:SetPoint("TOPLEFT", scrollBox, "TOPRIGHT", 4, 0)
+  scrollBar:SetPoint("BOTTOMLEFT", scrollBox, "BOTTOMRIGHT", 4, 0)
+  scrollBar:SetHideIfUnscrollable(true)
+
+  local view = CreateScrollBoxListLinearView(0, 0, 0, 0, 0)
+  view:SetElementExtent(POT_ROW_H)
+  home._potView = view
+
+  view:SetElementInitializer("Button", function(row, elementData)
+    if not row._initialized then
+      row._initialized = true
+      row:SetHeight(POT_ROW_H)
+
+      row.stripe = row:CreateTexture(nil, "BACKGROUND")
+      row.stripe:SetAllPoints(row)
+      row.stripe:SetColorTexture(1, 1, 1, 0.08)
+      row.stripe:Hide()
+
+      row.hoverBg = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+      row.hoverBg:SetAllPoints(row)
+      row.hoverBg:SetColorTexture(1, 1, 1, 0)
+      row.hoverBg:Hide()
+
+      row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+      row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.name:SetJustifyH("LEFT")
+      if row.name.SetWordWrap then row.name:SetWordWrap(false) end
+
+      row.lvl = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.lvl:SetJustifyH("LEFT")
+      if row.lvl.SetWordWrap then row.lvl:SetWordWrap(false) end
+
+      row.classIcon = row:CreateTexture(nil, "ARTWORK")
+      row.classIcon:SetSize(14, 14)
+      row.classIcon:Hide()
+
+      row.classTxt = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.classTxt:SetJustifyH("LEFT")
+      if row.classTxt.SetWordWrap then row.classTxt:SetWordWrap(false) end
+
+      row.race = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.race:SetJustifyH("LEFT")
+      if row.race.SetWordWrap then row.race:SetWordWrap(false) end
+
+      row.zone = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.zone:SetJustifyH("LEFT")
+      if row.zone.SetWordWrap then row.zone:SetWordWrap(false) end
+
+      row.wIcon = row:CreateTexture(nil, "OVERLAY")
+      row.wIcon:SetSize(14, 14)
+      row.wIcon:Hide()
+
+      row.iIcon = row:CreateTexture(nil, "OVERLAY")
+      row.iIcon:SetSize(14, 14)
+      row.iIcon:Hide()
+
+      row.classBar = row:CreateTexture(nil, "ARTWORK")
+      row.classBar:SetWidth(2)
+      row.classBar:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+      row.classBar:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
+      row.classBar:SetColorTexture(1, 1, 1, 0)
+      row.classBar:Show()
+
+      row._nameKey = nil
+      row._home = home
+
+      row:SetScript("OnClick", function(self, button)
+        if button ~= "RightButton" then return end
+        if not HasDB() then return end
+        local n = self._nameKey
+        if type(n) ~= "string" or n == "" then return end
+        GRIP:ShowRowMenu(self._home, self, n)
+      end)
+
+      row:SetScript("OnEnter", function(self)
+        if self.hoverBg then
+          if self._classColor then
+            self.hoverBg:SetColorTexture(self._classColor.r, self._classColor.g, self._classColor.b, 0.10)
+          else
+            self.hoverBg:SetColorTexture(1, 0.82, 0, 0.08)
+          end
+          self.hoverBg:Show()
+        end
+        local n = self._nameKey
+        if not n or not HasDB() then return end
+        local e = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[n]
+        if not e then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(n, 1, 1, 1)
+        local details = {}
+        if e.level then details[#details+1] = "Level " .. e.level end
+        if e.class then details[#details+1] = tostring(e.class) end
+        if e.race then details[#details+1] = tostring(e.race) end
+        if #details > 0 then
+          GameTooltip:AddLine(table.concat(details, "  \xC2\xB7  "), 0.8, 0.8, 0.6)
+        end
+        if e.zone or e.area then
+          GameTooltip:AddLine("Zone: " .. (e.zone or e.area or "Unknown"), 0.8, 0.8, 0.6)
+        end
+        if e.whisperAttempted then
+          local ws = e.whisperSuccess == true and "|cff00ff00Sent|r" or e.whisperSuccess == false and "|cffff0000Failed|r" or "|cffffff00Pending|r"
+          GameTooltip:AddLine("Whisper: " .. ws, 0.8, 0.8, 0.8)
+        end
+        if e.inviteAttempted then
+          local is = e.invitePending and "|cffffff00Pending|r" or e.inviteSuccess == true and "|cff00ff00Accepted|r" or e.inviteSuccess == false and "|cffff0000Declined|r" or "|cff888888Unknown|r"
+          GameTooltip:AddLine("Invite: " .. is, 0.8, 0.8, 0.8)
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("Right-click for options", 0.5, 0.5, 0.5)
+        GameTooltip:Show()
+      end)
+      row:SetScript("OnLeave", function(self)
+        if self.hoverBg then self.hoverBg:Hide() end
+        GameTooltip:Hide()
+      end)
+    end
+
+    -- Populate data (runs every time row scrolls into view)
+    local cw = home._colWidths
+    if not cw then return end
+
+    local nameKey = elementData.key
+    local e = elementData.entry
+    local idx = elementData.index
+
+    row._nameKey = nameKey
+
+    -- Position sub-elements using stored column widths
+    local pad = cw.pad
+    local rx = pad + CLASS_BAR_W
+
+    row.name:ClearAllPoints()
+    row.name:SetPoint("LEFT", row, "LEFT", rx, 0)
+    ClampFontString(row.name, cw.name)
+    rx = rx + cw.name + pad
+
+    row.lvl:ClearAllPoints()
+    row.lvl:SetPoint("LEFT", row, "LEFT", rx, 0)
+    ClampFontString(row.lvl, cw.lvl)
+    rx = rx + cw.lvl + pad
+
+    row.classIcon:ClearAllPoints()
+    row.classIcon:SetPoint("LEFT", row, "LEFT", rx, 0)
+
+    row.classTxt:ClearAllPoints()
+    row.classTxt:SetPoint("LEFT", row.classIcon, "RIGHT", 4, 0)
+    ClampFontString(row.classTxt, cw.class - 18)
+    rx = rx + cw.class + pad
+
+    row.race:ClearAllPoints()
+    row.race:SetPoint("LEFT", row, "LEFT", rx, 0)
+    ClampFontString(row.race, cw.race)
+    rx = rx + cw.race + pad
+
+    row.zone:ClearAllPoints()
+    row.zone:SetPoint("LEFT", row, "LEFT", rx, 0)
+    ClampFontString(row.zone, cw.zone)
+    rx = rx + cw.zone + pad
+
+    row.wIcon:ClearAllPoints()
+    row.wIcon:SetPoint("LEFT", row, "LEFT", rx + 2 + cw.seamPad, 0)
+    rx = rx + cw.wi + pad
+
+    row.iIcon:ClearAllPoints()
+    row.iIcon:SetPoint("LEFT", row, "LEFT", rx + 2 + cw.seamPad, 0)
+
+    -- Set data
+    row.name:SetText(nameKey)
+
+    local token = ClassTokenFromEntryClass(e.class)
+    local cc = token and (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token] or RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
+    if cc then
+      row.name:SetTextColor(cc.r, cc.g, cc.b)
+    else
+      row.name:SetTextColor(1, 1, 1)
+    end
+
+    row._classColor = cc or nil
+
+    if row.classBar then
+      if cc then
+        row.classBar:SetColorTexture(cc.r, cc.g, cc.b, 0.7)
+      else
+        row.classBar:SetColorTexture(1, 1, 1, 0)
+      end
+    end
+
+    row.lvl:SetText(e.level and tostring(e.level) or "?")
+
+    if token and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[token] then
+      row.classIcon:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CharacterCreate-Classes")
+      local tc = CLASS_ICON_TCOORDS[token]
+      row.classIcon:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
+      row.classIcon:Show()
+      row.classTxt:SetText(ClassShort(token))
+    else
+      row.classIcon:Hide()
+      row.classTxt:SetText(ClassShort(e.class))
+    end
+
+    row.race:SetText(e.race or "?")
+    row.zone:SetText(e.zone or e.area or "")
+
+    SetStatusIcon(row.wIcon, e.whisperAttempted, e.whisperSuccess, false)
+    SetStatusIcon(row.iIcon, e.inviteAttempted, e.inviteSuccess, e.invitePending)
+
+    if row.stripe then
+      if (idx % 2) == 0 then row.stripe:Show() else row.stripe:Hide() end
+    end
+    if row.hoverBg then row.hoverBg:Hide() end
+  end)
+
+  ScrollUtil.InitScrollBoxListWithScrollBar(scrollBox, scrollBar, view)
+
+  -- Empty state
   local empty = pot:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   empty:SetPoint("CENTER", pot, "CENTER", 0, 0)
   empty:SetText("No potential candidates yet. Click Scan to begin.")
@@ -363,172 +579,9 @@ local function EnsurePotentialTable(home)
   emptyIcon:Hide()
   home.potEmptyIcon = emptyIcon
 
-  -- Row pool (dynamic row count based on visible height)
-  local function initPotRow(frame)
-    frame:SetHeight(POT_ROW_H)
-    frame:Hide()
-
-    frame.stripe = frame:CreateTexture(nil, "BACKGROUND")
-    frame.stripe:SetAllPoints(frame)
-    frame.stripe:SetColorTexture(1, 1, 1, 0.08)
-    frame.stripe:Hide()
-
-    -- Class-colored hover background (replaces generic highlight texture)
-    frame.hoverBg = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-    frame.hoverBg:SetAllPoints(frame)
-    frame.hoverBg:SetColorTexture(1, 1, 1, 0)
-    frame.hoverBg:Hide()
-
-    frame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-
-    frame.name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.name:SetJustifyH("LEFT")
-    if frame.name.SetWordWrap then frame.name:SetWordWrap(false) end
-
-    frame.lvl = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.lvl:SetJustifyH("LEFT")
-    if frame.lvl.SetWordWrap then frame.lvl:SetWordWrap(false) end
-
-    frame.classIcon = frame:CreateTexture(nil, "ARTWORK")
-    frame.classIcon:SetSize(14, 14)
-    frame.classIcon:Hide()
-
-    frame.classTxt = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.classTxt:SetJustifyH("LEFT")
-    if frame.classTxt.SetWordWrap then frame.classTxt:SetWordWrap(false) end
-
-    frame.race = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.race:SetJustifyH("LEFT")
-    if frame.race.SetWordWrap then frame.race:SetWordWrap(false) end
-
-    frame.zone = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.zone:SetJustifyH("LEFT")
-    if frame.zone.SetWordWrap then frame.zone:SetWordWrap(false) end
-
-    frame.wIcon = frame:CreateTexture(nil, "OVERLAY")
-    frame.wIcon:SetSize(14, 14)
-    frame.wIcon:Hide()
-
-    frame.iIcon = frame:CreateTexture(nil, "OVERLAY")
-    frame.iIcon:SetSize(14, 14)
-    frame.iIcon:Hide()
-
-    frame.classBar = frame:CreateTexture(nil, "ARTWORK")
-    frame.classBar:SetWidth(2)
-    frame.classBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-    frame.classBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
-    frame.classBar:SetColorTexture(1, 1, 1, 0)
-    frame.classBar:Show()
-
-    frame._nameKey = nil
-    frame._home = home
-
-    frame:SetScript("OnClick", function(self, button)
-      if button ~= "RightButton" then return end
-      if not HasDB() then return end
-      local n = self._nameKey
-      if type(n) ~= "string" or n == "" then return end
-      GRIP:ShowRowMenu(self._home, self, n)
-    end)
-
-    frame:SetScript("OnEnter", function(self)
-      -- Class-colored hover
-      if self.hoverBg then
-        if self._classColor then
-          self.hoverBg:SetColorTexture(self._classColor.r, self._classColor.g, self._classColor.b, 0.10)
-        else
-          self.hoverBg:SetColorTexture(1, 0.82, 0, 0.08)
-        end
-        self.hoverBg:Show()
-      end
-      local n = self._nameKey
-      if not n or not HasDB() then return end
-      local e = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[n]
-      if not e then return end
-      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-      GameTooltip:AddLine(n, 1, 1, 1)
-      local details = {}
-      if e.level then details[#details+1] = "Level " .. e.level end
-      if e.class then details[#details+1] = tostring(e.class) end
-      if e.race then details[#details+1] = tostring(e.race) end
-      if #details > 0 then
-        GameTooltip:AddLine(table.concat(details, "  \xC2\xB7  "), 0.8, 0.8, 0.6)
-      end
-      if e.zone or e.area then
-        GameTooltip:AddLine("Zone: " .. (e.zone or e.area or "Unknown"), 0.8, 0.8, 0.6)
-      end
-      if e.whisperAttempted then
-        local ws = e.whisperSuccess == true and "|cff00ff00Sent|r" or e.whisperSuccess == false and "|cffff0000Failed|r" or "|cffffff00Pending|r"
-        GameTooltip:AddLine("Whisper: " .. ws, 0.8, 0.8, 0.8)
-      end
-      if e.inviteAttempted then
-        local is = e.invitePending and "|cffffff00Pending|r" or e.inviteSuccess == true and "|cff00ff00Accepted|r" or e.inviteSuccess == false and "|cffff0000Declined|r" or "|cff888888Unknown|r"
-        GameTooltip:AddLine("Invite: " .. is, 0.8, 0.8, 0.8)
-      end
-      GameTooltip:AddLine(" ")
-      GameTooltip:AddLine("Right-click for options", 0.5, 0.5, 0.5)
-      GameTooltip:Show()
-    end)
-    frame:SetScript("OnLeave", function(self)
-      if self.hoverBg then self.hoverBg:Hide() end
-      GameTooltip:Hide()
-    end)
-  end
-
-  local function resetPotRow(pool, frame)
-    frame:Hide()
-    frame:ClearAllPoints()
-    frame._nameKey = nil
-    frame._classColor = nil
-    if frame.hoverBg then frame.hoverBg:Hide() end
-    if frame.stripe then frame.stripe:Hide() end
-    if frame.classIcon then frame.classIcon:Hide() end
-    if frame.wIcon then frame.wIcon:Hide() end
-    if frame.iIcon then frame.iIcon:Hide() end
-    if frame.classBar then frame.classBar:SetColorTexture(1, 1, 1, 0) end
-  end
-
-  home._potPool = CreateFramePool("Button", pot, nil, resetPotRow, false, initPotRow)
-  home.potRows = {}
-
-  local function OnScroll()
-    GRIP:UI_UpdateHome()
-  end
-  sf:SetScript("OnVerticalScroll", function(self, offset)
-    FauxScrollFrame_OnVerticalScroll(self, offset, POT_ROW_H, OnScroll)
-  end)
-
   GRIP:EnsureBlacklistShell(home)
 end
 
-local function ResizePotentialRows(home)
-  if not home or not home.potFrame or not home.potScroll or not home._potPool then return end
-  local sf = home.potScroll
-  local h = tonumber(sf:GetHeight()) or 0
-  if h <= 0 then
-    -- Release all rows to prevent stale pool on zero-height
-    for i = #home.potRows, 1, -1 do
-      home._potPool:Release(home.potRows[i])
-      home.potRows[i] = nil
-    end
-    return
-  end
-  local needed = floor(h / POT_ROW_H) + 1
-  if needed < POT_ROWS_MIN then needed = POT_ROWS_MIN end
-  local current = #home.potRows
-  if needed == current then return end
-  if needed > current then
-    for i = current + 1, needed do
-      local row = home._potPool:Acquire()
-      home.potRows[i] = row
-    end
-  else
-    for i = needed + 1, current do
-      home._potPool:Release(home.potRows[i])
-      home.potRows[i] = nil
-    end
-  end
-end
 
 local function LayoutPotentialTable(home)
   if not home or not home.potFrame then return end
@@ -593,76 +646,21 @@ local function LayoutPotentialTable(home)
   home.hI:SetPoint("LEFT", home.potHeader, "LEFT", x + seamPad, 0)
   ClampFontString(home.hI, wWI)
 
-  ResizePotentialRows(home)
-
-  for i = 1, #home.potRows do
-    local row = home.potRows[i]
-    row:ClearAllPoints()
-    if i == 1 then
-      row:SetPoint("TOPLEFT", home.potScroll, "TOPLEFT", 0, 0)
-      row:SetPoint("TOPRIGHT", home.potScroll, "TOPRIGHT", 0, 0)
-    else
-      row:SetPoint("TOPLEFT", home.potRows[i - 1], "BOTTOMLEFT", 0, 0)
-      row:SetPoint("TOPRIGHT", home.potRows[i - 1], "BOTTOMRIGHT", 0, 0)
-    end
-
-    local rx = pad + CLASS_BAR_W
-
-    row.name:ClearAllPoints()
-    row.name:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.name, wName)
-    rx = rx + wName + pad
-
-    row.lvl:ClearAllPoints()
-    row.lvl:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.lvl, wLvl)
-    rx = rx + wLvl + pad
-
-    row.classIcon:ClearAllPoints()
-    row.classIcon:SetPoint("LEFT", row, "LEFT", rx, 0)
-
-    row.classTxt:ClearAllPoints()
-    row.classTxt:SetPoint("LEFT", row.classIcon, "RIGHT", 4, 0)
-    ClampFontString(row.classTxt, wClass - 18)
-    rx = rx + wClass + pad
-
-    row.race:ClearAllPoints()
-    row.race:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.race, wRace)
-    rx = rx + wRace + pad
-
-    row.zone:ClearAllPoints()
-    row.zone:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.zone, wZone)
-    rx = rx + wZone + pad
-
-    row.wIcon:ClearAllPoints()
-    row.wIcon:SetPoint("LEFT", row, "LEFT", rx + 2 + seamPad, 0)
-    rx = rx + wWI + pad
-
-    row.iIcon:ClearAllPoints()
-    row.iIcon:SetPoint("LEFT", row, "LEFT", rx + 2 + seamPad, 0)
-  end
-
-  local minH = POT_HEADER_H + 2 + (POT_ROWS_MIN * POT_ROW_H)
-  local ph = tonumber(pot:GetHeight()) or 0
-  if ph > 0 and ph < minH then
-    -- tolerant
-  end
+  -- Store column widths for the ScrollBox element initializer
+  home._colWidths = {
+    name = wName, lvl = wLvl, class = wClass, race = wRace,
+    zone = wZone, wi = wWI, pad = pad, seamPad = seamPad,
+  }
 end
 
-local function UpdatePotentialRows(home)
-  if not home or not home.potScroll or not home.potRows then return end
+local function RefreshPotentialData(home)
+  if not home or not home.potScrollBox then return end
   if not HasDB() then return end
 
   local names = BuildPotentialNameList()
   home._potNames = names
 
   local total = #names
-  local scroll = home.potScroll
-  local offset = FauxScrollFrame_GetOffset(scroll) or 0
-
-  FauxScrollFrame_Update(scroll, total, #home.potRows, POT_ROW_H)
 
   if total == 0 then
     if home.potEmpty then home.potEmpty:Show() end
@@ -672,67 +670,15 @@ local function UpdatePotentialRows(home)
     if home.potEmptyIcon then home.potEmptyIcon:Hide() end
   end
 
-  for i = 1, #home.potRows do
-    local row = home.potRows[i]
-    local idx = i + offset
-    local name = names[idx]
-    if name then
-      local e = GRIPDB_CHAR.potential[name] or {}
-
-      row._nameKey = name
-      row.name:SetText(name)
-
-      -- Class-colored name
-      local token = ClassTokenFromEntryClass(e.class)
-      local cc = token and (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token] or RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
-      if cc then
-        row.name:SetTextColor(cc.r, cc.g, cc.b)
-      else
-        row.name:SetTextColor(1, 1, 1)
-      end
-
-      row._classColor = cc or nil
-
-      if row.classBar then
-        if cc then
-          row.classBar:SetColorTexture(cc.r, cc.g, cc.b, 0.7)
-        else
-          row.classBar:SetColorTexture(1, 1, 1, 0)
-        end
-      end
-
-      local lvl = e.level and tostring(e.level) or "?"
-      row.lvl:SetText(lvl)
-
-      if token and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[token] then
-        row.classIcon:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CharacterCreate-Classes")
-        local tc = CLASS_ICON_TCOORDS[token]
-        row.classIcon:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
-        row.classIcon:Show()
-        row.classTxt:SetText(ClassShort(token))
-      else
-        row.classIcon:Hide()
-        row.classTxt:SetText(ClassShort(e.class))
-      end
-
-      row.race:SetText(e.race or "?")
-      row.zone:SetText(e.zone or e.area or "")
-
-      SetStatusIcon(row.wIcon, e.whisperAttempted, e.whisperSuccess, false)
-      SetStatusIcon(row.iIcon, e.inviteAttempted, e.inviteSuccess, e.invitePending)
-
-      if row.stripe then
-        if (idx % 2) == 0 then row.stripe:Show() else row.stripe:Hide() end
-      end
-
-      row:Show()
-    else
-      row._nameKey = nil
-      if row.stripe then row.stripe:Hide() end
-      if row.classBar then row.classBar:SetColorTexture(1, 1, 1, 0) end
-      row:Hide()
-    end
+  local data = {}
+  for i, name in ipairs(names) do
+    local e = GRIPDB_CHAR.potential[name] or {}
+    data[i] = { key = name, entry = e, index = i }
   end
+
+  local provider = CreateDataProvider()
+  provider:InsertTable(data)
+  home.potScrollBox:SetDataProvider(provider, ScrollBoxConstants.RetainScrollPosition)
 end
 
 function GRIP:UpdateGhostStrip()
@@ -1056,10 +1002,8 @@ function GRIP:UI_UpdateHome()
       home.potEmpty:Show()
     end
     if home.potEmptyIcon then home.potEmptyIcon:Hide() end
-    for i = 1, #(home.potRows or {}) do
-      local r = home.potRows[i]
-      if r.stripe then r.stripe:Hide() end
-      r:Hide()
+    if home.potScrollBox then
+      home.potScrollBox:SetDataProvider(CreateDataProvider())
     end
 
     if home.blFrame and home.blFrame.header and home.blFrame.header.title then
@@ -1171,6 +1115,6 @@ function GRIP:UI_UpdateHome()
   end
 
   self:UpdateGhostStrip()
-  UpdatePotentialRows(home)
+  RefreshPotentialData(home)
   GRIP:UpdateBlacklistRows(home)
 end
