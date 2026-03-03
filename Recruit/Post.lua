@@ -67,19 +67,19 @@ local function ExtractTargetNameFromMessage(msg)
   return nil
 end
 
-local function IsPostBlocked(self, msg, context)
+local function IsPostBlocked(msg, context)
   local target = ExtractTargetNameFromMessage(msg)
   if not target then return false end
-  local ok = self:BL_ExecutionGate(target, context or GateCtx("unspecified"))
+  local ok = GRIP:BL_ExecutionGate(target, context or GateCtx("unspecified"))
   return not ok
 end
 
 -- Last-line execution gate for posts.
 -- Returns true if execution must be blocked.
-local function PostBlacklistGate(self, msg, context)
-  if IsPostBlocked(self, msg, context or GateCtx("post")) then
+local function PostBlacklistGate(msg, context)
+  if IsPostBlocked(msg, context or GateCtx("post")) then
     local target = ExtractTargetNameFromMessage(msg)
-    self:Debug(
+    GRIP:Debug(
       "Blacklist gate (post): blocked message due to target",
       tostring(target),
       "ctx=",
@@ -90,7 +90,7 @@ local function PostBlacklistGate(self, msg, context)
   return false
 end
 
-local function PurgeBlacklistedFromPostQueue(self)
+local function PurgeBlacklistedFromPostQueue()
   state.postQueue = state.postQueue or {}
   if #state.postQueue == 0 then return false end
 
@@ -99,7 +99,7 @@ local function PurgeBlacklistedFromPostQueue(self)
   while i <= #state.postQueue do
     local task = state.postQueue[i]
     local msg = task and task.msg
-    if msg and PostBlacklistGate(self, msg, GateCtx("queue")) then
+    if msg and PostBlacklistGate(msg, GateCtx("queue")) then
       table.remove(state.postQueue, i)
       changed = true
     else
@@ -135,7 +135,7 @@ local function EnqueuePost(channelToken, messageTemplate, reason)
 
   -- If the message appears to target a specific player, enforce blacklist at enqueue too.
   -- (Execution gate still exists in PostNext.)
-  if PostBlacklistGate(GRIP, msg, GateCtx("enqueue", { channel = channelToken, reason = reason or "auto" })) then
+  if PostBlacklistGate(msg, GateCtx("enqueue", { channel = channelToken, reason = reason or "auto" })) then
     GRIP:Debug("Post enqueue blocked by blacklist gate:", channelToken, "reason=", reason or "auto")
     return false
   end
@@ -159,7 +159,7 @@ function GRIP:QueuePostCycle(reason)
   if EnqueuePost("TRADE", cfg.postMessageTrade, reason or "auto") then changed = true end
 
   -- Also purge any now-blocked targets from queue (covers blacklist changes after enqueue).
-  if PurgeBlacklistedFromPostQueue(GRIP) then
+  if PurgeBlacklistedFromPostQueue() then
     changed = true
   end
 
@@ -172,7 +172,7 @@ function GRIP:AutoDrainPostQueueGhost()
   if not GRIP.Ghost or not GRIP.Ghost:IsSessionActive() then return end
 
   state.postQueue = state.postQueue or {}
-  PurgeBlacklistedFromPostQueue(GRIP)
+  PurgeBlacklistedFromPostQueue()
   if #state.postQueue == 0 then return end
 
   local queued = 0
@@ -197,7 +197,7 @@ function GRIP:AutoDrainPostQueueGhost()
 
     if GRIP:IsBlank(task.msg) then
       -- skip blank
-    elseif PostBlacklistGate(self, task.msg, GateCtx("ghost-auto", { channel = task.channelToken })) then
+    elseif PostBlacklistGate(task.msg, GateCtx("ghost-auto", { channel = task.channelToken })) then
       -- skip blacklisted target
     else
       local postMsg = task.msg
@@ -279,7 +279,7 @@ function GRIP:PostNext()
   local didChange = false
 
   -- Purge any now-blocked targeted posts before acting (bad SV /reload safety + live blacklist changes).
-  if PurgeBlacklistedFromPostQueue(GRIP) then
+  if PurgeBlacklistedFromPostQueue() then
     didChange = true
   end
 
@@ -290,7 +290,7 @@ function GRIP:PostNext()
   end
 
   -- Purge again in case manual enqueue created something that is now blocked.
-  if PurgeBlacklistedFromPostQueue(GRIP) then
+  if PurgeBlacklistedFromPostQueue() then
     didChange = true
   end
 
@@ -346,7 +346,7 @@ function GRIP:PostNext()
   end
 
   -- LAST-LINE DEFENSE: if the message targets a blocked player, never execute the protected call.
-  if PostBlacklistGate(self, task.msg, GateCtx("pre-exec", { channel = task.channelToken, channelId = channelId })) then
+  if PostBlacklistGate(task.msg, GateCtx("pre-exec", { channel = task.channelToken, channelId = channelId })) then
     self:Print("Post skipped: target is blacklisted.")
     if didChange then self:UpdateUI() end
     return
