@@ -943,18 +943,10 @@ function GRIP:UI_CreateHome(parent)
   GRIP:AttachTooltip(home.btnClear, "Clear Potential List", "Remove all candidates from the Potential list.\nDoes NOT affect blacklists or whisper history.")
 
   -- Button accent underlines
-  local function AddButtonAccent(btn, r, g, b)
-    local accent = btn:CreateTexture(nil, "ARTWORK")
-    accent:SetHeight(2)
-    accent:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, -1)
-    accent:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, -1)
-    accent:SetColorTexture(r, g, b, 0.6)
-    btn._accent = accent
-  end
-  AddButtonAccent(home.btnScan, 1, 0.82, 0)
-  AddButtonAccent(home.btnWhisperInvite, 1, 0.82, 0)
-  AddButtonAccent(home.btnPostNext, 1, 0.82, 0)
-  AddButtonAccent(home.btnClear, 0.8, 0.3, 0.3)
+  W.AddButtonAccent(home.btnScan, 1, 0.82, 0)
+  W.AddButtonAccent(home.btnWhisperInvite, 1, 0.82, 0)
+  W.AddButtonAccent(home.btnPostNext, 1, 0.82, 0)
+  W.AddButtonAccent(home.btnClear, 0.8, 0.3, 0.3)
 
   -- Ghost Mode status strip (with BackdropTemplate border)
   home.ghostStrip = CreateFrame("Frame", nil, home, "BackdropTemplate")
