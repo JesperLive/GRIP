@@ -5,6 +5,9 @@ local ADDON_NAME, GRIP = ...
 
 local type, pcall = type, pcall
 
+-- WoW API
+local InCombatLockdown = InCombatLockdown
+
 local HasDB = function() return GRIP:HomeHasDB() end
 
 function GRIP:ShowRowMenu(home, anchor, name)

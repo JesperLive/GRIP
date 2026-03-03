@@ -8,6 +8,7 @@ local ADDON_NAME, GRIP = ...
 local type, tostring, tonumber = type, tostring, tonumber
 local pairs, ipairs, wipe, strsplit = pairs, ipairs, wipe, strsplit
 local tsort = table.sort
+local upper, sub = string.upper, string.sub
 local floor, max = math.floor, math.max
 
 -- WoW API
@@ -65,7 +66,7 @@ end
 
 local function SafeUpper(s)
   if type(s) ~= "string" then return "" end
-  return string.upper(s)
+  return upper(s)
 end
 
 local function ClassTokenFromEntryClass(cls)
@@ -95,7 +96,7 @@ local function ClassShort(tokenOrName)
   local t = ClassTokenFromEntryClass(tokenOrName) or tokenOrName
   if type(t) ~= "string" then return "?" end
   local u = SafeUpper(t)
-  if #u >= 3 then return string.sub(u, 1, 3) end
+  if #u >= 3 then return sub(u, 1, 3) end
   return u
 end
 

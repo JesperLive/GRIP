@@ -4,6 +4,7 @@
 local ADDON_NAME, GRIP = ...
 
 local type, pairs, pcall = type, pairs, pcall
+local tsort = table.sort
 
 local HasDB = function() return GRIP:HomeHasDB() end
 
@@ -47,7 +48,7 @@ local function BuildBlacklistNameList()
       end
     end
   end
-  table.sort(t, function(a, b) return tostring(a) < tostring(b) end)
+  tsort(t, function(a, b) return tostring(a) < tostring(b) end)
   return t
 end
 
