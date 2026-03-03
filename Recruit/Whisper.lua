@@ -18,19 +18,6 @@ local C_Timer = C_Timer
 
 local state = GRIP.state
 
-local function GetCfg()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-end
-
-local function GetPotential()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.potential) or nil
-end
-
-local function IsBlank(s)
-  if type(s) ~= "string" then return true end
-  return s:gsub("%s+", "") == ""
-end
-
 local function GetTodayDateString()
   local t = C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime()
   if t and t.year and t.month and t.monthDay then
@@ -117,25 +104,6 @@ local function PickWhisperTemplate(cfg)
   return msgs[state.whisperTemplateIndex]
 end
 
-local function ResolvePotentialName(nameMaybe)
-  if not nameMaybe or nameMaybe == "" then return nil end
-  local pot = GetPotential()
-  if not pot then return nil end
-  if pot[nameMaybe] then return nameMaybe end
-
-  local short = tostring(nameMaybe):match("^[^-]+")
-  if not short then return nil end
-
-  local found
-  for name in pairs(pot) do
-    if name:match("^[^-]+") == short then
-      if found then return nil end -- ambiguous
-      found = name
-    end
-  end
-  return found
-end
-
 -- Structured context for execution gate diagnostics (trace remains opt-in).
 local function GateCtx(phase, extra)
   local ctx = {
@@ -208,7 +176,7 @@ local function PurgeBlacklistedFromPendingAndQueue(self, pot, cfg)
 end
 
 function GRIP:GetWhisperCapStatus()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return 0, 0 end
   local cap = cfg.whisperDailyCap or 0
   local sent = 0
@@ -220,20 +188,20 @@ function GRIP:GetWhisperCapStatus()
 end
 
 function GRIP:PickWhisperTemplate()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return "" end
   return PickWhisperTemplate(cfg)
 end
 
 function GRIP:OnWhisperReceived(senderName, messageText)
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg or not cfg.optOutDetection then return end
 
-  local pot = GetPotential()
+  local pot = GRIP:GetPotential()
   if not pot then return end
 
   -- Resolve sender against Potential keys (handles Name vs Name-Realm)
-  local full = ResolvePotentialName(senderName)
+  local full = GRIP:ResolvePotentialName(senderName)
 
   -- Also check pending maps if not in Potential
   if not full then
@@ -285,8 +253,8 @@ function GRIP:BuildWhisperQueue()
   state.whisperQueue = state.whisperQueue or {}
   wipe(state.whisperQueue)
 
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then return end
   if not cfg.whisperEnabled then return end
   if IsDailyCapReached(cfg) then return end
@@ -300,8 +268,8 @@ function GRIP:BuildWhisperQueue()
 end
 
 function GRIP:StartWhispers()
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then
     self:Print("Cannot start whispers: GRIPDB not initialized yet.")
     return
@@ -352,7 +320,7 @@ function GRIP:StopWhispers()
     state.whisperTicker:Cancel()
     state.whisperTicker = nil
     self:Print("Whisper queue stopped.")
-    local cfg = GetCfg()
+    local cfg = GRIP:GetCfg()
     if cfg and cfg.soundWhisperDone ~= false then
       self:PlayAlertSound(SOUNDKIT and SOUNDKIT.IG_QUEST_LIST_COMPLETE or 878)
     end
@@ -361,8 +329,8 @@ function GRIP:StopWhispers()
 end
 
 function GRIP:WhisperTick()
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then
     self:StopWhispers()
     return
@@ -410,7 +378,7 @@ function GRIP:WhisperTick()
   end
 
   local msg = self:ApplyTemplate(PickWhisperTemplate(cfg), name)
-  if IsBlank(msg) then
+  if GRIP:IsBlank(msg) then
     self:Debug("Whisper message blank; skipping:", name)
     entry.whisperAttempted = true
     entry.whisperSuccess = false
@@ -484,14 +452,14 @@ function GRIP:WhisperTick()
 end
 
 function GRIP:OnWhisperInform(targetName)
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then return end
 
   state.pendingWhisper = state.pendingWhisper or {}
   state.pendingInvite = state.pendingInvite or {}
 
-  local full = ResolvePotentialName(targetName)
+  local full = GRIP:ResolvePotentialName(targetName)
   if not full then return end
 
   -- Last-line defense for inform path (no further pipeline effects for blocked targets).
@@ -531,14 +499,14 @@ function GRIP:OnWhisperInform(targetName)
 end
 
 function GRIP:OnWhisperFailed(targetName)
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then return end
 
   state.pendingWhisper = state.pendingWhisper or {}
   state.pendingInvite = state.pendingInvite or {}
 
-  local full = ResolvePotentialName(targetName)
+  local full = GRIP:ResolvePotentialName(targetName)
   if not full then return end
 
   -- Last-line defense for fail path too.

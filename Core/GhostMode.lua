@@ -37,12 +37,8 @@ state.ghost = state.ghost or {
 -- Config helpers
 -- ----------------------------------------------------------------
 
-local function GetCfg()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-end
-
 local function CfgBool(key, default)
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return default end
   local v = cfg[key]
   if v == nil then return default end
@@ -50,20 +46,15 @@ local function CfgBool(key, default)
 end
 
 local function CfgNum(key, default)
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return default end
   local v = tonumber(cfg[key])
   if v == nil then return default end
   return v
 end
 
-local function IsBlank(s)
-  if type(s) ~= "string" then return true end
-  return s:gsub("%s+", "") == ""
-end
-
 local function DebugEnabled()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   return cfg and cfg.debug and true or false
 end
 
@@ -220,13 +211,13 @@ function Ghost:GetSessionElapsed()
 end
 
 function Ghost:GetSessionMaxSeconds()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, 5, 120)
   return maxMin * 60
 end
 
 function Ghost:GetCooldownRemaining()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return 0 end
   local until_t = tonumber(cfg.ghostCooldownUntil) or 0
   local remaining = until_t - time()
@@ -235,7 +226,7 @@ function Ghost:GetCooldownRemaining()
 end
 
 function Ghost:StartSession()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return false, "no_config" end
   if not cfg.ghostModeEnabled then
     GRIP:Print("Ghost Mode is disabled. Enable with: /grip set ghostmode on")
@@ -309,7 +300,7 @@ function Ghost:StopSession(reason)
   state.ghost.whisperAutoStarted = nil
 
   -- Set persistent cooldown
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if cfg then
     local cooldownMin = GRIP:Clamp(tonumber(cfg.ghostCooldownMinutes) or 10, 1, 60)
     cfg.ghostCooldownUntil = time() + (cooldownMin * 60)
@@ -333,7 +324,7 @@ end
 function Ghost:CheckSessionTimeout()
   if not self:IsSessionActive() then return end
 
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, 5, 120)
   local elapsed = time() - (state.ghost.sessionStartedAt or time())
   if elapsed >= (maxMin * 60) then
@@ -395,7 +386,7 @@ function Ghost:ShouldQueue(chatType)
 end
 
 function Ghost:Queue(chatType, msg, languageID, target, meta)
-  if IsBlank(msg) then return false, "blank" end
+  if GRIP:IsBlank(msg) then return false, "blank" end
   state.ghost.queue = state.ghost.queue or {}
 
   -- If session active, use QueueAction
@@ -430,7 +421,7 @@ function Ghost:Queue(chatType, msg, languageID, target, meta)
 end
 
 function Ghost:Send(chatType, msg, languageID, target, isHardwareEvent, meta)
-  if IsBlank(msg) then return false, "blank" end
+  if GRIP:IsBlank(msg) then return false, "blank" end
 
   -- If session active, queue the send as an action
   if self:IsSessionActive() then
@@ -496,7 +487,7 @@ function Ghost:FlushOne(isHardwareEvent)
   end
 
   -- Legacy format fallback (msg-based items without action)
-  if IsBlank(item.msg) then
+  if GRIP:IsBlank(item.msg) then
     return false, "blank"
   end
 

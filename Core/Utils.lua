@@ -301,11 +301,6 @@ function GRIP:GetGuildFinderLink()
   return ""
 end
 
-local function IsBlank(s)
-  if type(s) ~= "string" then return true end
-  return s:gsub("%s+", "") == ""
-end
-
 function GRIP:ApplyTemplate(tpl, targetFullName)
   tpl = tostring(tpl or "")
 
@@ -330,7 +325,7 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
     end
 
     -- Guaranteed fallback (still useful even if listing isn't published/cached yet).
-    if IsBlank(link) then
+    if self:IsBlank(link) then
       if inGuild then
         link = guildName
       else
@@ -391,6 +386,83 @@ function GRIP:Count(tbl)
   for _ in pairs(tbl) do n = n + 1 end
   return n
 end
+
+-- ── Shared utility helpers (centralized from per-file locals) ──────────
+
+function GRIP:GetCfg()
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
+end
+
+function GRIP:GetPotential()
+  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.potential) or nil
+end
+
+function GRIP:IsBlank(s)
+  if type(s) ~= "string" then return true end
+  return s:gsub("%s+", "") == ""
+end
+
+function GRIP:Trim(s)
+  if type(s) ~= "string" then return "" end
+  return s:match("^%s*(.-)%s*$") or ""
+end
+
+function GRIP:SanitizeOneLine(s)
+  s = tostring(s or "")
+  s = s:gsub("[\r\n]+", " ")
+  return s
+end
+
+function GRIP:SecondsLeft(untilT)
+  local now = GetTime()
+  local left = (untilT or 0) - now
+  if left < 0 then left = 0 end
+  return left
+end
+
+function GRIP:ResolvePotentialName(nameMaybe)
+  if not nameMaybe or nameMaybe == "" then return nil end
+  local pot = self:GetPotential()
+  if not pot then return nil end
+  if pot[nameMaybe] then return nameMaybe end
+  local short = tostring(nameMaybe):match("^[^%-]+")
+  if not short then return nil end
+  local found
+  for name in pairs(pot) do
+    if name:match("^[^%-]+") == short then
+      if found then return nil end
+      found = name
+    end
+  end
+  return found
+end
+
+function GRIP:BuildNameKeyVariants(fullName)
+  fullName = self:Trim(fullName)
+  if fullName == "" then return {} end
+  local out = {}
+  local function add(k)
+    k = GRIP:Trim(k)
+    if k == "" then return end
+    out[#out + 1] = k
+  end
+  add(fullName)
+  local base, realm = fullName:match("^([^%-]+)%-(.+)$")
+  if base and realm then
+    add(base)
+  else
+    base = fullName
+  end
+  local playerName, playerRealm = UnitFullName("player")
+  if playerRealm and playerRealm ~= "" then
+    if not fullName:find("%-") then
+      add(fullName .. "-" .. playerRealm)
+    end
+  end
+  return out
+end
+
+-- ── End shared utility helpers ─────────────────────────────────────────
 
 function GRIP:SortPotentialNames()
   local names = {}

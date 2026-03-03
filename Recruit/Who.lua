@@ -24,12 +24,8 @@ local state = GRIP.state
 local MIN_WHO_INTERVAL = 15
 local WHO_SATURATED = 50
 
-local function GetCfg()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-end
-
 local function HideFriendsWhoUIIfNeeded()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg or not cfg.suppressWhoUI then return end
   if InCombatLockdown and InCombatLockdown() then return end
   if FriendsFrame and FriendsFrame.IsShown and FriendsFrame:IsShown() then
@@ -99,12 +95,6 @@ end
 
 -- ---------- Blacklist enforcement helpers ----------
 
-local function Trim(s)
-  if type(s) ~= "string" then return "" end
-  s = s:gsub("^%s+", ""):gsub("%s+$", "")
-  return s
-end
-
 local function Lower(s)
   if type(s) ~= "string" then return "" end
   return s:lower()
@@ -112,49 +102,16 @@ end
 
 local function GetRealmToken()
   local r = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
-  r = Trim(r)
+  r = GRIP:Trim(r)
   -- Be conservative: many systems store realm without spaces.
   r = r:gsub("%s+", "")
   return r
 end
 
-local function BuildNameKeyVariants(fullName)
-  fullName = Trim(fullName)
-  if fullName == "" then return {} end
-
-  local out = {}
-  local function add(k)
-    k = Trim(k)
-    if k == "" then return end
-    out[#out + 1] = k
-  end
-
-  add(fullName)
-
-  local base, realm = fullName:match("^([^%-]+)%-(.+)$")
-  if base and realm then
-    add(base)
-  else
-    base = fullName
-    local r = GetRealmToken()
-    if r ~= "" then
-      add(("%s-%s"):format(base, r))
-    end
-  end
-
-  -- Add lowercase versions too (for schemas that key by lowercased names)
-  local n = #out
-  for i = 1, n do
-    add(Lower(out[i]))
-  end
-
-  return out
-end
-
 -- Centralized blacklist decision:
 -- Use the shared "last-line defense" gate so WHO ingestion and purge match the execution pipelines.
 local function IsBlacklistedName(fullName)
-  fullName = Trim(fullName)
+  fullName = GRIP:Trim(fullName)
   if fullName == "" then return false end
   if type(GRIP) ~= "table" or type(GRIP.BL_ExecutionGate) ~= "function" then
     return false
@@ -172,7 +129,7 @@ local function RemoveFromArrayByName(arr, nameLower)
     if type(v) == "table" then
       n = v.fullName or v.name or v.target or v.player
     end
-    if type(n) == "string" and Lower(Trim(n)) == nameLower then
+    if type(n) == "string" and Lower(GRIP:Trim(n)) == nameLower then
       table.remove(arr, i)
       changed = true
     end
@@ -184,17 +141,17 @@ local function RemoveFromMapByName(map, nameLower)
   if type(map) ~= "table" then return false end
   local changed = false
   for k, v in pairs(map) do
-    if type(k) == "string" and Lower(Trim(k)) == nameLower then
+    if type(k) == "string" and Lower(GRIP:Trim(k)) == nameLower then
       map[k] = nil
       changed = true
     elseif type(v) == "table" then
       local n = v.fullName or v.name or v.target or v.player
-      if type(n) == "string" and Lower(Trim(n)) == nameLower then
+      if type(n) == "string" and Lower(GRIP:Trim(n)) == nameLower then
         map[k] = nil
         changed = true
       end
     elseif type(v) == "string" then
-      if Lower(Trim(v)) == nameLower then
+      if Lower(GRIP:Trim(v)) == nameLower then
         map[k] = nil
         changed = true
       end
@@ -205,12 +162,12 @@ end
 
 local function PurgeCandidateFromPipeline(self, fullName)
   if not _G.GRIPDB_CHAR then return false end
-  fullName = Trim(fullName)
+  fullName = GRIP:Trim(fullName)
   if fullName == "" then return false end
 
   local changed = false
   local nameLower = Lower(fullName)
-  local variants = BuildNameKeyVariants(fullName)
+  local variants = GRIP:BuildNameKeyVariants(fullName)
 
   -- Remove from Potential (prefer API if present, else direct DB surgery)
   if type(self) == "table" and type(self.RemovePotential) == "function" then
@@ -248,7 +205,7 @@ local function PurgeCandidateFromPipeline(self, fullName)
         if RemoveFromArrayByName(t, nameLower) then changed = true end
         if RemoveFromMapByName(t, nameLower) then changed = true end
       elseif type(t) == "string" then
-        if Lower(Trim(t)) == nameLower then
+        if Lower(GRIP:Trim(t)) == nameLower then
           s[key] = nil
           changed = true
         end
@@ -334,7 +291,7 @@ function GRIP:BuildWhoQueue()
   state.pendingWho = nil
   state._whoExpanded = {}
 
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then
     self:Print("Cannot build /who queue: GRIPDB not initialized yet.")
     return
@@ -367,7 +324,7 @@ function GRIP:BuildWhoQueue()
 end
 
 function GRIP:SendNextWho()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then
     self:Print("Cannot send /who: GRIPDB not initialized yet.")
     return false
@@ -536,7 +493,7 @@ function GRIP:ProcessWhoResults(pending)
   self:Print(("WHO results processed: %d results, %d unguilded added."):format(numWhos, added))
 
   if added > 0 then
-    local cfg = GetCfg()
+    local cfg = GRIP:GetCfg()
     if cfg and cfg.soundScanComplete then
       self:PlayAlertSound(SOUNDKIT and SOUNDKIT.UI_AUTO_QUEST_COMPLETE or 23404)
     end

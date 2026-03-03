@@ -17,15 +17,6 @@ local C_Timer = C_Timer
 
 local state = GRIP.state
 
-local function GetCfg()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-end
-
-local function IsBlank(s)
-  if type(s) ~= "string" then return true end
-  return s:gsub("%s+", "") == ""
-end
-
 -- Structured context for execution gate diagnostics (trace remains opt-in).
 local function GateCtx(phase, extra)
   local ctx = {
@@ -128,7 +119,7 @@ local function PurgeBlacklistedFromPostQueue(self)
 end
 
 local function EnqueuePost(channelToken, messageTemplate, reason)
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return false end
 
   state.postQueue = state.postQueue or {}
@@ -138,14 +129,14 @@ local function EnqueuePost(channelToken, messageTemplate, reason)
     return false
   end
 
-  if IsBlank(messageTemplate) then
+  if GRIP:IsBlank(messageTemplate) then
     GRIP:Debug("Post template blank; skipping enqueue:", channelToken, "reason=", reason or "auto")
     return false
   end
 
   -- NOTE: Posts do not have a single player target in the usual case, so we pass nil.
   local msg = GRIP:ApplyTemplate(messageTemplate, nil)
-  if IsBlank(msg) then
+  if GRIP:IsBlank(msg) then
     GRIP:Debug("Post resolved blank; skipping enqueue:", channelToken, "reason=", reason or "auto")
     return false
   end
@@ -168,7 +159,7 @@ local function EnqueuePost(channelToken, messageTemplate, reason)
 end
 
 function GRIP:QueuePostCycle(reason)
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg or not cfg.postEnabled then return end
 
   local changed = false
@@ -212,7 +203,7 @@ function GRIP:AutoDrainPostQueueGhost()
 
     table.remove(state.postQueue, 1)
 
-    if IsBlank(task.msg) then
+    if GRIP:IsBlank(task.msg) then
       -- skip blank
     elseif PostBlacklistGate(self, task.msg, GateCtx("ghost-auto", { channel = task.channelToken })) then
       -- skip blacklisted target
@@ -237,7 +228,7 @@ function GRIP:AutoDrainPostQueueGhost()
 end
 
 function GRIP:StartPostScheduler()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then return end
 
   if not cfg.postEnabled then
@@ -253,7 +244,7 @@ function GRIP:StartPostScheduler()
   self:Print(("Post scheduler enabled: every %d min (queues messages; click Post Next to send)."):format(interval / 60))
 
   state.postTicker = C_Timer.NewTicker(1, function()
-    local cfg2 = GetCfg()
+    local cfg2 = GRIP:GetCfg()
     if not cfg2 or not cfg2.postEnabled then
       GRIP:StopPostScheduler()
       return
@@ -280,7 +271,7 @@ function GRIP:StopPostScheduler()
 end
 
 function GRIP:PostNext()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then
     self:Print("Cannot post: GRIPDB not initialized yet.")
     return
@@ -356,7 +347,7 @@ function GRIP:PostNext()
     return
   end
 
-  if IsBlank(task.msg) then
+  if GRIP:IsBlank(task.msg) then
     self:Print("Post message is blank; skipping.")
     if didChange then self:UpdateUI() end
     return

@@ -23,14 +23,6 @@ local function SplitArgs(msg)
   return a and a:lower() or "", b or ""
 end
 
-local function Trim(s)
-  return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
-end
-
-local function GetCfg()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-end
-
 local function EnsureStateTables()
   state.whoQueue = state.whoQueue or {}
   state.whisperQueue = state.whisperQueue or {}
@@ -139,7 +131,7 @@ local function ClearPersisted()
 end
 
 local function DebugStatus()
-  local cfg = GetCfg() or {}
+  local cfg = GRIP:GetCfg() or {}
   local on = (cfg.debugPersist == true) or (cfg.debugCapture == true)
   local max = tonumber(cfg.debugPersistMax or cfg.debugCaptureMax) or 800
 
@@ -160,20 +152,20 @@ local function DebugStatus()
 end
 
 local function TraceGateStatus()
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   local on = (cfg and cfg.traceExecutionGate == true) and true or false
   GRIP:Print("Gate Trace Mode: " .. (on and "ON" or "OFF") .. " (GRIPDB.config.traceExecutionGate)")
 end
 
 local function HandleTraceGate(rest)
-  local sub = (Trim(rest) or ""):lower()
+  local sub = (GRIP:Trim(rest) or ""):lower()
 
   if sub == "" then
     TraceGateStatus()
     return
   end
 
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then
     GRIP:Print("GRIPDB not initialized yet.")
     return
@@ -291,7 +283,7 @@ function GRIP:HandleSlash(msg)
 
   if cmd == "permbl" or cmd == "permblacklist" then
     local sub, subrest = SplitArgs(rest)
-    subrest = Trim(subrest)
+    subrest = GRIP:Trim(subrest)
 
     if sub == "" or sub == "list" then
       local names = self.GetPermanentBlacklistNames and self:GetPermanentBlacklistNames() or {}
@@ -317,8 +309,8 @@ function GRIP:HandleSlash(msg)
 
     if sub == "add" then
       local name, reason = SplitArgs(subrest)
-      name = Trim(name)
-      reason = Trim(reason)
+      name = GRIP:Trim(name)
+      reason = GRIP:Trim(reason)
       if name == "" then
         PrintPermBLUsage()
         return
@@ -331,7 +323,7 @@ function GRIP:HandleSlash(msg)
     end
 
     if sub == "remove" or sub == "del" or sub == "rm" then
-      local name = Trim(subrest)
+      local name = GRIP:Trim(subrest)
       if name == "" then
         PrintPermBLUsage()
         return
@@ -371,7 +363,7 @@ function GRIP:HandleSlash(msg)
 
   if cmd == "templates" or cmd == "template" then
     local sub, subrest = SplitArgs(rest)
-    subrest = Trim(subrest)
+    subrest = GRIP:Trim(subrest)
     local cfg = GRIPDB_CHAR.config
 
     if sub == "" or sub == "list" then
@@ -615,7 +607,7 @@ function GRIP:HandleSlash(msg)
 
   if cmd == "debug" then
     local sub, subrest = SplitArgs(rest)
-    subrest = Trim(subrest)
+    subrest = GRIP:Trim(subrest)
 
     -- Back-compat: "/grip debug on|off"
     if sub == "on" or sub == "off" or sub == "1" or sub == "0" or sub == "true" or sub == "false" or sub == "yes" or sub == "no" then

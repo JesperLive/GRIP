@@ -553,3 +553,66 @@ function W.CreateGroupedChecklist(parent, titleText, w, h)
 
   return box
 end
+
+-- ── Shared UI helpers (centralized from per-file locals) ───────────────
+
+function W.SetEnabledSafe(widget, enabled)
+  if not widget then return end
+  if enabled then
+    if widget.Enable  then widget:Enable()  end
+    if widget.SetAlpha then widget:SetAlpha(1.0) end
+  else
+    if widget.Disable then widget:Disable() end
+    if widget.SetAlpha then widget:SetAlpha(0.45) end
+  end
+end
+
+function W.ClearDirty(...)
+  for i = 1, select("#", ...) do
+    local eb = select(i, ...)
+    if eb then eb._gripDirty = false end
+  end
+end
+
+function W.ProgrammaticSet(eb, text)
+  if not eb then return end
+  eb._gripProgrammatic = true
+  eb:SetText(text or "")
+  eb._gripProgrammatic = false
+end
+
+function W.SafeTop(frame)
+  if not frame then return 0 end
+  return select(5, frame:GetPoint(1)) or 0
+end
+
+function W.SafeBottom(frame)
+  if not frame then return 0 end
+  return (frame:GetBottom() or 0) - (frame:GetParent() and frame:GetParent():GetBottom() or 0)
+end
+
+function W.BuildInsertedTextAtCursor(eb, token)
+  if not eb then return "" end
+  local fullText = eb:GetText() or ""
+  local cursorPos = eb:GetCursorPosition() or #fullText
+
+  local bytePos = 0
+  local charCount = 0
+  while charCount < cursorPos and bytePos < #fullText do
+    bytePos = bytePos + 1
+    local b = fullText:byte(bytePos)
+    if b and b >= 0xC0 then
+      if     b >= 0xF0 then bytePos = bytePos + 3
+      elseif b >= 0xE0 then bytePos = bytePos + 2
+      elseif b >= 0xC0 then bytePos = bytePos + 1
+      end
+    end
+    charCount = charCount + 1
+  end
+
+  local before = fullText:sub(1, bytePos)
+  local after  = fullText:sub(bytePos + 1)
+  return before .. token .. after
+end
+
+-- ── End shared UI helpers ──────────────────────────────────────────────

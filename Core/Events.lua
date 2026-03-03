@@ -64,23 +64,6 @@ local function GetSinglePendingName(map)
   return found
 end
 
-local function ResolvePotentialName(nameMaybe)
-  if not nameMaybe or nameMaybe == "" then return nil end
-  if _G.GRIPDB_CHAR and GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[nameMaybe] then return nameMaybe end
-
-  local short = tostring(nameMaybe):match("^[^-]+")
-  if not short or not _G.GRIPDB_CHAR or not GRIPDB_CHAR.potential then return nil end
-
-  local found
-  for name in pairs(GRIPDB_CHAR.potential) do
-    if name:match("^[^-]+") == short then
-      if found then return nil end -- ambiguous
-      found = name
-    end
-  end
-  return found
-end
-
 -- Resolve a possibly-short name against a pending map (pendingInvite / pendingWhisper).
 -- Returns the full key if it can be uniquely resolved.
 local function ResolvePendingName(map, nameMaybe)
@@ -104,7 +87,7 @@ local function InviteFailFor(whoMaybe, reason)
   local who = whoMaybe
 
   -- Prefer resolving against pendingInvite first (most truthful), then against Potential keys.
-  local resolved = ResolvePendingName(state.pendingInvite, whoMaybe) or ResolvePotentialName(whoMaybe)
+  local resolved = ResolvePendingName(state.pendingInvite, whoMaybe) or GRIP:ResolvePotentialName(whoMaybe)
   if resolved then
     who = resolved
   end
@@ -138,7 +121,7 @@ local function HandleWhisperIgnored(whoMaybe, rawMsg)
   end
   if not who then return false end
 
-  local full = ResolvePendingName(state.pendingWhisper, who) or ResolvePotentialName(who) or who
+  local full = ResolvePendingName(state.pendingWhisper, who) or GRIP:ResolvePotentialName(who) or who
   if not full or full == "" then return false end
 
   -- cancel any pending interactions for this person

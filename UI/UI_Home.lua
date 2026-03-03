@@ -53,13 +53,6 @@ local function HasDB()
   return (type(GRIPDB_CHAR.config) == "table") and true or false
 end
 
-local function SecondsLeft(untilT)
-  local now = GetTime()
-  local left = (untilT or 0) - now
-  if left < 0 then left = 0 end
-  return left
-end
-
 local function GetScanCooldown()
   local cfg = (GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
   local v = tonumber(cfg and cfg.minWhoInterval) or 15
@@ -78,23 +71,6 @@ end
 -- Post cooldown is UI-local only (so recruiting doesn't lock posting and vice versa).
 local function GetPostCooldownUntil()
   return (state.ui and state.ui._postCooldownUntil) or 0
-end
-
-local function SetEnabledSafe(widget, enabled)
-  if not widget then return end
-  enabled = enabled and true or false
-
-  if widget.SetEnabled then
-    widget:SetEnabled(enabled)
-  elseif enabled and widget.Enable then
-    widget:Enable()
-  elseif (not enabled) and widget.Disable then
-    widget:Disable()
-  end
-
-  if widget.SetAlpha then
-    widget:SetAlpha(enabled and 1 or 0.6)
-  end
 end
 
 -- ----------------------------
@@ -300,53 +276,9 @@ local function ConfirmUnblacklist(name)
   end
 end
 
-local function Trim(s)
-  if type(s) ~= "string" then return "" end
-  return (s:gsub("^%s+", ""):gsub("%s+$", ""))
-end
-
 local function Lower(s)
   if type(s) ~= "string" then return "" end
   return s:lower()
-end
-
-local function GetRealmToken()
-  local r = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
-  r = Trim(r)
-  r = r:gsub("%s+", "")
-  return r
-end
-
-local function BuildNameKeyVariants(fullName)
-  fullName = Trim(fullName)
-  if fullName == "" then return {} end
-
-  local out = {}
-  local function add(k)
-    k = Trim(k)
-    if k == "" then return end
-    out[#out + 1] = k
-  end
-
-  add(fullName)
-
-  local base, realm = fullName:match("^([^%-]+)%-(.+)$")
-  if base and realm then
-    add(base)
-  else
-    base = fullName
-    local r = GetRealmToken()
-    if r ~= "" then
-      add(("%s-%s"):format(base, r))
-    end
-  end
-
-  local n = #out
-  for i = 1, n do
-    add(Lower(out[i]))
-  end
-
-  return out
 end
 
 local function EntryNameOf(v)
@@ -361,7 +293,7 @@ local function RemoveFromArray(t, nameLower)
   for i = #t, 1, -1 do
     local v = t[i]
     local n = EntryNameOf(v)
-    if type(n) == "string" and Lower(Trim(n)) == nameLower then
+    if type(n) == "string" and Lower(GRIP:Trim(n)) == nameLower then
       table.remove(t, i)
       changed = true
     end
@@ -373,12 +305,12 @@ local function RemoveFromMapByName(map, nameLower)
   if type(map) ~= "table" or type(nameLower) ~= "string" or nameLower == "" then return false end
   local changed = false
   for k, v in pairs(map) do
-    if type(k) == "string" and Lower(Trim(k)) == nameLower then
+    if type(k) == "string" and Lower(GRIP:Trim(k)) == nameLower then
       map[k] = nil
       changed = true
     else
       local n = EntryNameOf(v)
-      if type(n) == "string" and Lower(Trim(n)) == nameLower then
+      if type(n) == "string" and Lower(GRIP:Trim(n)) == nameLower then
         map[k] = nil
         changed = true
       end
@@ -390,7 +322,7 @@ end
 local function ClearNameFromQueues(name)
   if type(name) ~= "string" or name == "" then return end
 
-  local variants = BuildNameKeyVariants(name)
+  local variants = GRIP:BuildNameKeyVariants(name)
   if #variants == 0 then variants = { name, Lower(name) } end
 
   -- Clear from Potential using variants (direct + API if present)
@@ -419,25 +351,25 @@ local function ClearNameFromQueues(name)
     local dbt = GRIPDB_CHAR and GRIPDB_CHAR[key]
 
     for _, k in ipairs(variants) do
-      local kl = Lower(Trim(k))
+      local kl = Lower(GRIP:Trim(k))
 
       if type(t) == "table" then
         RemoveFromArray(t, kl)
         RemoveFromMapByName(t, kl)
         -- If it's a "pending" record table that stores a single target field, nuke it if it matches.
         local tn = EntryNameOf(t)
-        if type(tn) == "string" and Lower(Trim(tn)) == kl then
+        if type(tn) == "string" and Lower(GRIP:Trim(tn)) == kl then
           state[key] = {}
         end
       elseif type(t) == "string" then
-        if Lower(Trim(t)) == kl then state[key] = nil end
+        if Lower(GRIP:Trim(t)) == kl then state[key] = nil end
       end
 
       if type(dbt) == "table" then
         RemoveFromArray(dbt, kl)
         RemoveFromMapByName(dbt, kl)
       elseif type(dbt) == "string" then
-        if Lower(Trim(dbt)) == kl then GRIPDB_CHAR[key] = nil end
+        if Lower(GRIP:Trim(dbt)) == kl then GRIPDB_CHAR[key] = nil end
       end
     end
   end
@@ -471,7 +403,7 @@ local function EnsureBlacklistAddPopup()
 
       local reason = ""
       if self.editBox then
-        reason = Trim(self.editBox:GetText() or "")
+        reason = GRIP:Trim(self.editBox:GetText() or "")
       end
 
       -- Canonical schema: permanent entries go in blacklistPerm as {at, reason}.
@@ -1371,18 +1303,18 @@ function GRIP:UpdateGhostStrip()
       ("|cff00ff00Ghost: Active|r  %s / %s  |  Queue: %d  |  Actions: %d"):format(
         FmtTime(elapsed), FmtTime(maxSec), pending, actions))
     home.ghostBtn:SetText("Stop")
-    SetEnabledSafe(home.ghostBtn, true)
+    W.SetEnabledSafe(home.ghostBtn, true)
   else
     local cooldown = Ghost:GetCooldownRemaining()
     if cooldown > 0 then
       home.ghostLabel:SetText(
         ("|cffff8800Ghost: Cooldown|r  %s remaining"):format(FmtTime(cooldown)))
       home.ghostBtn:SetText("Start")
-      SetEnabledSafe(home.ghostBtn, false)
+      W.SetEnabledSafe(home.ghostBtn, false)
     else
       home.ghostLabel:SetText("|cff888888Ghost: Ready|r")
       home.ghostBtn:SetText("Start")
-      SetEnabledSafe(home.ghostBtn, true)
+      W.SetEnabledSafe(home.ghostBtn, true)
     end
   end
 end
@@ -1533,10 +1465,10 @@ function GRIP:UI_UpdateHome()
 
     home.status:SetText("…")
 
-    SetEnabledSafe(home.btnScan, false)
-    SetEnabledSafe(home.btnWhisperInvite, false)
-    SetEnabledSafe(home.btnPostNext, false)
-    SetEnabledSafe(home.btnClear, false)
+    W.SetEnabledSafe(home.btnScan, false)
+    W.SetEnabledSafe(home.btnWhisperInvite, false)
+    W.SetEnabledSafe(home.btnPostNext, false)
+    W.SetEnabledSafe(home.btnClear, false)
 
     if home.ghostStrip then home.ghostStrip:Hide() end
 
@@ -1569,10 +1501,10 @@ function GRIP:UI_UpdateHome()
 
   if home._initHint then home._initHint:Hide() end
 
-  SetEnabledSafe(home.btnScan, true)
-  SetEnabledSafe(home.btnWhisperInvite, true)
-  SetEnabledSafe(home.btnPostNext, true)
-  SetEnabledSafe(home.btnClear, true)
+  W.SetEnabledSafe(home.btnScan, true)
+  W.SetEnabledSafe(home.btnWhisperInvite, true)
+  W.SetEnabledSafe(home.btnPostNext, true)
+  W.SetEnabledSafe(home.btnClear, true)
 
   local pot = self:Count(GRIPDB_CHAR.potential)
   local blPerm = self:Count(GRIPDB.blacklistPerm)
@@ -1600,7 +1532,7 @@ function GRIP:UI_UpdateHome()
     home.blFrame.header.title:SetText(("Blacklist (perm %d; temp %d)"):format(blPerm or 0, blTemp or 0))
   end
 
-  local scanLeft = SecondsLeft(f._scanCooldownUntil)
+  local scanLeft = GRIP:SecondsLeft(f._scanCooldownUntil)
   if scanLeft > 0 then
     home.btnScan:Disable()
     home.btnScan:SetText(("Scan (%.0fs)"):format(math.ceil(scanLeft)))
@@ -1609,14 +1541,14 @@ function GRIP:UI_UpdateHome()
     home.btnScan:SetText("Scan")
   end
 
-  local recruitLeft = SecondsLeft(GetRecruitCooldownUntil())
+  local recruitLeft = GRIP:SecondsLeft(GetRecruitCooldownUntil())
   if recruitLeft > 0 then
     home.btnWhisperInvite:Disable()
   else
     home.btnWhisperInvite:Enable()
   end
 
-  local postLeft = SecondsLeft(GetPostCooldownUntil())
+  local postLeft = GRIP:SecondsLeft(GetPostCooldownUntil())
   if postLeft > 0 then
     home.btnPostNext:Disable()
   else

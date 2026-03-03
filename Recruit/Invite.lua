@@ -23,44 +23,11 @@ local NO_RESPONSE_TIMEOUT = 70
 local NO_RESPONSE_SECONDS = 24 * 60 * 60
 local NO_RESPONSE_ESCALATE_COUNT = 7
 
-local function GetCfg()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-end
-
-local function GetPotential()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.potential) or nil
-end
-
 local function GetBlacklistDays(cfg)
   local n = tonumber(cfg and cfg.blacklistDays) or 0
   if n <= 0 then n = 1 end
   if n > 365 then n = 365 end
   return n
-end
-
-local function IsBlank(s)
-  if type(s) ~= "string" then return true end
-  return s:gsub("%s+", "") == ""
-end
-
-local function ResolvePotentialName(nameMaybe)
-  if not nameMaybe or nameMaybe == "" then return nil end
-  local pot = GetPotential()
-  if not pot then return nil end
-  if pot[nameMaybe] then return nameMaybe end
-
-  local short = tostring(nameMaybe):match("^[^-]+")
-  if not short then return nil end
-
-  -- Prefer exact short-name unique match
-  local found
-  for name in pairs(pot) do
-    if name:match("^[^-]+") == short then
-      if found then return nil end -- ambiguous
-      found = name
-    end
-  end
-  return found
 end
 
 -- Structured context for execution gate diagnostics (trace remains opt-in).
@@ -82,7 +49,7 @@ local function IsInviteBlocked(self, name, context)
 end
 
 local function PickNextInviteTarget()
-  local pot = GetPotential()
+  local pot = GRIP:GetPotential()
   if not pot then return nil end
 
   local names = GRIP:SortPotentialNames()
@@ -199,8 +166,8 @@ local function PurgeBlacklistedPending(self, pot, cfg)
 end
 
 function GRIP:InviteNext()
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then
     self:Print("Cannot invite: GRIPDB not initialized yet.")
     return
@@ -269,7 +236,7 @@ function GRIP:InviteNext()
     entry.whisperSuccess = nil
     entry.whisperLastAt = self:Now()
 
-    if IsBlank(msg) then
+    if GRIP:IsBlank(msg) then
       -- Treat blank as a failed attempt to avoid repeated targeting.
       entry.whisperSuccess = false
       state.pendingWhisper[name] = nil
@@ -370,8 +337,8 @@ function GRIP:InviteNext()
 end
 
 function GRIP:AutoQueueGhostInvite(name)
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then return end
   if not cfg.inviteEnabled then return end
   if not GRIP.Ghost or not GRIP.Ghost:IsSessionActive() then return end
@@ -400,7 +367,7 @@ function GRIP:AutoQueueGhostInvite(name)
     -- Re-check gate at execution time (time passes between queue and drain)
     if not GRIP:BL_ExecutionGate(inviteName, GateCtx("auto-ghost:exec")) then
       if state.pendingInvite then state.pendingInvite[inviteName] = nil end
-      local p = GetPotential()
+      local p = GRIP:GetPotential()
       if p and p[inviteName] then
         p[inviteName].invitePending = false
         p[inviteName].inviteSuccess = false
@@ -427,7 +394,7 @@ function GRIP:AutoQueueGhostInvite(name)
         return
       end
       local count = IncNoResponseCounter(inviteName)
-      local c = GetCfg()
+      local c = GRIP:GetCfg()
       if count and count >= NO_RESPONSE_ESCALATE_COUNT then
         GRIP:Blacklist(inviteName, GetBlacklistDays(c))
         GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", count, "-> blacklistDays")
@@ -445,11 +412,11 @@ function GRIP:AutoQueueGhostInvite(name)
 end
 
 function GRIP:OnInviteSystemSuccess(targetName)
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then return end
 
-  local full = ResolvePotentialName(targetName)
+  local full = GRIP:ResolvePotentialName(targetName)
   if not full then return end
 
   state.pendingInvite = state.pendingInvite or {}
@@ -479,11 +446,11 @@ function GRIP:OnInviteSystemSuccess(targetName)
 end
 
 function GRIP:OnInviteSystemFail(targetName, reason)
-  local cfg = GetCfg()
-  local pot = GetPotential()
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
   if not cfg or not pot then return end
 
-  local full = ResolvePotentialName(targetName)
+  local full = GRIP:ResolvePotentialName(targetName)
   if not full then return end
 
   reason = tostring(reason or "fail")

@@ -24,59 +24,6 @@ local function HasCfg()
   return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) and true or false
 end
 
-local function GetCfg()
-  return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-end
-
-local function ClearDirty(...)
-  for i = 1, select("#", ...) do
-    local eb = select(i, ...)
-    if eb then eb._gripDirty = false end
-  end
-end
-
-local function ProgrammaticSet(eb, text)
-  if not eb then return end
-  eb._gripProgrammatic = true
-  eb:SetText(tostring(text or ""))
-  eb._gripProgrammatic = false
-end
-
-local function SetEnabledSafe(widget, enabled)
-  if not widget then return end
-  enabled = enabled and true or false
-
-  if widget.SetEnabled then
-    widget:SetEnabled(enabled)
-  elseif enabled and widget.Enable then
-    widget:Enable()
-  elseif (not enabled) and widget.Disable then
-    widget:Disable()
-  end
-
-  if widget.SetAlpha then
-    widget:SetAlpha(enabled and 1 or 0.6)
-  end
-end
-
-local function IsBlank(s)
-  if type(s) ~= "string" then return true end
-  return s:gsub("%s+", "") == ""
-end
-
-local function SanitizeOneLine(s)
-  s = tostring(s or "")
-  s = s:gsub("[\r\n]+", " ")
-  return s
-end
-
-local function SecondsLeft(untilT)
-  local now = GetTime()
-  local left = (untilT or 0) - now
-  if left < 0 then left = 0 end
-  return left
-end
-
 -- ---------------------------------------------------------------------------
 -- Byte-budget estimation for channel message editors.
 -- Channel messages support {guild} and {guildlink} but NOT {player}/{name}
@@ -92,7 +39,7 @@ local function EstimateChannelRenderedBytes(rawText)
   if inGuild and GRIP.GetGuildFinderLink then
     link = GRIP:GetGuildFinderLink() or ""
   end
-  if IsBlank(link) then
+  if GRIP:IsBlank(link) then
     link = inGuild and guildName or "your guild"
   end
 
@@ -100,7 +47,7 @@ local function EstimateChannelRenderedBytes(rawText)
   -- Replace {guildlink} BEFORE {guild} — {guild} is a substring of {guildlink}.
   out = out:gsub("{guildlink}", link)
   out = out:gsub("{guild}", guildName)
-  out = SanitizeOneLine(out)
+  out = GRIP:SanitizeOneLine(out)
   return #out
 end
 
@@ -124,9 +71,9 @@ local function UpdateBudgetControls(ads)
   local genOk = EstimateChannelRenderedBytes((ads.genEdit and ads.genEdit:GetText()) or "") <= MAX_CHANNEL_BYTES
   local tradeOk = EstimateChannelRenderedBytes((ads.tradeEdit and ads.tradeEdit:GetText()) or "") <= MAX_CHANNEL_BYTES
 
-  SetEnabledSafe(ads.save, genOk and tradeOk)
-  SetEnabledSafe(ads.genPreview, genOk)
-  SetEnabledSafe(ads.tradePreview, tradeOk)
+  W.SetEnabledSafe(ads.save, genOk and tradeOk)
+  W.SetEnabledSafe(ads.genPreview, genOk)
+  W.SetEnabledSafe(ads.tradePreview, tradeOk)
 end
 
 -- Trim the raw editor text until the expanded message fits MAX_CHANNEL_BYTES.
@@ -154,7 +101,7 @@ local function EnforceChannelBudget(ads, eb, editKey)
     trimmed = trimmed:sub(1, -2)
   end
 
-  ProgrammaticSet(eb, trimmed)
+  W.ProgrammaticSet(eb, trimmed)
   eb._gripDirty = true
 
   eb:SetFocus()
@@ -168,42 +115,12 @@ local function EnforceChannelBudget(ads, eb, editKey)
   UpdateBudgetControls(ads)
 end
 
--- Build text with token inserted at cursor, with light spacing help.
-local function BuildInsertedTextAtCursor(eb, token)
-  if not eb then return nil, nil end
-  token = tostring(token or "")
-  if token == "" then return nil, nil end
-
-  local t = eb:GetText() or ""
-
-  local cursor = 0
-  if eb.GetCursorPosition then
-    cursor = tonumber(eb:GetCursorPosition()) or 0
-  end
-  if cursor < 0 then cursor = 0 end
-  if cursor > #t then cursor = #t end
-
-  local before = t:sub(1, cursor)
-  local after = t:sub(cursor + 1)
-
-  local needsLeftSpace = (before ~= "" and not before:match("%s$"))
-  local needsRightSpace = (after ~= "" and not after:match("^%s"))
-
-  local insert = token
-  if needsLeftSpace then insert = " " .. insert end
-  if needsRightSpace then insert = insert .. " " end
-
-  local newText = before .. insert .. after
-  local newCursor = #before + #insert
-  return newText, newCursor
-end
-
 -- All-or-nothing token insert: if the expanded output would exceed budget, do nothing.
 local function TryInsertTokenAtCursor(ads, eb, token, editKey)
   if not ads or not eb then return false end
   if not HasCfg() then return false end
 
-  local candidate, newCursor = BuildInsertedTextAtCursor(eb, token)
+  local candidate, newCursor = W.BuildInsertedTextAtCursor(eb, token)
   if not candidate then return false end
 
   if EstimateChannelRenderedBytes(candidate) > MAX_CHANNEL_BYTES then
@@ -213,7 +130,7 @@ local function TryInsertTokenAtCursor(ads, eb, token, editKey)
     return false
   end
 
-  ProgrammaticSet(eb, candidate)
+  W.ProgrammaticSet(eb, candidate)
   eb._gripDirty = true
 
   eb:SetFocus()
@@ -248,65 +165,55 @@ local function LockUI(a, why)
     a._initHint:Show()
   end
 
-  SetEnabledSafe(a.enabled, false)
-  SetEnabledSafe(a.intEdit, false)
-  SetEnabledSafe(a.apply, false)
-  SetEnabledSafe(a.genEdit, false)
-  SetEnabledSafe(a.tradeEdit, false)
-  SetEnabledSafe(a.genInsertGuild, false)
-  SetEnabledSafe(a.genInsertLink, false)
-  SetEnabledSafe(a.genPreview, false)
-  SetEnabledSafe(a.tradeInsertGuild, false)
-  SetEnabledSafe(a.tradeInsertLink, false)
-  SetEnabledSafe(a.tradePreview, false)
-  SetEnabledSafe(a.save, false)
-  SetEnabledSafe(a.queueNow, false)
-  SetEnabledSafe(a.postNext, false)
+  W.SetEnabledSafe(a.enabled, false)
+  W.SetEnabledSafe(a.intEdit, false)
+  W.SetEnabledSafe(a.apply, false)
+  W.SetEnabledSafe(a.genEdit, false)
+  W.SetEnabledSafe(a.tradeEdit, false)
+  W.SetEnabledSafe(a.genInsertGuild, false)
+  W.SetEnabledSafe(a.genInsertLink, false)
+  W.SetEnabledSafe(a.genPreview, false)
+  W.SetEnabledSafe(a.tradeInsertGuild, false)
+  W.SetEnabledSafe(a.tradeInsertLink, false)
+  W.SetEnabledSafe(a.tradePreview, false)
+  W.SetEnabledSafe(a.save, false)
+  W.SetEnabledSafe(a.queueNow, false)
+  W.SetEnabledSafe(a.postNext, false)
 end
 
 local function UnlockUI(a)
   if not a then return end
   if a._initHint then a._initHint:Hide() end
 
-  SetEnabledSafe(a.enabled, true)
-  SetEnabledSafe(a.intEdit, true)
-  SetEnabledSafe(a.apply, true)
-  SetEnabledSafe(a.genEdit, true)
-  SetEnabledSafe(a.tradeEdit, true)
-  SetEnabledSafe(a.genInsertGuild, true)
-  SetEnabledSafe(a.genInsertLink, true)
-  SetEnabledSafe(a.genPreview, true)
-  SetEnabledSafe(a.tradeInsertGuild, true)
-  SetEnabledSafe(a.tradeInsertLink, true)
-  SetEnabledSafe(a.tradePreview, true)
-  SetEnabledSafe(a.save, true)
-  SetEnabledSafe(a.queueNow, true)
-  SetEnabledSafe(a.postNext, true)
+  W.SetEnabledSafe(a.enabled, true)
+  W.SetEnabledSafe(a.intEdit, true)
+  W.SetEnabledSafe(a.apply, true)
+  W.SetEnabledSafe(a.genEdit, true)
+  W.SetEnabledSafe(a.tradeEdit, true)
+  W.SetEnabledSafe(a.genInsertGuild, true)
+  W.SetEnabledSafe(a.genInsertLink, true)
+  W.SetEnabledSafe(a.genPreview, true)
+  W.SetEnabledSafe(a.tradeInsertGuild, true)
+  W.SetEnabledSafe(a.tradeInsertLink, true)
+  W.SetEnabledSafe(a.tradePreview, true)
+  W.SetEnabledSafe(a.save, true)
+  W.SetEnabledSafe(a.queueNow, true)
+  W.SetEnabledSafe(a.postNext, true)
 end
 
 -- ---------------------------------------------------------------------------
 -- Scroll child height tracking
 -- ---------------------------------------------------------------------------
-local function SafeTop(frame)
-  if not frame or not frame.GetTop then return nil end
-  return frame:GetTop()
-end
-
-local function SafeBottom(frame)
-  if not frame or not frame.GetBottom then return nil end
-  return frame:GetBottom()
-end
-
 local function UpdateScrollChildHeight(ads)
   if not ads or not ads.content then return end
   local a = ads.content
-  local top = SafeTop(a)
+  local top = W.SafeTop(a)
   if not top then return end
 
   local lowest = nil
   local function consider(f)
     if not f or (f.IsShown and not f:IsShown()) then return end
-    local b = SafeBottom(f)
+    local b = W.SafeBottom(f)
     if not b then return end
     if (not lowest) or (b < lowest) then lowest = b end
   end
@@ -444,7 +351,7 @@ function GRIP:UI_CreateAds(parent)
   ads.title:SetText("Advertisement Config")
 
   ads.enabled = W.CreateCheckbox(a, "Enable scheduler (queues messages every interval)", function(btn)
-    local cfg = GetCfg()
+    local cfg = GRIP:GetCfg()
     if not cfg then
       GRIP:Print("Ads settings unavailable yet (DB not initialized).")
       btn:SetChecked(false)
@@ -462,7 +369,7 @@ function GRIP:UI_CreateAds(parent)
   ads.intEdit:SetPoint("LEFT", ads.intLbl, "RIGHT", 8, 0)
 
   ads.apply = W.CreateUIButton(a, "Apply", 70, 20, function()
-    local cfg = GetCfg()
+    local cfg = GRIP:GetCfg()
     if not cfg then
       GRIP:Print("Ads settings unavailable yet (DB not initialized).")
       return
@@ -475,7 +382,7 @@ function GRIP:UI_CreateAds(parent)
       return
     end
     cfg.postIntervalMinutes = GRIP:Clamp(n, 1, 180)
-    ClearDirty(ads.intEdit)
+    W.ClearDirty(ads.intEdit)
     GRIP:Print("Post interval set to " .. cfg.postIntervalMinutes .. " minutes.")
     GRIP:StartPostScheduler()
     GRIP:UpdateUI()
@@ -614,7 +521,7 @@ function GRIP:UI_CreateAds(parent)
   -- Bottom row: Save (both editors) + Queue + Post
   -- =======================================================================
   ads.save = W.CreateUIButton(a, "Save", 70, 20, function()
-    local cfg = GetCfg()
+    local cfg = GRIP:GetCfg()
     if not cfg then
       GRIP:Print("Ads settings unavailable yet (DB not initialized).")
       return
@@ -632,7 +539,7 @@ function GRIP:UI_CreateAds(parent)
     ads.tradeEdit:ClearFocus()
     cfg.postMessageGeneral = ads.genEdit:GetText() or cfg.postMessageGeneral
     cfg.postMessageTrade = ads.tradeEdit:GetText() or cfg.postMessageTrade
-    ClearDirty(ads.genEdit, ads.tradeEdit)
+    W.ClearDirty(ads.genEdit, ads.tradeEdit)
     GRIP:Print("Ad messages saved.")
     GRIP:UpdateUI()
   end)
@@ -657,7 +564,7 @@ function GRIP:UI_CreateAds(parent)
 
     -- Small UI-local cooldown to discourage spam clicking (posting module still enforces minPostInterval).
     if state.ui then
-      local left = SecondsLeft(state.ui._postCooldownUntil)
+      local left = GRIP:SecondsLeft(state.ui._postCooldownUntil)
       if left > 0 then
         GRIP:Print(("Please wait %.1fs before posting again."):format(left))
         GRIP:UpdateUI()
@@ -689,7 +596,7 @@ function GRIP:UI_UpdateAds()
   if not state.ui or not state.ui.ads or not state.ui.ads:IsShown() then return end
   local a = state.ui.ads
 
-  local cfg = GetCfg()
+  local cfg = GRIP:GetCfg()
   if not cfg then
     LockUI(a, "Initializing\226\128\166 (database not ready yet)")
     return
@@ -712,7 +619,7 @@ function GRIP:UI_UpdateAds()
   EnforceChannelBudget(a, a.tradeEdit, "trade")
 
   -- Reflect UI-local post cooldown in the button state + label (optional polish).
-  local left = SecondsLeft(state.ui and state.ui._postCooldownUntil or 0)
+  local left = GRIP:SecondsLeft(state.ui and state.ui._postCooldownUntil or 0)
   if left > 0 then
     a.postNext:Disable()
     a.postNext:SetText(("Post (%.0fs)"):format(math.ceil(left)))

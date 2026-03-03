@@ -28,54 +28,11 @@ local function HasDB()
   return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.lists and GRIPDB_CHAR.filters) and true or false
 end
 
-local function ClearDirty(...)
-  for i = 1, select("#", ...) do
-    local eb = select(i, ...)
-    if eb then eb._gripDirty = false end
-  end
-end
-
-local function ProgrammaticSet(eb, text)
-  if not eb then return end
-  eb._gripProgrammatic = true
-  eb:SetText(tostring(text or ""))
-  eb._gripProgrammatic = false
-end
-
 local function SetAll(list, filterTbl)
   wipe(filterTbl)
   for _, v in ipairs(list or {}) do
     filterTbl[v] = true
   end
-end
-
-local function SetEnabledSafe(widget, enabled)
-  if not widget then return end
-  enabled = enabled and true or false
-
-  if widget.SetEnabled then
-    widget:SetEnabled(enabled)
-  elseif enabled and widget.Enable then
-    widget:Enable()
-  elseif (not enabled) and widget.Disable then
-    widget:Disable()
-  end
-
-  -- For checkbuttons/editboxes that don't fully "grey" via SetEnabled:
-  if widget.SetAlpha then
-    widget:SetAlpha(enabled and 1 or 0.6)
-  end
-end
-
-local function IsBlank(s)
-  if type(s) ~= "string" then return true end
-  return s:gsub("%s+", "") == ""
-end
-
-local function SanitizeOneLine(s)
-  s = tostring(s or "")
-  s = s:gsub("[\r\n]+", " ")
-  return s
 end
 
 -- Expansion-aware budgeting for the whisper editor.
@@ -98,7 +55,7 @@ local function EstimateWhisperRenderedBytes(rawText)
   if inGuild and GRIP.GetGuildFinderLink then
     link = GRIP:GetGuildFinderLink() or ""
   end
-  if IsBlank(link) then
+  if GRIP:IsBlank(link) then
     if rawText:find("{guildlink}") then
       link = string.rep("X", GUILDLINK_BUDGET_BYTES)
     else
@@ -113,7 +70,7 @@ local function EstimateWhisperRenderedBytes(rawText)
   out = out:gsub("{guildlink}", link)
   out = out:gsub("{guild}", guildName)
 
-  out = SanitizeOneLine(out)
+  out = GRIP:SanitizeOneLine(out)
   return #out
 end
 
@@ -129,8 +86,8 @@ local function UpdateWhisperBudgetUI(s)
 
   -- With enforcement, this should almost always be true, but keep the guard anyway.
   local ok = (bytes <= MAX_WHISPER_BYTES)
-  SetEnabledSafe(s.whisperSave, ok)
-  SetEnabledSafe(s.whisperPreview, ok)
+  W.SetEnabledSafe(s.whisperSave, ok)
+  W.SetEnabledSafe(s.whisperPreview, ok)
 end
 
 -- Trim the RAW editor text until the EXPANDED message fits in MAX bytes.
@@ -158,7 +115,7 @@ local function EnforceWhisperBudget(s, eb)
     trimmed = trimmed:sub(1, -2)
   end
 
-  ProgrammaticSet(eb, trimmed)
+  W.ProgrammaticSet(eb, trimmed)
   eb._gripDirty = true
 
   eb:SetFocus()
@@ -171,44 +128,13 @@ local function EnforceWhisperBudget(s, eb)
   UpdateWhisperBudgetUI(s)
 end
 
--- Build a candidate string that inserts token at cursor with light spacing help.
-local function BuildInsertedTextAtCursor(eb, token)
-  if not eb then return nil, nil end
-  token = tostring(token or "")
-  if token == "" then return nil, nil end
-
-  local t = eb:GetText() or ""
-
-  local cursor = 0
-  if eb.GetCursorPosition then
-    cursor = tonumber(eb:GetCursorPosition()) or 0
-  end
-  if cursor < 0 then cursor = 0 end
-  if cursor > #t then cursor = #t end
-
-  local before = t:sub(1, cursor)
-  local after = t:sub(cursor + 1)
-
-  -- Light spacing help: if we're mid-word, just insert; otherwise, add a space on either side as needed.
-  local needsLeftSpace = (before ~= "" and not before:match("%s$"))
-  local needsRightSpace = (after ~= "" and not after:match("^%s"))
-
-  local insert = token
-  if needsLeftSpace then insert = " " .. insert end
-  if needsRightSpace then insert = insert .. " " end
-
-  local newText = before .. insert .. after
-  local newCursor = #before + #insert
-  return newText, newCursor
-end
-
 -- ALL-OR-NOTHING token insertion:
 -- If the expanded output would exceed the budget, do nothing (prevents partial token fragments).
 local function TryInsertTokenAtCursorWithBudget(s, eb, token)
   if not s or not eb then return false end
   if not HasDB() then return false end
 
-  local candidate, newCursor = BuildInsertedTextAtCursor(eb, token)
+  local candidate, newCursor = W.BuildInsertedTextAtCursor(eb, token)
   if not candidate then return false end
 
   if EstimateWhisperRenderedBytes(candidate) > MAX_WHISPER_BYTES then
@@ -218,7 +144,7 @@ local function TryInsertTokenAtCursorWithBudget(s, eb, token)
     return false
   end
 
-  ProgrammaticSet(eb, candidate)
+  W.ProgrammaticSet(eb, candidate)
   eb._gripDirty = true
 
   eb:SetFocus()
@@ -232,26 +158,16 @@ local function TryInsertTokenAtCursorWithBudget(s, eb, token)
   return true
 end
 
-local function SafeTop(frame)
-  if not frame or not frame.GetTop then return nil end
-  return frame:GetTop()
-end
-
-local function SafeBottom(frame)
-  if not frame or not frame.GetBottom then return nil end
-  return frame:GetBottom()
-end
-
 local function UpdateScrollContentHeight(settings)
   if not settings or not settings.content then return end
   local c = settings.content
-  local top = SafeTop(c)
+  local top = W.SafeTop(c)
   if not top then return end
 
   local lowest = nil
   local function consider(f)
     if not f or (f.IsShown and not f:IsShown()) then return end
-    local b = SafeBottom(f)
+    local b = W.SafeBottom(f)
     if not b then return end
     if (not lowest) or (b < lowest) then lowest = b end
   end
@@ -313,10 +229,10 @@ local function UpdateWhisperNavText(s)
   if s.whisperNav then
     s.whisperNav:SetText(("Message %d/%d"):format(idx, total))
   end
-  SetEnabledSafe(s.whisperPrev, idx > 1)
-  SetEnabledSafe(s.whisperNext, idx < total)
-  SetEnabledSafe(s.whisperRemove, total > 1)
-  SetEnabledSafe(s.whisperAdd, total < MAX_WHISPER_TEMPLATES)
+  W.SetEnabledSafe(s.whisperPrev, idx > 1)
+  W.SetEnabledSafe(s.whisperNext, idx < total)
+  W.SetEnabledSafe(s.whisperRemove, total > 1)
+  W.SetEnabledSafe(s.whisperAdd, total < MAX_WHISPER_TEMPLATES)
 end
 
 local function ShowWhisperTemplate(s, idx)
@@ -325,7 +241,7 @@ local function ShowWhisperTemplate(s, idx)
   if idx < 1 then idx = 1 end
   if idx > #s._whisperDrafts then idx = #s._whisperDrafts end
   s._whisperIdx = idx
-  ProgrammaticSet(s.whisperEdit, s._whisperDrafts[idx] or "")
+  W.ProgrammaticSet(s.whisperEdit, s._whisperDrafts[idx] or "")
   s.whisperEdit._gripDirty = false
   UpdateWhisperNavText(s)
   UpdateWhisperBudgetUI(s)
@@ -564,7 +480,7 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.scanMaxLevel = GRIP:Clamp(b1, GRIPDB_CHAR.config.scanMinLevel, 100)
     GRIPDB_CHAR.config.scanStep = GRIP:Clamp(c1, 1, 20)
 
-    ClearDirty(settings.minEdit, settings.maxEdit, settings.stepEdit)
+    W.ClearDirty(settings.minEdit, settings.maxEdit, settings.stepEdit)
 
     GRIP:BuildWhoQueue()
     GRIP:Print(("Scan levels set: %d-%d step %d"):format(GRIPDB_CHAR.config.scanMinLevel, GRIPDB_CHAR.config.scanMaxLevel, GRIPDB_CHAR.config.scanStep))
@@ -791,7 +707,7 @@ function GRIP:UI_CreateSettings(parent)
       GRIPDB_CHAR.config.whisperMessages[i] = drafts[i]
     end
     GRIPDB_CHAR.config.whisperMessage = GRIPDB_CHAR.config.whisperMessages[1] or ""
-    ClearDirty(settings.whisperEdit)
+    W.ClearDirty(settings.whisperEdit)
     GRIP:Print(("Saved %d whisper template(s)."):format(#drafts))
     GRIP:UpdateUI()
   end)
@@ -899,7 +815,7 @@ function GRIP:UI_CreateSettings(parent)
     if coolV then
       GRIPDB_CHAR.config.ghostCooldownMinutes = GRIP:Clamp(coolV, 1, 60)
     end
-    ClearDirty(settings.ghostMaxEdit, settings.ghostCoolEdit)
+    W.ClearDirty(settings.ghostMaxEdit, settings.ghostCoolEdit)
     GRIP:Print(("Ghost Mode: session max %d min, cooldown %d min"):format(
       GRIPDB_CHAR.config.ghostSessionMaxMinutes, GRIPDB_CHAR.config.ghostCooldownMinutes))
     GRIP:UpdateUI()
@@ -928,44 +844,44 @@ function GRIP:UI_UpdateSettings()
       s._initHint:Show()
     end
 
-    SetEnabledSafe(s.minEdit, false)
-    SetEnabledSafe(s.maxEdit, false)
-    SetEnabledSafe(s.stepEdit, false)
-    SetEnabledSafe(s.zoneOnly, false)
-    SetEnabledSafe(s.applyLevels, false)
+    W.SetEnabledSafe(s.minEdit, false)
+    W.SetEnabledSafe(s.maxEdit, false)
+    W.SetEnabledSafe(s.stepEdit, false)
+    W.SetEnabledSafe(s.zoneOnly, false)
+    W.SetEnabledSafe(s.applyLevels, false)
 
-    SetEnabledSafe(s.zoneAll, false)
-    SetEnabledSafe(s.zoneNone, false)
-    SetEnabledSafe(s.zoneCurrent, false)
-    SetEnabledSafe(s.raceAll, false)
-    SetEnabledSafe(s.raceNone, false)
-    SetEnabledSafe(s.classAll, false)
-    SetEnabledSafe(s.classNone, false)
-    SetEnabledSafe(s.clearFilters, false)
+    W.SetEnabledSafe(s.zoneAll, false)
+    W.SetEnabledSafe(s.zoneNone, false)
+    W.SetEnabledSafe(s.zoneCurrent, false)
+    W.SetEnabledSafe(s.raceAll, false)
+    W.SetEnabledSafe(s.raceNone, false)
+    W.SetEnabledSafe(s.classAll, false)
+    W.SetEnabledSafe(s.classNone, false)
+    W.SetEnabledSafe(s.clearFilters, false)
 
-    SetEnabledSafe(s.whisperEdit, false)
-    SetEnabledSafe(s.whisperAppendLink, false)
-    SetEnabledSafe(s.whisperInsertGuild, false)
-    SetEnabledSafe(s.whisperInsertPlayer, false)
-    SetEnabledSafe(s.whisperSave, false)
-    SetEnabledSafe(s.whisperPreview, false)
-    SetEnabledSafe(s.whisperPrev, false)
-    SetEnabledSafe(s.whisperNext, false)
-    SetEnabledSafe(s.whisperAdd, false)
-    SetEnabledSafe(s.whisperRemove, false)
-    SetEnabledSafe(s.whisperRotSeq, false)
-    SetEnabledSafe(s.whisperRotRand, false)
+    W.SetEnabledSafe(s.whisperEdit, false)
+    W.SetEnabledSafe(s.whisperAppendLink, false)
+    W.SetEnabledSafe(s.whisperInsertGuild, false)
+    W.SetEnabledSafe(s.whisperInsertPlayer, false)
+    W.SetEnabledSafe(s.whisperSave, false)
+    W.SetEnabledSafe(s.whisperPreview, false)
+    W.SetEnabledSafe(s.whisperPrev, false)
+    W.SetEnabledSafe(s.whisperNext, false)
+    W.SetEnabledSafe(s.whisperAdd, false)
+    W.SetEnabledSafe(s.whisperRemove, false)
+    W.SetEnabledSafe(s.whisperRotSeq, false)
+    W.SetEnabledSafe(s.whisperRotRand, false)
 
-    SetEnabledSafe(s.soundEnabled, false)
-    SetEnabledSafe(s.soundWhisperDone, false)
-    SetEnabledSafe(s.soundInviteAccepted, false)
-    SetEnabledSafe(s.soundScanComplete, false)
-    SetEnabledSafe(s.soundCapWarning, false)
+    W.SetEnabledSafe(s.soundEnabled, false)
+    W.SetEnabledSafe(s.soundWhisperDone, false)
+    W.SetEnabledSafe(s.soundInviteAccepted, false)
+    W.SetEnabledSafe(s.soundScanComplete, false)
+    W.SetEnabledSafe(s.soundCapWarning, false)
 
-    SetEnabledSafe(s.ghostEnabled, false)
-    SetEnabledSafe(s.ghostMaxEdit, false)
-    SetEnabledSafe(s.ghostCoolEdit, false)
-    SetEnabledSafe(s.ghostApply, false)
+    W.SetEnabledSafe(s.ghostEnabled, false)
+    W.SetEnabledSafe(s.ghostMaxEdit, false)
+    W.SetEnabledSafe(s.ghostCoolEdit, false)
+    W.SetEnabledSafe(s.ghostApply, false)
 
     if s.whisperRemaining then s.whisperRemaining:SetText("") end
     pcall(function() GRIP:UI_LayoutSettings() end)
@@ -975,28 +891,28 @@ function GRIP:UI_UpdateSettings()
   if s._initHint then s._initHint:Hide() end
 
   -- Re-enable controls now that DB exists.
-  SetEnabledSafe(s.minEdit, true)
-  SetEnabledSafe(s.maxEdit, true)
-  SetEnabledSafe(s.stepEdit, true)
-  SetEnabledSafe(s.zoneOnly, true)
-  SetEnabledSafe(s.applyLevels, true)
+  W.SetEnabledSafe(s.minEdit, true)
+  W.SetEnabledSafe(s.maxEdit, true)
+  W.SetEnabledSafe(s.stepEdit, true)
+  W.SetEnabledSafe(s.zoneOnly, true)
+  W.SetEnabledSafe(s.applyLevels, true)
 
-  SetEnabledSafe(s.zoneAll, true)
-  SetEnabledSafe(s.zoneNone, true)
-  SetEnabledSafe(s.zoneCurrent, true)
-  SetEnabledSafe(s.raceAll, true)
-  SetEnabledSafe(s.raceNone, true)
-  SetEnabledSafe(s.classAll, true)
-  SetEnabledSafe(s.classNone, true)
-  SetEnabledSafe(s.clearFilters, true)
+  W.SetEnabledSafe(s.zoneAll, true)
+  W.SetEnabledSafe(s.zoneNone, true)
+  W.SetEnabledSafe(s.zoneCurrent, true)
+  W.SetEnabledSafe(s.raceAll, true)
+  W.SetEnabledSafe(s.raceNone, true)
+  W.SetEnabledSafe(s.classAll, true)
+  W.SetEnabledSafe(s.classNone, true)
+  W.SetEnabledSafe(s.clearFilters, true)
 
-  SetEnabledSafe(s.whisperEdit, true)
-  SetEnabledSafe(s.whisperAppendLink, true)
-  SetEnabledSafe(s.whisperInsertGuild, true)
-  SetEnabledSafe(s.whisperInsertPlayer, true)
-  SetEnabledSafe(s.whisperAdd, true)
-  SetEnabledSafe(s.whisperRotSeq, true)
-  SetEnabledSafe(s.whisperRotRand, true)
+  W.SetEnabledSafe(s.whisperEdit, true)
+  W.SetEnabledSafe(s.whisperAppendLink, true)
+  W.SetEnabledSafe(s.whisperInsertGuild, true)
+  W.SetEnabledSafe(s.whisperInsertPlayer, true)
+  W.SetEnabledSafe(s.whisperAdd, true)
+  W.SetEnabledSafe(s.whisperRotSeq, true)
+  W.SetEnabledSafe(s.whisperRotRand, true)
 
   W.SetTextIfUnfocused(s.minEdit, tostring(GRIPDB_CHAR.config.scanMinLevel or 1))
   W.SetTextIfUnfocused(s.maxEdit, tostring(GRIPDB_CHAR.config.scanMaxLevel or 90))
@@ -1019,12 +935,12 @@ function GRIP:UI_UpdateSettings()
 
   -- Sound checkboxes
   local soundOn = GRIPDB_CHAR.config.soundEnabled and true or false
-  SetEnabledSafe(s.soundEnabled, true)
+  W.SetEnabledSafe(s.soundEnabled, true)
   s.soundEnabled:SetChecked(soundOn)
-  SetEnabledSafe(s.soundWhisperDone, soundOn)
-  SetEnabledSafe(s.soundInviteAccepted, soundOn)
-  SetEnabledSafe(s.soundScanComplete, soundOn)
-  SetEnabledSafe(s.soundCapWarning, soundOn)
+  W.SetEnabledSafe(s.soundWhisperDone, soundOn)
+  W.SetEnabledSafe(s.soundInviteAccepted, soundOn)
+  W.SetEnabledSafe(s.soundScanComplete, soundOn)
+  W.SetEnabledSafe(s.soundCapWarning, soundOn)
   s.soundWhisperDone:SetChecked(GRIPDB_CHAR.config.soundWhisperDone and true or false)
   s.soundInviteAccepted:SetChecked(GRIPDB_CHAR.config.soundInviteAccepted and true or false)
   s.soundScanComplete:SetChecked(GRIPDB_CHAR.config.soundScanComplete and true or false)
@@ -1032,11 +948,11 @@ function GRIP:UI_UpdateSettings()
 
   -- Ghost Mode
   local ghostOn = GRIPDB_CHAR.config.ghostModeEnabled and true or false
-  SetEnabledSafe(s.ghostEnabled, true)
+  W.SetEnabledSafe(s.ghostEnabled, true)
   s.ghostEnabled:SetChecked(ghostOn)
-  SetEnabledSafe(s.ghostMaxEdit, ghostOn)
-  SetEnabledSafe(s.ghostCoolEdit, ghostOn)
-  SetEnabledSafe(s.ghostApply, ghostOn)
+  W.SetEnabledSafe(s.ghostMaxEdit, ghostOn)
+  W.SetEnabledSafe(s.ghostCoolEdit, ghostOn)
+  W.SetEnabledSafe(s.ghostApply, ghostOn)
   W.SetTextIfUnfocused(s.ghostMaxEdit, tostring(GRIPDB_CHAR.config.ghostSessionMaxMinutes or 60))
   W.SetTextIfUnfocused(s.ghostCoolEdit, tostring(GRIPDB_CHAR.config.ghostCooldownMinutes or 10))
 
