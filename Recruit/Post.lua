@@ -167,7 +167,7 @@ function GRIP:QueuePostCycle(reason)
   if EnqueuePost("TRADE", cfg.postMessageTrade, reason or "auto") then changed = true end
 
   -- Also purge any now-blocked targets from queue (covers blacklist changes after enqueue).
-  if PurgeBlacklistedFromPostQueue(self) then
+  if PurgeBlacklistedFromPostQueue(GRIP) then
     changed = true
   end
 
@@ -180,7 +180,7 @@ function GRIP:AutoDrainPostQueueGhost()
   if not GRIP.Ghost or not GRIP.Ghost:IsSessionActive() then return end
 
   state.postQueue = state.postQueue or {}
-  PurgeBlacklistedFromPostQueue(self)
+  PurgeBlacklistedFromPostQueue(GRIP)
   if #state.postQueue == 0 then return end
 
   local queued = 0

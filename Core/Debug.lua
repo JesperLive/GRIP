@@ -99,10 +99,16 @@ local function PersistAppend(line, ts)
   lines[#lines + 1] = line
 
   local maxLines = GetPersistMax(cfg)
-  local over = #lines - maxLines
+  local total = #lines
+  local over = total - maxLines
   if over > 0 then
-    for _ = 1, over do
-      table.remove(lines, 1)
+    -- Batch shift: copy surviving entries to front, nil the tail
+    local newCount = total - over
+    for i = 1, newCount do
+      lines[i] = lines[i + over]
+    end
+    for i = newCount + 1, total do
+      lines[i] = nil
     end
     store.dropped = (tonumber(store.dropped) or 0) + over
   end
