@@ -622,8 +622,21 @@ function GRIP:HandleSlash(msg)
       self:Print("Debug: " .. (GRIPDB_CHAR.config.debug and "ON" or "OFF"))
 
       if GRIPDB_CHAR.config.debug then
+        -- Auto-create Debug chat window if it doesn't exist
+        if self.EnsureDebugChatWindow then
+          self:EnsureDebugChatWindow()
+        end
         self:ResolveDebugFrame(true)
-        self:Debug("Debug enabled. Window=", GRIPDB_CHAR.config.debugWindowName, "verbosity=", GRIPDB_CHAR.config.debugVerbosity)
+        -- Also enable capture automatically when debug is turned on
+        GRIPDB_CHAR.config.debugCapture = true
+        GRIPDB_CHAR.config.debugPersist = true
+        if self.UpdateDebugCapture then self:UpdateDebugCapture() end
+        self:Debug("Debug enabled. Window=", GRIPDB_CHAR.config.debugWindowName,
+          "verbosity=", GRIPDB_CHAR.config.debugVerbosity)
+      else
+        -- Disable capture when debug is turned off
+        GRIPDB_CHAR.config.debugCapture = false
+        GRIPDB_CHAR.config.debugPersist = false
       end
       return
     end
@@ -780,7 +793,6 @@ function GRIP:HandleSlash(msg)
         return
       end
       cfg.debugWindowName = val
-      cfg._warnedMissingDebugWindow = false
       self:Print("Debug window name set to: " .. cfg.debugWindowName)
       self:ResolveDebugFrame(true)
       self:Debug("Debug window changed to:", cfg.debugWindowName)

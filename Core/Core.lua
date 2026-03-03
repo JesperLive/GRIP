@@ -372,19 +372,9 @@ if not Logger._gripFallbackInstalled then
     if frame and AddToFrame(frame, chatMsg) then
       return
     end
-
-    if DEFAULT_CHAT_FRAME then
-      DEFAULT_CHAT_FRAME:AddMessage(chatMsg)
-    end
-
-    if cfg and not cfg._warnedMissingDebugWindow then
-      cfg._warnedMissingDebugWindow = true
-      if DEFAULT_CHAT_FRAME then
-        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00GRIP: Debug chat window '"
-          .. ((cfg and cfg.debugWindowName) or "Debug")
-          .. "' not found. Create/rename a chat tab to match.|r")
-      end
-    end
+    -- No fallback to DEFAULT_CHAT_FRAME. Debug messages stay silent
+    -- if the Debug window doesn't exist. The ring buffer capture above
+    -- already preserves the message for /grip debug dump/copy.
   end
 end
 
@@ -420,14 +410,10 @@ function GRIP:GateTrace(...)
   local ts = date("%H:%M:%S")
   local msg = ("|cffffcc00GRIP GATE|r [%s] %s"):format(ts, Join(...))
 
-  -- Prefer the Debug chat window if it exists; otherwise fall back to default chat.
+  -- Gate trace only goes to the Debug window; no fallback to main chat.
   local frame = (Logger and Logger.ResolveFrame and Logger:ResolveFrame(false)) or nil
   if frame and frame.AddMessage then
     frame:AddMessage(msg)
-    return
-  end
-  if DEFAULT_CHAT_FRAME then
-    DEFAULT_CHAT_FRAME:AddMessage(msg)
   end
 end
 
@@ -441,6 +427,42 @@ function GRIP:Print(msg)
   if cfg and cfg.debug and cfg.debugMirrorPrint then
     self:Info("PRINT:", msg)
   end
+end
+
+-- ------------------------------------------------------------
+-- Auto-create Debug chat window
+-- ------------------------------------------------------------
+function GRIP:EnsureDebugChatWindow()
+  local cfg = self:GetDebugConfig()
+  local desired = (cfg and cfg.debugWindowName) or "Debug"
+
+  -- Check if it already exists
+  if type(NUM_CHAT_WINDOWS) == "number" then
+    for i = 1, NUM_CHAT_WINDOWS do
+      local name = GetChatWindowInfo(i)
+      if name == desired then
+        return true  -- already exists
+      end
+    end
+  end
+
+  -- Create it
+  if FCF_OpenNewWindow then
+    local frame = FCF_OpenNewWindow(desired)
+    if frame then
+      -- Remove default message groups so only GRIP output appears
+      if ChatFrame_RemoveAllMessageGroups then
+        ChatFrame_RemoveAllMessageGroups(frame)
+      end
+      -- Resolve into logger cache
+      if Logger and Logger.ResolveFrame then
+        Logger:ResolveFrame(true)
+      end
+      return true
+    end
+  end
+
+  return false
 end
 
 -- ------------------------------------------------------------

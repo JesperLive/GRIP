@@ -79,7 +79,7 @@ end
 local DEFAULT_W, DEFAULT_H = 560, 420
 local MIN_W, MIN_H = DEFAULT_W, DEFAULT_H
 
-local SCREEN_MARGIN = 20
+local SCREEN_MARGIN = 0
 local function GetMaxBounds()
   local sw = GetScreenWidth and GetScreenWidth() or 1920
   local sh = GetScreenHeight and GetScreenHeight() or 1080
@@ -278,46 +278,59 @@ local function AttachResizeGrip(f)
     grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
   end
 
-  -- State for drag detection
   local startX, startY, startW, startH
+  local dragging = false
+
+  local updater = CreateFrame("Frame")
+  updater:Hide()
+  updater:SetScript("OnUpdate", function()
+    if not startX then updater:Hide(); return end
+    local cx, cy = GetCursorPosition()
+    local scale = f:GetEffectiveScale()
+    cx = cx / scale
+    cy = cy / scale
+    local sx = startX / scale
+    local sy = startY / scale
+    local dx = cx - sx
+    local dy = sy - cy  -- Y inverted: dragging down = smaller Y = increase height
+    if not dragging then
+      if math.abs(dx) > DRAG_THRESHOLD or math.abs(dy) > DRAG_THRESHOLD then
+        dragging = true
+      else
+        return
+      end
+    end
+    local newW = startW + dx
+    local newH = startH + dy
+    newW, newH = ClampFrameSize(newW, newH)
+    f:SetSize(newW, newH)
+  end)
 
   grip:SetScript("OnMouseDown", function(_, btn)
     if btn ~= "LeftButton" then return end
-    -- Record cursor + frame size before sizing starts
+    -- Refresh max bounds for current screen size
+    if f.SetResizeBounds then
+      local maxW2, maxH2 = GetMaxBounds()
+      f:SetResizeBounds(MIN_W, MIN_H, maxW2, maxH2)
+    end
     startX, startY = GetCursorPosition()
     startW, startH = f:GetSize()
-    if f.StartSizing then
-      f:StartSizing("BOTTOMRIGHT")
-    end
+    dragging = false
+    updater:Show()
   end)
 
   grip:SetScript("OnMouseUp", function(_, btn)
     if btn ~= "LeftButton" then return end
-    if f.StopMovingOrSizing then
-      f:StopMovingOrSizing()
-    end
-    -- Check if cursor actually moved (drag threshold)
-    local endX, endY = GetCursorPosition()
-    local dragged = false
-    if startX and endX then
-      local dx = math.abs(endX - startX)
-      local dy = math.abs(endY - startY)
-      dragged = (dx > DRAG_THRESHOLD or dy > DRAG_THRESHOLD)
-    end
-    if dragged then
-      -- Real drag: commit the new size (clamped)
+    updater:Hide()
+    if dragging then
       local w, h = f:GetSize()
       w, h = ClampFrameSize(w, h)
       f:SetSize(w, h)
       ThrottledLayout(f)
       ThrottledSaveGeometry(f)
-    else
-      -- Click without drag: revert to original size
-      if startW and startH then
-        f:SetSize(startW, startH)
-      end
     end
     startX, startY, startW, startH = nil, nil, nil, nil
+    dragging = false
   end)
 
   f._gripResizeGrip = grip

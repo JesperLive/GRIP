@@ -115,7 +115,6 @@ local DEFAULT_DB_CHAR = {
     debugVerbosity = 2,
     debugWindowName = "Debug",
     debugMirrorPrint = true,
-    _warnedMissingDebugWindow = false,
 
     -- Persist debug lines to SavedVariables (WTF) for easy copy/paste
     debugPersist = false,
