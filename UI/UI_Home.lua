@@ -24,6 +24,7 @@ local HOME_SCROLL_RIGHT_INSET = 34
 local POT_HEADER_H = 20
 local POT_ROW_H    = 18
 local POT_ROWS_MIN = 10
+local CLASS_BAR_W  = 4
 
 -- Blacklist panel layout constants (also in UI_Home_Blacklist.lua)
 local BL_PANEL_WIDE_WIDTH = 320
@@ -397,6 +398,13 @@ local function EnsurePotentialTable(home)
     frame.iIcon:SetSize(14, 14)
     frame.iIcon:Hide()
 
+    frame.classBar = frame:CreateTexture(nil, "ARTWORK")
+    frame.classBar:SetWidth(2)
+    frame.classBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    frame.classBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+    frame.classBar:SetColorTexture(1, 1, 1, 0)
+    frame.classBar:Show()
+
     frame._nameKey = nil
     frame._home = home
 
@@ -450,6 +458,7 @@ local function EnsurePotentialTable(home)
     if frame.classIcon then frame.classIcon:Hide() end
     if frame.wIcon then frame.wIcon:Hide() end
     if frame.iIcon then frame.iIcon:Hide() end
+    if frame.classBar then frame.classBar:SetColorTexture(1, 1, 1, 0) end
   end
 
   home._potPool = CreateFramePool("Button", pot, nil, resetPotRow, false, initPotRow)
@@ -515,7 +524,7 @@ local function LayoutPotentialTable(home)
 
   local seamPad = 4
 
-  local x = pad
+  local x = pad + CLASS_BAR_W
   home.hName:ClearAllPoints()
   home.hName:SetPoint("LEFT", home.potHeader, "LEFT", x, 0)
   ClampFontString(home.hName, wName)
@@ -563,7 +572,7 @@ local function LayoutPotentialTable(home)
       row:SetPoint("TOPRIGHT", home.potRows[i - 1], "BOTTOMRIGHT", 0, 0)
     end
 
-    local rx = pad
+    local rx = pad + CLASS_BAR_W
 
     row.name:ClearAllPoints()
     row.name:SetPoint("LEFT", row, "LEFT", rx, 0)
@@ -646,6 +655,14 @@ local function UpdatePotentialRows(home)
         row.name:SetTextColor(1, 1, 1)
       end
 
+      if row.classBar then
+        if cc then
+          row.classBar:SetColorTexture(cc.r, cc.g, cc.b, 0.7)
+        else
+          row.classBar:SetColorTexture(1, 1, 1, 0)
+        end
+      end
+
       local lvl = e.level and tostring(e.level) or "?"
       row.lvl:SetText(lvl)
 
@@ -674,6 +691,7 @@ local function UpdatePotentialRows(home)
     else
       row._nameKey = nil
       if row.stripe then row.stripe:Hide() end
+      if row.classBar then row.classBar:SetColorTexture(1, 1, 1, 0) end
       row:Hide()
     end
   end
@@ -711,6 +729,7 @@ function GRIP:UpdateGhostStrip()
         FmtTime(elapsed), FmtTime(maxSec), pending, actions))
     home.ghostBtn:SetText("Stop")
     W.SetEnabledSafe(home.ghostBtn, true)
+    if home.ghostStrip.bg then home.ghostStrip.bg:SetColorTexture(0, 1, 0, 0.05) end
   else
     local cooldown = Ghost:GetCooldownRemaining()
     if cooldown > 0 then
@@ -718,10 +737,12 @@ function GRIP:UpdateGhostStrip()
         ("|cffff8800Ghost: Cooldown|r  %s remaining"):format(FmtTime(cooldown)))
       home.ghostBtn:SetText("Start")
       W.SetEnabledSafe(home.ghostBtn, false)
+      if home.ghostStrip.bg then home.ghostStrip.bg:SetColorTexture(1, 0.5, 0, 0.05) end
     else
       home.ghostLabel:SetText("|cff888888Ghost: Ready|r")
       home.ghostBtn:SetText("Start")
       W.SetEnabledSafe(home.ghostBtn, true)
+      if home.ghostStrip.bg then home.ghostStrip.bg:SetColorTexture(0, 0, 0, 0) end
     end
   end
 end
@@ -734,6 +755,21 @@ function GRIP:UI_LayoutHome()
   LayoutHomePanels(home)
   LayoutPotentialTable(home)
   GRIP:LayoutBlacklistPanel(home)
+end
+
+local function AddButtonIcon(btn, texturePath, btnWidth)
+  local icon = btn:CreateTexture(nil, "ARTWORK")
+  icon:SetSize(14, 14)
+  icon:SetPoint("LEFT", btn, "LEFT", 6, 0)
+  icon:SetTexture(texturePath)
+  btn._icon = icon
+  local fs = btn:GetFontString()
+  if fs then
+    fs:ClearAllPoints()
+    fs:SetPoint("LEFT", icon, "RIGHT", 4, 0)
+    fs:SetPoint("RIGHT", btn, "RIGHT", -6, 0)
+  end
+  btn:SetWidth(btnWidth)
 end
 
 function GRIP:UI_CreateHome(parent)
@@ -819,6 +855,11 @@ function GRIP:UI_CreateHome(parent)
     clearText:SetTextColor(1, 0.6, 0.6)
   end
 
+  -- Button icons (14x14, left of text)
+  AddButtonIcon(home.btnScan, "Interface\\COMMON\\UI-Searchbox-Icon", 110)
+  AddButtonIcon(home.btnWhisperInvite, "Interface\\GossipFrame\\GossipGossipIcon", 180)
+  AddButtonIcon(home.btnPostNext, "Interface\\CHATFRAME\\UI-ChatIcon-Blizz", 110)
+
   -- Button tooltips
   GRIP:AttachTooltip(home.btnScan, "Scan", function()
     local pos = math.max(0, (state.whoIndex or 1) - 1)
@@ -843,6 +884,10 @@ function GRIP:UI_CreateHome(parent)
   home.ghostStrip:SetHeight(24)
   home.ghostStrip:SetPoint("TOPLEFT", home.btnScan, "BOTTOMLEFT", 0, -4)
   home.ghostStrip:SetPoint("RIGHT", home, "RIGHT", -4, 0)
+
+  home.ghostStrip.bg = home.ghostStrip:CreateTexture(nil, "BACKGROUND")
+  home.ghostStrip.bg:SetAllPoints(home.ghostStrip)
+  home.ghostStrip.bg:SetColorTexture(0, 0, 0, 0)
 
   home.ghostLabel = home.ghostStrip:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   home.ghostLabel:SetPoint("LEFT", home.ghostStrip, "LEFT", 0, 0)
