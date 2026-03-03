@@ -397,6 +397,7 @@ function GRIP:WhisperTick()
 
   -- Daily cap check (GRIP-sent whispers only)
   if cfg.whisperDailyCap and cfg.whisperDailyCap > 0 then
+    if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.counters) ~= "table" then return end
     ResetIfNewDay(GRIPDB_CHAR.counters)
     if GRIPDB_CHAR.counters.whispersSent >= cfg.whisperDailyCap then
       self:Print(("Daily whisper cap reached (%d). Queue stopped. Resets tomorrow."):format(cfg.whisperDailyCap))

@@ -147,7 +147,11 @@ overlay:SetScript("OnKeyUp", RunNext)
 -- ----------------------------------------------------------------
 
 local updater = CreateFrame("Frame")
-updater:SetScript("OnUpdate", function()
+local updaterElapsed = 0
+updater:SetScript("OnUpdate", function(_, dt)
+  updaterElapsed = updaterElapsed + dt
+  if updaterElapsed < 0.2 then return end
+  updaterElapsed = 0
   if not Ghost:IsSessionActive() then
     if overlay:IsShown() then overlay:Hide() end
     return
@@ -462,6 +466,10 @@ function Ghost:Send(chatType, msg, languageID, target, isHardwareEvent, meta)
   return ok, ok and "sent" or "send_api_missing"
 end
 
+-- ----------------------------------------------------------------
+-- Phase 1 backward-compat API (no current callers — retained as
+-- public surface for macro/WeakAura integration)
+-- ----------------------------------------------------------------
 function Ghost:FlushOne(isHardwareEvent)
   if not self:IsEnabled() and not self:IsSessionActive() then return false, "disabled" end
   if not isHardwareEvent then return false, "requires_hardware" end

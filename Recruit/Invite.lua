@@ -371,33 +371,33 @@ function GRIP:AutoQueueGhostInvite(name)
     GRIP:SafeGuildInvite(inviteName)
     GRIP:RecordCampaignAction("invite")
     GRIP:Debug("GuildInvite (ghost-auto) ->", inviteName)
-  end, { target = inviteName })
 
-  -- 70-second no-response timeout (starts at queue time, not execution time)
-  C_Timer.After(NO_RESPONSE_TIMEOUT, function()
-    if state.pendingInvite and state.pendingInvite[inviteName] then
-      state.pendingInvite[inviteName] = nil
-      if _G.GRIPDB_CHAR and GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[inviteName] then
-        GRIPDB_CHAR.potential[inviteName].invitePending = false
-      end
-      if GRIP:BL_ExecutionGate(inviteName, GateCtx("no-response-timeout")) == false then
-        GRIP:MaybeFinalize(inviteName)
+    -- 70-second no-response timeout (starts at execution time)
+    C_Timer.After(NO_RESPONSE_TIMEOUT, function()
+      if state.pendingInvite and state.pendingInvite[inviteName] then
+        state.pendingInvite[inviteName] = nil
+        if _G.GRIPDB_CHAR and GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[inviteName] then
+          GRIPDB_CHAR.potential[inviteName].invitePending = false
+        end
+        if GRIP:BL_ExecutionGate(inviteName, GateCtx("no-response-timeout")) == false then
+          GRIP:MaybeFinalize(inviteName)
+          GRIP:UpdateUI()
+          return
+        end
+        local count = IncNoResponseCounter(inviteName)
+        local c = GRIP:GetCfg()
+        if count and count >= NO_RESPONSE_ESCALATE_COUNT then
+          GRIP:Blacklist(inviteName, GetBlacklistDays(c))
+          GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", count, "-> blacklistDays")
+        else
+          GRIP:BlacklistForSeconds(inviteName, NO_RESPONSE_SECONDS)
+          GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", tostring(count or "?"), "-> 24h temp blacklist")
+        end
+        GRIP:RemovePotential(inviteName)
         GRIP:UpdateUI()
-        return
       end
-      local count = IncNoResponseCounter(inviteName)
-      local c = GRIP:GetCfg()
-      if count and count >= NO_RESPONSE_ESCALATE_COUNT then
-        GRIP:Blacklist(inviteName, GetBlacklistDays(c))
-        GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", count, "-> blacklistDays")
-      else
-        GRIP:BlacklistForSeconds(inviteName, NO_RESPONSE_SECONDS)
-        GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", tostring(count or "?"), "-> 24h temp blacklist")
-      end
-      GRIP:RemovePotential(inviteName)
-      GRIP:UpdateUI()
-    end
-  end)
+    end)
+  end, { target = inviteName })
 
   self:Debug("Auto-queued invite (ghost):", name)
   self:UpdateUI()

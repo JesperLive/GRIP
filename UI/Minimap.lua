@@ -26,11 +26,11 @@ local function SetButtonPosition()
   EnsureMinimapDB()
 
   local angle = tonumber(GRIPDB_CHAR.minimap.angle) or 225
-  local rad = math.rad(angle)
+  local a = rad(angle)
 
   local radius = 80
-  local x = math.cos(rad) * radius
-  local y = math.sin(rad) * radius
+  local x = cos(a) * radius
+  local y = sin(a) * radius
 
   btn:ClearAllPoints()
   btn:SetPoint("CENTER", Minimap, "CENTER", x, y)
@@ -301,10 +301,10 @@ function GRIP:CreateMinimapButton()
       local a = CursorAngleDegrees()
       self._dragAngle = a
 
-      local rad = math.rad(a)
+      local ang = rad(a)
       local radius = 80
-      local x = math.cos(rad) * radius
-      local y = math.sin(rad) * radius
+      local x = cos(ang) * radius
+      local y = sin(ang) * radius
 
       self:ClearAllPoints()
       self:SetPoint("CENTER", Minimap, "CENTER", x, y)

@@ -93,6 +93,11 @@ local function ThrottlePrint(key, seconds)
   return true
 end
 
+-- Structured context for execution gate diagnostics (trace remains opt-in).
+local function GateCtx(phase, extra)
+  return GRIP:BuildGateCtx("who", "Recruit/Who", phase, extra)
+end
+
 -- ---------- Blacklist enforcement helpers ----------
 
 local function Lower(s)
@@ -116,7 +121,7 @@ local function IsBlacklistedName(fullName)
   if type(GRIP) ~= "table" or type(GRIP.BL_ExecutionGate) ~= "function" then
     return false
   end
-  local ok = GRIP:BL_ExecutionGate(fullName, "who:blacklist-check")
+  local ok = GRIP:BL_ExecutionGate(fullName, GateCtx("blacklist-check"))
   return ok == false
 end
 

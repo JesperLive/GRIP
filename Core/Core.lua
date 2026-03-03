@@ -334,8 +334,13 @@ if not Logger._gripFallbackInstalled then
 
       if #lines > maxN then
         local over = #lines - maxN
-        for _ = 1, over do
-          table.remove(lines, 1)
+        local newLines = {}
+        for i = over + 1, #lines do
+          newLines[#newLines + 1] = lines[i]
+        end
+        wipe(lines)
+        for i = 1, #newLines do
+          lines[i] = newLines[i]
         end
         log.dropped = (tonumber(log.dropped) or 0) + over
       end
