@@ -111,7 +111,7 @@ function GRIP:ReconcileAfterReload()
     st.campaignSoftWarned = false
     st.campaignHardPaused = false
 
-    -- Ghost Mode session (runtime only; ghostCooldownUntil persists in GRIPDB.config)
+    -- Ghost Mode session (runtime only; ghostCooldownUntil persists in GRIPDB_CHAR.config)
     st.ghost = st.ghost or {}
     st.ghost.queue = {}
     st.ghost.sessionActive = false
