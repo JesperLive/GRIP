@@ -405,23 +405,152 @@ function GRIP:GetBestZonesListForUI()
   return base, method
 end
 
--- Returns ZONES_BY_EXPANSION with active seasonal zones appended as a group.
--- Used by the UI to render expansion-grouped checklists.
-function GRIP:GetZonesGroupedForUI()
-  local groups = {}
-  if type(GRIP.ZONES_BY_EXPANSION) == "table" then
-    for _, g in ipairs(GRIP.ZONES_BY_EXPANSION) do
-      local filtered = {}
-      for _, z in ipairs(g.zones) do
-        if self:ShouldIncludeZoneName(z) then
-          filtered[#filtered + 1] = z
+-- Dynamically enumerate zones grouped by continent via C_Map, mapped to
+-- expansion display names. Returns nil on any failure so caller can fall back.
+function GRIP:GatherZonesGroupedByContinent()
+  if not C_Map or not C_Map.GetMapChildrenInfo or not C_Map.GetMapInfo then
+    return nil
+  end
+  if not Enum or not Enum.UIMapType then
+    return nil
+  end
+
+  local COSMIC_ID = 946
+  local TYPE_WORLD = Enum.UIMapType.World
+  local TYPE_CONTINENT = Enum.UIMapType.Continent
+  local TYPE_ZONE = Enum.UIMapType.Zone
+  local TYPE_DUNGEON = Enum.UIMapType.Dungeon
+
+  local displayNames = GRIP.CONTINENT_DISPLAY_NAMES or {}
+
+  -- Collect all continent mapIDs with their names
+  local continents = {}  -- { {mapID=N, name="..."}, ... }
+  local ok, cosmicChildren = pcall(C_Map.GetMapChildrenInfo, COSMIC_ID)
+  if not ok or type(cosmicChildren) ~= "table" then
+    return nil
+  end
+
+  for _, child in ipairs(cosmicChildren) do
+    if child and child.mapID and child.mapType then
+      if child.mapType == TYPE_WORLD then
+        -- Azeroth (947) — get its continent children
+        local ok2, worldChildren = pcall(C_Map.GetMapChildrenInfo, child.mapID)
+        if ok2 and type(worldChildren) == "table" then
+          for _, wc in ipairs(worldChildren) do
+            if wc and wc.mapID and wc.mapType == TYPE_CONTINENT and wc.name then
+              continents[#continents + 1] = { mapID = wc.mapID, name = wc.name }
+            end
+          end
         end
-      end
-      if #filtered > 0 then
-        groups[#groups + 1] = { name = g.name, zones = filtered }
+      elseif child.mapType == TYPE_CONTINENT and child.name then
+        -- Direct continent children of Cosmic (Outland, Draenor, Broken Isles, Argus, Shadowlands)
+        continents[#continents + 1] = { mapID = child.mapID, name = child.name }
       end
     end
   end
+
+  if #continents == 0 then
+    return nil
+  end
+
+  -- For each continent, gather its zone children
+  -- Group by display name (merges BfA, Legion, etc.)
+  local groupsByDisplay = {}  -- [displayName] = { order=N, zones={} }
+
+  for _, cont in ipairs(continents) do
+    local entry = displayNames[cont.name]
+    local displayName = entry and entry.display or cont.name
+    local order = entry and entry.order or 0
+
+    local ok3, zoneChildren = pcall(C_Map.GetMapChildrenInfo, cont.mapID, TYPE_ZONE, true)
+    if ok3 and type(zoneChildren) == "table" then
+      if not groupsByDisplay[displayName] then
+        groupsByDisplay[displayName] = { order = order, zones = {} }
+      end
+      local grp = groupsByDisplay[displayName]
+      -- Use lowest non-zero order if merging
+      if order > 0 and (grp.order == 0 or order < grp.order) then
+        grp.order = order
+      end
+
+      for _, z in ipairs(zoneChildren) do
+        if z and z.name and z.mapType ~= TYPE_DUNGEON
+           and self:ShouldIncludeZoneName(z.name) then
+          grp.zones[z.name] = true
+        end
+      end
+    end
+  end
+
+  -- Convert zone sets to sorted arrays, build output
+  local result = {}
+  for displayName, grp in pairs(groupsByDisplay) do
+    local sorted = {}
+    for name in pairs(grp.zones) do
+      sorted[#sorted + 1] = name
+    end
+    if #sorted > 0 then
+      tsort(sorted)
+      result[#result + 1] = {
+        name = displayName,
+        zones = sorted,
+        _order = grp.order,
+      }
+    end
+  end
+
+  -- Sort groups by order (lowest first = newest expansion first)
+  tsort(result, function(a, b)
+    if a._order ~= b._order then return a._order < b._order end
+    return a.name < b.name
+  end)
+
+  -- Strip internal _order field
+  for _, g in ipairs(result) do
+    g._order = nil
+  end
+
+  if #result == 0 then
+    return nil
+  end
+
+  return result
+end
+
+-- Returns zone groups for the Settings checklist. Prefers dynamic C_Map grouping;
+-- falls back to static ZONES_BY_EXPANSION if C_Map fails.
+function GRIP:GetZonesGroupedForUI()
+  -- Try dynamic continent-based grouping first (cached after first call)
+  if not self._dynamicZoneGroups then
+    self._dynamicZoneGroups = self:GatherZonesGroupedByContinent()
+  end
+
+  local groups
+  if self._dynamicZoneGroups and #self._dynamicZoneGroups > 0 then
+    -- Shallow copy so we don't mutate the cache when appending seasonal
+    groups = {}
+    for _, g in ipairs(self._dynamicZoneGroups) do
+      groups[#groups + 1] = { name = g.name, zones = g.zones }
+    end
+  else
+    -- Fallback to static ZONES_BY_EXPANSION
+    groups = {}
+    if type(GRIP.ZONES_BY_EXPANSION) == "table" then
+      for _, g in ipairs(GRIP.ZONES_BY_EXPANSION) do
+        local filtered = {}
+        for _, z in ipairs(g.zones) do
+          if self:ShouldIncludeZoneName(z) then
+            filtered[#filtered + 1] = z
+          end
+        end
+        if #filtered > 0 then
+          groups[#groups + 1] = { name = g.name, zones = filtered }
+        end
+      end
+    end
+  end
+
+  -- Append active seasonal zones
   local seasonal = self:GetActiveSeasonalZones()
   if #seasonal > 0 then
     groups[#groups + 1] = { name = "Seasonal (active)", zones = seasonal }
@@ -430,6 +559,7 @@ function GRIP:GetZonesGroupedForUI()
 end
 
 function GRIP:ReseedZones()
+  self._dynamicZoneGroups = nil
   if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.lists) ~= "table" or type(GRIPDB_CHAR.lists.zones) ~= "table" then
     return 0, 0, nil
   end

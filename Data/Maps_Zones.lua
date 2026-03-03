@@ -184,6 +184,25 @@ for _, group in ipairs(GRIP.ZONES_BY_EXPANSION) do
   end
 end
 
+-- Continent → expansion display name mapping for dynamic zone grouping.
+-- Lower order = appears first (newest expansion first).
+-- Continents not in this table get their raw C_Map name and order 0 (top).
+GRIP.CONTINENT_DISPLAY_NAMES = {
+  ["Khaz Algar"]        = { display = "The War Within",         order = 1 },
+  ["Dragon Isles"]      = { display = "Dragonflight",           order = 2 },
+  ["Shadowlands"]       = { display = "Shadowlands",            order = 3 },
+  ["Zandalar"]          = { display = "Battle for Azeroth",     order = 4 },
+  ["Kul Tiras"]         = { display = "Battle for Azeroth",     order = 4 },
+  ["Broken Isles"]      = { display = "Legion",                 order = 5 },
+  ["Argus"]             = { display = "Legion",                 order = 5 },
+  ["Draenor"]           = { display = "Warlords of Draenor",    order = 6 },
+  ["Pandaria"]          = { display = "Mists of Pandaria",      order = 7 },
+  ["Northrend"]         = { display = "Wrath of the Lich King", order = 8 },
+  ["Outland"]           = { display = "The Burning Crusade",    order = 9 },
+  ["Eastern Kingdoms"]  = { display = "Eastern Kingdoms",       order = 10 },
+  ["Kalimdor"]          = { display = "Kalimdor",               order = 11 },
+}
+
 -- Seasonal zones: only shown when the associated holiday is active.
 GRIP.SEASONAL_ZONES = {
   ["Darkmoon Island"] = { holiday = "Darkmoon Faire", fallback = "darkmoon" },
