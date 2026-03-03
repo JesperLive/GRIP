@@ -1,0 +1,22 @@
+package-as: GRIP
+
+manual-changelog:
+  filename: Docs/CHANGELOG.md
+  markup-type: markdown
+
+license-output: LICENSE
+
+enable-nolib-creation: no
+
+ignore:
+  - "*.md"
+  - "*.yml"
+  - "*.yaml"
+  - ".github"
+  - ".gitignore"
+  - Claude
+  - Docs
+  - .claude
+  - .editorconfig
+  - .luacheckrc
+  - screenshots

@@ -1,101 +1,173 @@
 # GRIP – Guild Recruitment Automation
 
-**Automate the grind, not the game.**
-
-GRIP streamlines guild recruitment in World of Warcraft Retail by scanning for unguilded players, queuing whispers and guild invites, and scheduling Trade/General channel ads — all while fully respecting Blizzard's hardware-event restrictions.
-
-> **Version:** 0.4.0 · **Interface:** 120001 (Midnight 12.0.1+)
+**Target:** Retail / Midnight (12.0.1+)
+**Interface:** 120001
+**Version:** 0.5.0-beta
 
 ---
 
 ## Features
 
-- **/who Scanning** — Automatically queries `/who` by level bracket, expands saturated results by class, and filters out already-contacted or blacklisted players.
-- **Whisper Queue** — Rate-limited outgoing whispers with customizable message templates. Supports `{name}`, `{guild}`, and clickable `{guildlink}` tokens.
-- **Guild Invite Pipeline** — One invite per click/keybind (hardware-event compliant). Tracks no-responses and escalates repeat ignores to temp → permanent blacklist.
-- **Trade/General Ad Scheduler** — Configure separate messages for Trade and General chat. Posts are queued on a timer; you trigger them with a click or keybind.
-- **Smart Blacklisting** — Two-tier system: temporary (configurable expiry in days) and permanent (with reason tracking). The Execution Gate blocks every whisper, invite, and post for blacklisted names.
-- **Minimap Button** — Left-click to toggle UI, middle-click for Settings, right-click for Ads. Draggable.
-- **Full Keybind Support** — Bind Toggle UI, Scan, Invite, and Post to any key combo via WoW's Key Bindings menu.
+- `/who` scanning for unguilded characters
+- Whisper queue with rate limiting
+- Guild invites (hardware-event gated, one per click/keybind)
+- Trade/General post scheduling (hardware-event gated)
+- Temp + permanent blacklisting with configurable duration
+- Daily whisper cap (default 500/day) with 80% warning
+- Opt-out response detection (auto-blacklists "no thanks" etc.)
+- Multiple whisper templates with sequential/random rotation
+- Sound feedback for key events (queue done, invite accepted, cap warning)
+- Expansion-grouped zone filter with seasonal detection
+- Minimap button + addon compartment support
+- Ghost Mode (experimental) — full pipeline automation via invisible overlay frame
+- Campaign cooldown — session fatigue protection with soft warning + hard auto-pause
+- Account-wide blacklist — shared across all characters on the account
 
 ---
 
-## Installation
+## Blizzard Restrictions (Important)
 
-1. Download or clone this repository.
-2. Copy the `GRIP` folder into your WoW addons directory:
-   ```
-   World of Warcraft/_retail_/Interface/AddOns/GRIP/
-   ```
-3. Restart WoW or type `/reload`.
+Some actions require a **hardware event** (mouse click or key press).
+GRIP **cannot fully automate** the following:
+
+- `/who` queries — `C_FriendList.SendWho()` (hardware event)
+- Guild invites — `C_GuildInfo.Invite()` (hardware event)
+- Channel posts — `C_ChatInfo.SendChatMessage(..., "CHANNEL")` (hardware event)
+
+GRIP queues and organizes these actions and provides buttons/keybinds so you can trigger them safely and compliantly.
+
+---
+
+## Install
+
+1. Copy the `GRIP` folder into:
+
+   `World of Warcraft/_retail_/Interface/AddOns/GRIP/`
+
+2. Restart WoW or run `/reload`.
 
 ---
 
 ## Quick Start
 
-1. Open the GRIP window: `/grip` or click the minimap button.
-2. **Settings tab** — Set your level range, select which zones/races/classes to target, and write your whisper message.
-3. **Home tab** — Click **Scan** to run a `/who` query. Candidates appear in the Potential list. Click **Whisper+Invite** to start the recruitment pipeline.
-4. **Ads tab** — Write your Trade and General channel messages, set the post interval, and click **Post Next** when the queue is ready.
+1. Type `/grip` to open the UI
+   (or click the **minimap button**).
+
+### Home
+- **Scan** — Sends the next `/who` query (locks for configured minimum interval)
+- **Whisper+Invite** — Starts whisper queue and sends **one invite**
+- **Post Next** — Sends the next queued recruitment ad
+- Daily cap status is shown on the Home page
+
+### Settings
+- Adjust level range for `/who` scans
+- Configure zone/race/class filters (zones grouped by expansion)
+- Edit whisper templates (multiple templates with rotation)
+- Toggle sound feedback for individual events
+
+### Ads
+- Configure General and Trade messages
+- Set post interval (scheduler queues messages only)
+- Use **Post Next** to actually send
+
+---
+
+## Minimap Button
+
+- **Left-click** — Toggle GRIP window (Home)
+- **Middle-click** — Open Settings
+- **Right-click** — Open Ads
+- **Drag** — Move around minimap
+- Hide/show: `/grip minimap on|off|toggle`
+
+---
+
+## Keybindings
+
+Available under **Key Bindings > AddOns > GRIP**:
+
+- Toggle GRIP window
+- Send next `/who` scan
+- Send next guild invite
+- Send next Trade/General post
+
+Keybindings satisfy hardware-event requirements for restricted actions.
 
 ---
 
 ## Slash Commands
 
-| Command | Description |
-|---|---|
-| `/grip` | Toggle the GRIP window |
-| `/grip help` | Show all available commands |
-| `/grip build` | Rebuild the `/who` scan queue |
-| `/grip scan` | Send the next `/who` query |
-| `/grip whisper` | Start or stop the whisper queue |
-| `/grip invite` | Whisper + invite the next candidate |
-| `/grip post` | Send the next queued Trade/General post |
-| `/grip clear` | Clear the Potential list |
-| `/grip status` | Print current queue counts |
-| `/grip minimap on\|off` | Show or hide the minimap button |
-
-See `/grip help` in-game for the full list, including debug, blacklist management, and zone diagnostic commands.
-
----
-
-## How It Works
-
 ```
-/who scan → Potential list → Whisper queue → Guild invite → Finalize/Blacklist
-                                          ↗
-            Trade/General post scheduler ─┘
+/grip                — toggle UI
+/grip help           — show help
+/grip build          — rebuild /who queue
+/grip scan           — send next /who (hardware event)
+/grip whisper        — start/stop whisper queue
+/grip invite         — whisper+invite next candidate (hardware event)
+/grip post           — send next queued post (hardware event)
+/grip clear          — clear Potential list
+/grip status         — print counts
+/grip link           — show guild name + Guild Finder link resolution
+
+/grip minimap on|off|toggle
+
+/grip permbl list|add|remove|clear
+
+/grip set levels <min> <max> [step]
+/grip set whisper <message>
+/grip set general <message>
+/grip set trade <message>
+/grip set blacklistdays <n>
+/grip set interval <minutes>
+/grip set dailycap <n>
+/grip set sound on|off
+/grip set zoneonly on|off
+/grip set hidewhispers on|off
+/grip set ghostmode on|off
+
+/grip templates list
+/grip templates add <message>
+/grip templates remove <n>
+/grip templates rotation seq|random
+
+/grip ghost start|stop|status
+/grip set cooldown <min>|on|off
+
+/grip debug on|off
+/grip debug dump [n]
+/grip debug clear
+/grip debug copy [n]
+/grip debug capture on|off [max]
+/grip debug status
+
+/grip zones diag|reseed|deep|export
+/grip tracegate on|off|toggle
 ```
 
-GRIP never bypasses Blizzard's restrictions. Actions that require a **hardware event** (mouse click, keybind, or slash command) — like `/who` queries, guild invites, and channel posts — are queued and only fire when you trigger them. Whispers are not hardware-restricted and drain automatically on a timer.
+---
+
+## Important Notes
+
+- **Silence penalties:** If players report your whispers as spam, Blizzard may
+  apply a Silence penalty to your account. Use conservative intervals and
+  personalized messages to minimize risk.
+- **Guild Finder listing:** The `{guildlink}` template token only works if your
+  guild has an active listing in the Guild Finder. Without one, GRIP falls back
+  to your guild name.
+- **Not affiliated with Blizzard:** GRIP is a third-party addon. Use at your
+  own discretion.
 
 ---
 
-## Blizzard Compliance
+## Notes
 
-GRIP is designed to work within Blizzard's addon policies:
-
-- **Hardware-event gating** — Restricted APIs (`C_FriendList.SendWho`, `C_GuildInfo.Invite`, channel `SendChatMessage`) only execute from genuine player input.
-- **Rate limiting** — Whispers, scans, and posts all enforce minimum intervals to stay well within server throttle limits.
-- **No automation of restricted actions** — GRIP queues and organizes; you press the button.
-
----
-
-## Configuration
-
-All settings are saved per-account in `WTF/Account/<name>/SavedVariables/GRIP.lua` and persist across sessions.
-
-Key options (configurable via Settings tab or `/grip set`):
-
-- **Level range** and step size for `/who` brackets
-- **Zone/Race/Class filters** — allowlists to narrow scan targets
-- **Whisper message** — with template tokens (`{name}`, `{guild}`, `{guildlink}`)
-- **Post messages** — separate templates for Trade and General chat
-- **Post interval** — minutes between queued ads
-- **Blacklist duration** — days before temp blacklist entries expire
-
----
-
-## License
-
-All rights reserved. This addon is provided as-is for personal use.
+- `/who` results are server-throttled; GRIP enforces a minimum delay between scans.
+- Whispers are not hardware-restricted but are server rate-limited.
+- Instance/battleground/scenario characters are excluded by default.
+- Blacklist entries expire automatically based on configuration.
+- Debug logging can be enabled via slash commands and optionally persisted to SavedVariables.
+- Opt-out detection auto-blacklists candidates who reply with common refusal phrases.
+- Daily whisper cap resets at midnight (calendar date).
+- Sound cues can be toggled individually in Settings.
+- Ghost Mode is experimental and disabled by default. Enable in Settings, then `/grip ghost start`.
+- Blacklists and no-response counters are account-wide (shared across all characters). Config, potential list, and filters are per-character.
