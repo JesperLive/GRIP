@@ -482,92 +482,51 @@ end
 -- Row context menu (right-click)
 -- ----------------------------
 
-local function EnsureRowMenu(home)
-  if home and home._potMenu then return home._potMenu end
-  local menu = CreateFrame("Frame", "GRIP_PotentialRowMenu", UIParent, "UIDropDownMenuTemplate")
-  if home then home._potMenu = menu end
-  return menu
-end
-
 local function ShowRowMenu(home, anchor, name)
   if type(name) ~= "string" or name == "" then return end
-  if not (UIDropDownMenu_Initialize and ToggleDropDownMenu) then return end
+  if not (MenuUtil and MenuUtil.CreateContextMenu) then return end
 
-  local menu = EnsureRowMenu(home)
-  if not menu then return end
-
-  menu._name = name
-
-  UIDropDownMenu_Initialize(menu, function(self, level)
-    if not level then return end
-
-    local n = self._name
-    if type(n) ~= "string" or n == "" then return end
-
-    local info
-
-    info = UIDropDownMenu_CreateInfo()
-    info.isTitle = true
-    info.notCheckable = true
-    info.text = n
-    UIDropDownMenu_AddButton(info, level)
+  MenuUtil.CreateContextMenu(anchor, function(owner, rootDescription)
+    rootDescription:CreateTitle(name)
 
     -- Blacklist action (perm)
-    local alreadyBL = IsCurrentlyBlacklisted(n)
-    info = UIDropDownMenu_CreateInfo()
-    info.notCheckable = true
-    info.text = alreadyBL and "Blacklist… (already blacklisted)" or "Blacklist…"
-    info.disabled = alreadyBL
-    info.func = function()
-      if not HasDB() then return end
-      PromptBlacklistAdd(n)
-    end
-    UIDropDownMenu_AddButton(info, level)
+    local alreadyBL = IsCurrentlyBlacklisted(name)
+    local blBtn = rootDescription:CreateButton(
+      alreadyBL and "Blacklist\226\128\166 (already blacklisted)" or "Blacklist\226\128\166",
+      function()
+        if not HasDB() then return end
+        PromptBlacklistAdd(name)
+      end
+    )
+    blBtn:SetEnabled(not alreadyBL)
 
+    -- Invite to Guild
     local inCombat = (InCombatLockdown and InCombatLockdown()) and true or false
     local canInvite = (not inCombat) and (C_GuildInfo and C_GuildInfo.Invite or GuildInvite) ~= nil
-
-    info = UIDropDownMenu_CreateInfo()
-    info.notCheckable = true
-    info.text = inCombat and "Invite to Guild (disabled in combat)" or "Invite to Guild"
-    info.disabled = not canInvite
-    info.func = function()
-      if not HasDB() then return end
-      if InCombatLockdown and InCombatLockdown() then
-        GRIP:Print("Cannot invite in combat.")
-        return
-      end
-      if (C_GuildInfo and C_GuildInfo.Invite) or GuildInvite then
-        -- Defense-in-depth: gate immediately before protected invite call.
-        local okGate, why = false, "missing-gate"
-        if GRIP and type(GRIP.BL_ExecutionGate) == "function" then
-          okGate, why = GRIP:BL_ExecutionGate(n, { op = "ui_menu_invite", src = "home" })
-        end
-        if not okGate then
-          GRIP:Print(("Invite blocked (%s): %s"):format(tostring(why or "blocked"), n))
+    local invBtn = rootDescription:CreateButton(
+      inCombat and "Invite to Guild (disabled in combat)" or "Invite to Guild",
+      function()
+        if not HasDB() then return end
+        if InCombatLockdown and InCombatLockdown() then
+          GRIP:Print("Cannot invite in combat.")
           return
         end
-
-        GRIP:Debug("UI: Menu invite " .. n)
-        pcall(function() GRIP:SafeGuildInvite(n) end)
+        if (C_GuildInfo and C_GuildInfo.Invite) or GuildInvite then
+          local okGate, why = false, "missing-gate"
+          if GRIP and type(GRIP.BL_ExecutionGate) == "function" then
+            okGate, why = GRIP:BL_ExecutionGate(name, { op = "ui_menu_invite", src = "home" })
+          end
+          if not okGate then
+            GRIP:Print(("Invite blocked (%s): %s"):format(tostring(why or "blocked"), name))
+            return
+          end
+          GRIP:Debug("UI: Menu invite " .. name)
+          pcall(function() GRIP:SafeGuildInvite(name) end)
+        end
       end
-    end
-    UIDropDownMenu_AddButton(info, level)
-
-    info = UIDropDownMenu_CreateInfo()
-    info.disabled = true
-    info.notCheckable = true
-    info.text = " "
-    UIDropDownMenu_AddButton(info, level)
-
-    info = UIDropDownMenu_CreateInfo()
-    info.notCheckable = true
-    info.text = "Cancel"
-    info.func = function() CloseDropDownMenus() end
-    UIDropDownMenu_AddButton(info, level)
-  end, "MENU")
-
-  ToggleDropDownMenu(1, nil, menu, anchor, 0, 0)
+    )
+    invBtn:SetEnabled(canInvite)
+  end)
 end
 
 -- ----------------------------
@@ -983,8 +942,6 @@ local function EnsurePotentialTable(home)
   empty:SetText("No potential candidates yet. Click Scan to begin.")
   empty:Hide()
   home.potEmpty = empty
-
-  EnsureRowMenu(home)
 
   -- Row pool (dynamic row count based on visible height)
   local function initPotRow(frame)
