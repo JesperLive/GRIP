@@ -26,7 +26,7 @@ local state = GRIP.state
 -- ----------------------------
 -- Optional: hide outgoing whisper echoes in chat ("To X: ...")
 -- This does NOT affect event processing (CHAT_MSG_WHISPER_INFORM still fires).
--- Enable with: GRIPDB.config.suppressWhisperEcho = true
+-- Enable with: GRIPDB_CHAR.config.suppressWhisperEcho = true
 -- ----------------------------
 local function EnsureRecentWhisperBuf()
   state._gripRecentWhispers = state._gripRecentWhispers or {}
