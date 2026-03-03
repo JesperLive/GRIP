@@ -9,7 +9,7 @@ local type, tostring, tonumber = type, tostring, tonumber
 local pairs, ipairs, wipe, strsplit = pairs, ipairs, wipe, strsplit
 local tsort = table.sort
 local upper, sub = string.upper, string.sub
-local floor, max = math.floor, math.max
+local floor, max, ceil = math.floor, math.max, math.ceil
 
 -- WoW API
 local GetTime = GetTime
@@ -144,7 +144,7 @@ end
 
 local function SortPotentialNewestFirst(names)
   if type(names) ~= "table" then return names end
-  table.sort(names, function(a, b)
+  tsort(names, function(a, b)
     if a == b then return false end
     local ea = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[a] or nil
     local eb = GRIPDB_CHAR.potential and GRIPDB_CHAR.potential[b] or nil
@@ -480,7 +480,7 @@ local function ResizePotentialRows(home)
   local sf = home.potScroll
   local h = tonumber(sf:GetHeight()) or 0
   if h <= 0 then return end
-  local needed = math.floor(h / POT_ROW_H) + 1
+  local needed = floor(h / POT_ROW_H) + 1
   if needed < POT_ROWS_MIN then needed = POT_ROWS_MIN end
   local current = #home.potRows
   if needed == current then return end
@@ -520,7 +520,7 @@ local function LayoutPotentialTable(home)
   if wZone < 80 then
     local deficit = 80 - wZone
     wZone = 80
-    wName = math.max(100, wName - deficit)
+    wName = max(100, wName - deficit)
   end
 
   local seamPad = 4
@@ -716,8 +716,8 @@ function GRIP:UpdateGhostStrip()
   home.ghostStrip:Show()
 
   local function FmtTime(sec)
-    sec = math.max(0, math.floor(sec))
-    return ("%d:%02d"):format(math.floor(sec / 60), sec % 60)
+    sec = max(0, floor(sec))
+    return ("%d:%02d"):format(floor(sec / 60), sec % 60)
   end
 
   if Ghost:IsSessionActive() then
@@ -863,7 +863,7 @@ function GRIP:UI_CreateHome(parent)
 
   -- Button tooltips
   GRIP:AttachTooltip(home.btnScan, "Scan", function()
-    local pos = math.max(0, (state.whoIndex or 1) - 1)
+    local pos = max(0, (state.whoIndex or 1) - 1)
     local total = #state.whoQueue
     return "Send next /who query.\nRequires keybind or button click.\nQueue: " .. pos .. "/" .. total .. " remaining"
   end)
@@ -1005,7 +1005,7 @@ function GRIP:UI_UpdateHome()
   local blPerm = self:Count(GRIPDB.blacklistPerm)
   local blTemp = self:Count(GRIPDB.blacklist)
 
-  local whoPos = math.max(0, (state.whoIndex - 1))
+  local whoPos = max(0, ((state.whoIndex or 0) - 1))
   local whoTotal = #state.whoQueue
   local wq = #state.whisperQueue
   local pq = #state.postQueue
@@ -1065,7 +1065,7 @@ function GRIP:UI_UpdateHome()
   local scanLeft = GRIP:SecondsLeft(f._scanCooldownUntil)
   if scanLeft > 0 then
     home.btnScan:Disable()
-    home.btnScan:SetText(("Scan (%.0fs)"):format(math.ceil(scanLeft)))
+    home.btnScan:SetText(("Scan (%.0fs)"):format(ceil(scanLeft)))
   else
     home.btnScan:Enable()
     home.btnScan:SetText("Scan")

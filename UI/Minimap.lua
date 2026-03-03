@@ -270,6 +270,10 @@ function GRIP:CreateMinimapButton()
   btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   btn:SetScript("OnClick", function(self, button)
+    if self._gripDragged then
+      self._gripDragged = false
+      return
+    end
     if button == "MiddleButton" then
       ShowPage("settings")
       return
@@ -285,6 +289,7 @@ function GRIP:CreateMinimapButton()
   btn._dragNextAt = 0
 
   btn:SetScript("OnDragStart", function(self)
+    self._gripDragged = true
     self._dragAngle = CursorAngleDegrees()
     self._dragNextAt = 0
 

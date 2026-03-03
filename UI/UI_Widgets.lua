@@ -93,6 +93,10 @@ local function HookDirtyTracking(editBox)
     end
   end)
 
+  editBox:HookScript("OnEditFocusLost", function(self)
+    self._gripDirty = false
+  end)
+
   -- Helpful defaults for single-line edits
   if editBox.SetScript then
     editBox:SetScript("OnEscapePressed", editBox.ClearFocus)
@@ -612,7 +616,9 @@ function W.BuildInsertedTextAtCursor(eb, token)
 
   local before = fullText:sub(1, bytePos)
   local after  = fullText:sub(bytePos + 1)
-  return before .. token .. after
+  local newText = before .. token .. after
+  local newCursorByte = bytePos + #token
+  return newText, newCursorByte
 end
 
 -- ---------------------------
