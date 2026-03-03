@@ -32,15 +32,7 @@ end
 
 -- Structured context for execution gate diagnostics (trace remains opt-in).
 local function GateCtx(phase, extra)
-  local ctx = {
-    action = "invite",
-    phase = tostring(phase or ""),
-    module = "Recruit/Invite",
-  }
-  if extra ~= nil then
-    ctx.extra = extra
-  end
-  return ctx
+  return GRIP:BuildGateCtx("invite", "Recruit/Invite", phase, extra)
 end
 
 local function IsInviteBlocked(self, name, context)

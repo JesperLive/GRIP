@@ -462,6 +462,34 @@ function GRIP:BuildNameKeyVariants(fullName)
   return out
 end
 
+function GRIP:BuildGateCtx(action, moduleName, phase, extra)
+  local ctx = {
+    action = action,
+    phase = tostring(phase or ""),
+    module = moduleName,
+  }
+  if extra ~= nil then
+    ctx.extra = extra
+  end
+  return ctx
+end
+
+function GRIP:CfgBool(key, default)
+  local cfg = self:GetCfg()
+  if not cfg then return default end
+  local v = cfg[key]
+  if v == nil then return default end
+  return v and true or false
+end
+
+function GRIP:CfgNum(key, default)
+  local cfg = self:GetCfg()
+  if not cfg then return default end
+  local v = tonumber(cfg[key])
+  if v == nil then return default end
+  return v
+end
+
 -- ── End shared utility helpers ─────────────────────────────────────────
 
 function GRIP:SortPotentialNames()

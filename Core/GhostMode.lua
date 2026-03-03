@@ -38,19 +38,11 @@ state.ghost = state.ghost or {
 -- ----------------------------------------------------------------
 
 local function CfgBool(key, default)
-  local cfg = GRIP:GetCfg()
-  if not cfg then return default end
-  local v = cfg[key]
-  if v == nil then return default end
-  return v and true or false
+  return GRIP:CfgBool(key, default)
 end
 
 local function CfgNum(key, default)
-  local cfg = GRIP:GetCfg()
-  if not cfg then return default end
-  local v = tonumber(cfg[key])
-  if v == nil then return default end
-  return v
+  return GRIP:CfgNum(key, default)
 end
 
 local function DebugEnabled()

@@ -19,15 +19,7 @@ local state = GRIP.state
 
 -- Structured context for execution gate diagnostics (trace remains opt-in).
 local function GateCtx(phase, extra)
-  local ctx = {
-    action = "post",
-    phase = tostring(phase or ""),
-    module = "Recruit/Post",
-  }
-  if extra ~= nil then
-    ctx.extra = extra
-  end
-  return ctx
+  return GRIP:BuildGateCtx("post", "Recruit/Post", phase, extra)
 end
 
 local function GetChannelIdByToken(tokenLower)

@@ -106,15 +106,7 @@ end
 
 -- Structured context for execution gate diagnostics (trace remains opt-in).
 local function GateCtx(phase, extra)
-  local ctx = {
-    action = "whisper",
-    phase = tostring(phase or ""),
-    module = "Recruit/Whisper",
-  }
-  if extra ~= nil then
-    ctx.extra = extra
-  end
-  return ctx
+  return GRIP:BuildGateCtx("whisper", "Recruit/Whisper", phase, extra)
 end
 
 local function IsWhisperBlocked(self, name, context)
