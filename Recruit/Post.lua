@@ -269,6 +269,13 @@ function GRIP:PostNext()
     return
   end
 
+  -- NH-6: Skip sends during chat messaging lockdown (encounter/M+/PvP)
+  if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
+     and C_ChatInfo.InChatMessagingLockdown() then
+    self:Print("Cannot post: chat messaging lockdown is active (in encounter/M+/PvP).")
+    return
+  end
+
   state.postQueue = state.postQueue or {}
 
   local didChange = false

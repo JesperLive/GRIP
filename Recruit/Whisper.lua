@@ -339,6 +339,13 @@ function GRIP:WhisperTick()
     return  -- skip this tick, whisper stays in queue
   end
 
+  -- NH-6: Skip sends during chat messaging lockdown (encounter/M+/PvP)
+  if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
+     and C_ChatInfo.InChatMessagingLockdown() then
+    GRIP:Debug("Whisper deferred: chat messaging lockdown active")
+    return  -- skip this tick, whisper stays in queue
+  end
+
   state.pendingWhisper = state.pendingWhisper or {}
   state.pendingInvite = state.pendingInvite or {}
   state.whisperQueue = state.whisperQueue or {}

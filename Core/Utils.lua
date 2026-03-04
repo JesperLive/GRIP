@@ -524,6 +524,18 @@ function GRIP:SendChatMessageCompat(msg, chatType, languageID, target)
     return false
   end
 
+  -- NH-6: Don't attempt sends during messaging lockdown (encounter/M+/PvP safety net)
+  if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown then
+    local isRestricted, reason = C_ChatInfo.InChatMessagingLockdown()
+    if isRestricted then
+      if self:IsDebugEnabled(2) then
+        self:Debug("SendChatMessageCompat: messaging lockdown, reason=",
+          tostring(reason), "type=", tostring(chatType), "target=", tostring(target))
+      end
+      return false
+    end
+  end
+
   if chatType == "WHISPER" then
     GRIP:EnsureWhisperEchoFilter()
     AddRecentWhisper(msg, target)

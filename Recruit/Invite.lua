@@ -181,6 +181,13 @@ function GRIP:InviteNext()
     return
   end
 
+  -- NH-6: Skip during chat messaging lockdown (encounter/M+/PvP)
+  if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
+     and C_ChatInfo.InChatMessagingLockdown() then
+    self:Print("Cannot invite: chat messaging lockdown is active.")
+    return
+  end
+
   if not IsInGuild or not IsInGuild() then
     self:Print("You are not in a guild.")
     return
