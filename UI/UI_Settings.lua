@@ -168,6 +168,7 @@ local function UpdateScrollContentHeight(settings)
     if (not lowest) or (b < lowest) then lowest = b end
   end
 
+  consider(settings.hideWhisperEcho)
   consider(settings.whisperRotRand)
   consider(settings.whisperRotSeq)
   consider(settings.whisperRotLbl)
@@ -785,10 +786,20 @@ function GRIP:UI_CreateSettings(parent)
   settings.whisperRotRand:SetPoint("LEFT", settings.whisperRotSeq, "RIGHT", 4, 0)
   GRIP:AttachTooltip(settings.whisperRotRand, "Random", "Pick a random template for each whisper.")
 
+  -- Hide outgoing whisper echoes checkbox
+  settings.hideWhisperEcho = W.CreateCheckbox(s, "Hide outgoing whisper echoes", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    local v = btn:GetChecked() and true or false
+    GRIPDB_CHAR.config.suppressWhisperEcho = v
+    GRIPDB_CHAR.config.hideOutgoingWhispers = v
+  end)
+  settings.hideWhisperEcho:SetPoint("TOPLEFT", settings.whisperSave, "BOTTOMLEFT", 0, -6)
+  GRIP:AttachTooltip(settings.hideWhisperEcho, "Hide Whisper Echoes", "Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment.")
+
   -- Separator: whisper templates → sound feedback
   settings.sep3 = s:CreateTexture(nil, "ARTWORK")
   settings.sep3:SetHeight(1)
-  settings.sep3:SetPoint("TOPLEFT", settings.whisperSave, "BOTTOMLEFT", 0, -8)
+  settings.sep3:SetPoint("TOPLEFT", settings.hideWhisperEcho, "BOTTOMLEFT", 0, -8)
   settings.sep3:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
   settings.sep3:SetColorTexture(1, 1, 1, 0.08)
 
@@ -938,6 +949,7 @@ function GRIP:UI_UpdateSettings()
     W.SetEnabledSafe(s.whisperRemove, false)
     W.SetEnabledSafe(s.whisperRotSeq, false)
     W.SetEnabledSafe(s.whisperRotRand, false)
+    W.SetEnabledSafe(s.hideWhisperEcho, false)
 
     W.SetEnabledSafe(s.soundEnabled, false)
     W.SetEnabledSafe(s.soundWhisperDone, false)
@@ -980,6 +992,7 @@ function GRIP:UI_UpdateSettings()
   W.SetEnabledSafe(s.whisperAdd, true)
   W.SetEnabledSafe(s.whisperRotSeq, true)
   W.SetEnabledSafe(s.whisperRotRand, true)
+  W.SetEnabledSafe(s.hideWhisperEcho, true)
 
   W.SetTextIfUnfocused(s.minEdit, tostring(GRIPDB_CHAR.config.scanMinLevel or 1))
   W.SetTextIfUnfocused(s.maxEdit, tostring(GRIPDB_CHAR.config.scanMaxLevel or 90))
@@ -999,6 +1012,9 @@ function GRIP:UI_UpdateSettings()
   end
   UpdateRotationHighlight(s)
   EnforceWhisperBudget(s, s.whisperEdit)
+
+  -- Whisper echo suppression
+  s.hideWhisperEcho:SetChecked(GRIPDB_CHAR.config.suppressWhisperEcho and true or false)
 
   -- Sound checkboxes
   local soundOn = GRIPDB_CHAR.config.soundEnabled and true or false

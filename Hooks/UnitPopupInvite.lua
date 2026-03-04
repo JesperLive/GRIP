@@ -155,8 +155,9 @@ local function BuildGateContext(source, menuId, unitOrName)
   }
 end
 
--- IMPORTANT: This function must call BL_ExecutionGate() immediately before GuildInvite().
-local function TryGuildInvite(targetName, ctx)
+-- IMPORTANT: This function must call BL_ExecutionGate() immediately before GuildInvite(),
+-- unless isManual=true (right-click menu path), which bypasses the blacklist gate.
+local function TryGuildInvite(targetName, ctx, isManual)
   if type(targetName) ~= "string" or targetName == "" then return end
 
   if InCombatLockdown and InCombatLockdown() then
@@ -175,15 +176,23 @@ local function TryGuildInvite(targetName, ctx)
     return
   end
 
-  -- Defense-in-depth: gate MUST be last line before protected call.
-  local okGate, reason = GRIP:BL_ExecutionGate(targetName, ctx)
-  if not okGate then
-    if reason == "blacklisted" then
-      SafeChat(("Invite blocked: %s is blacklisted."):format(targetName))
-    else
-      SafeChat(("Invite blocked (%s): %s"):format(tostring(reason), targetName))
+  if not isManual then
+    -- Defense-in-depth: gate MUST be last line before protected call.
+    local okGate, reason = GRIP:BL_ExecutionGate(targetName, ctx)
+    if not okGate then
+      if reason == "blacklisted" then
+        SafeChat(("Invite blocked: %s is blacklisted."):format(targetName))
+      else
+        SafeChat(("Invite blocked (%s): %s"):format(tostring(reason), targetName))
+      end
+      return
     end
-    return
+  else
+    -- Manual right-click invite: check blacklist for informational debug note only.
+    local okGate = GRIP:BL_ExecutionGate(targetName, ctx)
+    if not okGate then
+      GRIP:Debug("Blacklist bypassed for manual invite:", targetName)
+    end
   end
 
   GRIP:SafeGuildInvite(targetName)
@@ -250,7 +259,7 @@ local function InstallMenuAPI()
 
         rootDescription:CreateButton(MENU_TEXT, function()
           local ctx = BuildGateContext("MenuAPI", menuId, unit or targetName)
-          TryGuildInvite(targetName, ctx)
+          TryGuildInvite(targetName, ctx, true)
         end)
       end)
     end)
@@ -338,7 +347,7 @@ local function InstallLegacyUnitPopup()
 
       -- Re-check validity at click time (authoritative).
       local ctx = BuildGateContext("UnitPopupLegacy", dropdown.which or "?", dropdown.unit or targetName)
-      TryGuildInvite(targetName, ctx)
+      TryGuildInvite(targetName, ctx, true)
     end)
   end
 
