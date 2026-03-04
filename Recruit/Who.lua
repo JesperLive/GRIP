@@ -381,7 +381,7 @@ function GRIP:SendNextWho()
       end
       state.lastWhoSentAt = GetTime()
       if C_FriendList and C_FriendList.SetWhoToUi then
-        C_FriendList.SetWhoToUi(true)
+        C_FriendList.SetWhoToUi(false)
       end
       -- F1: Pre-hide FriendsFrame before SendWho to prevent flash
       if cfg.suppressWhoUI and not InCombatLockdown() and FriendsFrame and FriendsFrame:IsShown() then
@@ -417,7 +417,7 @@ function GRIP:SendNextWho()
   state.pendingWho = { filter = filter, sentAt = now }
 
   if C_FriendList and C_FriendList.SetWhoToUi then
-    C_FriendList.SetWhoToUi(true)
+    C_FriendList.SetWhoToUi(false)
   end
 
   -- F1: Pre-hide FriendsFrame before SendWho to prevent flash

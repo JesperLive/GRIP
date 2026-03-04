@@ -59,15 +59,12 @@ local function RecentWhisperMatches(msg, author)
   local buf = EnsureRecentWhisperBuf()
   local now = GetTime()
   CleanupRecentWhispers(buf, now)
-
-  msg = tostring(msg or "")
   author = tostring(author or "")
-
   for i = #buf, 1, -1 do
     local e = buf[i]
-    if e and e.msg == msg then
-      -- author for CHAT_MSG_WHISPER_INFORM is usually the target name.
+    if e and (now - (e.t or 0)) < 5 then
       if author == e.target or author:match("^[^-]+") == tostring(e.target):match("^[^-]+") then
+        table.remove(buf, i)  -- consume the match
         return true
       end
     end
@@ -87,7 +84,7 @@ local function WhisperInformFilter(_, event, msg, author, ...)
   return false
 end
 
-local function EnsureWhisperEchoFilter()
+function GRIP:EnsureWhisperEchoFilter()
   if state._gripWhisperEchoFilterInstalled then return end
   if ChatFrame_AddMessageEventFilter then
     ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", WhisperInformFilter)
@@ -528,7 +525,7 @@ function GRIP:SendChatMessageCompat(msg, chatType, languageID, target)
   end
 
   if chatType == "WHISPER" then
-    EnsureWhisperEchoFilter()
+    GRIP:EnsureWhisperEchoFilter()
     AddRecentWhisper(msg, target)
   end
 

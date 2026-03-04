@@ -195,6 +195,11 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     GRIP:RegisterSlashCommands()
     GRIP:CreateUI()
 
+    -- B4: Install whisper echo filter at load time (not lazily)
+    if GRIP.EnsureWhisperEchoFilter then
+      GRIP:EnsureWhisperEchoFilter()
+    end
+
     eventFrame:UnregisterEvent("ADDON_LOADED")
     GRIP:Debug("ADDON_LOADED complete.")
     return

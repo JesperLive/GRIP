@@ -340,13 +340,7 @@ end
 -- Modal keyboard + ESC handling (no Game Menu)
 -- ----------------------------
 
-local function ConsumeEscAndHide(sourceFrame)
-  -- While GRIP is shown, we keep propagation OFF globally.
-  -- Still do the explicit swallow here to be safe.
-  if sourceFrame and sourceFrame.SetPropagateKeyboardInput then
-    pcall(function() sourceFrame:SetPropagateKeyboardInput(false) end)
-  end
-
+local function ConsumeEscAndHide()
   if state.ui and state.ui.IsShown and state.ui:IsShown() then
     state.ui:Hide()
   end
@@ -359,57 +353,15 @@ local function HookAllEditBoxesForEsc(root)
     if not eb or eb._gripEscHooked then return end
     eb._gripEscHooked = true
 
-    if eb.EnableKeyboard then eb:EnableKeyboard(true) end
-
-    -- IMPORTANT: while GRIP is open, we want keystrokes NOT to reach the game.
-    -- Keeping propagate OFF at the editbox level helps in edge cases.
-    if eb.SetPropagateKeyboardInput then
-      pcall(function() eb:SetPropagateKeyboardInput(false) end)
-    end
-
     if eb.HookScript then
-      eb:HookScript("OnKeyDown", function(self, key)
-        if key == "PRINTSCREEN" then
-          if self.SetPropagateKeyboardInput then
-            self:SetPropagateKeyboardInput(true)
-          end
-          return
-        end
-        if key == "ESCAPE" then
-          if self.ClearFocus then pcall(self.ClearFocus, self) end
-          ConsumeEscAndHide(self)
-        else
-          -- Swallow everything else too (prevents binds firing while typing).
-          if self.SetPropagateKeyboardInput then
-            self:SetPropagateKeyboardInput(false)
-          end
-        end
-      end)
-
       eb:HookScript("OnEscapePressed", function(self)
         if self.ClearFocus then pcall(self.ClearFocus, self) end
-        ConsumeEscAndHide(self)
+        ConsumeEscAndHide()
       end)
     else
-      eb:SetScript("OnKeyDown", function(self, key)
-        if key == "PRINTSCREEN" then
-          if self.SetPropagateKeyboardInput then
-            self:SetPropagateKeyboardInput(true)
-          end
-          return
-        end
-        if key == "ESCAPE" then
-          if self.ClearFocus then pcall(self.ClearFocus, self) end
-          ConsumeEscAndHide(self)
-        else
-          if self.SetPropagateKeyboardInput then
-            self:SetPropagateKeyboardInput(false)
-          end
-        end
-      end)
       eb:SetScript("OnEscapePressed", function(self)
         if self.ClearFocus then pcall(self.ClearFocus, self) end
-        ConsumeEscAndHide(self)
+        ConsumeEscAndHide()
       end)
     end
   end
@@ -428,11 +380,11 @@ local function HookAllEditBoxesForEsc(root)
   Walk(root)
 end
 
-local function MakeFrameTopmostAndModal(f)
+local function MakeFrameTopmost(f)
   if not f then return end
 
   if f.SetFrameStrata then
-    f:SetFrameStrata("DIALOG")
+    f:SetFrameStrata(“DIALOG”)
   end
   if f.SetToplevel then
     f:SetToplevel(true)
@@ -451,29 +403,6 @@ local function MakeFrameTopmostAndModal(f)
       end
     end
   end
-
-  -- The actual “modal” behavior:
-  f:EnableKeyboard(true)
-
-  -- Main frame swallows all keys while shown (ESC closes).
-  f:SetScript("OnKeyDown", function(self, key)
-    if key == "PRINTSCREEN" then
-      if self.SetPropagateKeyboardInput then
-        self:SetPropagateKeyboardInput(true)
-      end
-      return
-    end
-
-    if self.SetPropagateKeyboardInput then
-      self:SetPropagateKeyboardInput(false)
-    end
-
-    if key == "ESCAPE" then
-      ConsumeEscAndHide(self)
-      return
-    end
-    -- swallow everything else
-  end)
 end
 
 function GRIP:CreateUI()
@@ -507,7 +436,7 @@ function GRIP:CreateUI()
   f:SetClampedToScreen(true)
   f:Hide()
 
-  MakeFrameTopmostAndModal(f)
+  MakeFrameTopmost(f)
 
   RestoreFrameGeometry(f)
 
@@ -563,15 +492,6 @@ function GRIP:CreateUI()
     EnsureDBSafe()
     RestoreFrameGeometry(f)
 
-    -- Modal: while shown, NEVER propagate keys to the game.
-    if f.SetPropagateKeyboardInput then
-      if InCombatLockdown and InCombatLockdown() then
-        GRIP:Debug("UI OnShow: skipping SetPropagateKeyboardInput (combat lockdown)")
-      else
-        f:SetPropagateKeyboardInput(false)
-      end
-    end
-
     -- Re-scan for editboxes on show (safe + catches late-created widgets)
     HookAllEditBoxesForEsc(f)
 
@@ -592,6 +512,19 @@ function GRIP:CreateUI()
     end
 
     SaveFrameGeometry(f)
+
+    -- B1: Clear dirty flags on all edit boxes when UI closes
+    local function ClearAllEditBoxDirty(frame)
+      if not frame or not frame.GetChildren then return end
+      for _, child in ipairs({ frame:GetChildren() }) do
+        local ot = child.GetObjectType and child:GetObjectType()
+        if ot == "EditBox" then
+          W.ClearDirty(child)
+        end
+        ClearAllEditBoxDirty(child)
+      end
+    end
+    ClearAllEditBoxDirty(f)
   end)
 
   state.ui = f

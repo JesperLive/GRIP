@@ -93,10 +93,6 @@ local function HookDirtyTracking(editBox)
     end
   end)
 
-  editBox:HookScript("OnEditFocusLost", function(self)
-    self._gripDirty = false
-  end)
-
   -- Helpful defaults for single-line edits
   if editBox.SetScript then
     editBox:HookScript("OnEscapePressed", editBox.ClearFocus)
