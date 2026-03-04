@@ -11,7 +11,7 @@
 ## AddonCompartmentFuncOnLeave: GRIP_OnCompartmentLeave
 ## X-Curse-Project-ID: 1477526
 ## X-Wago-ID: L6J97yNv
-## X-WoWI-ID: 0
+## X-WoWI-ID: 27072
 
 # -- Core bootstrap (must load first)
 Core/Core.lua
