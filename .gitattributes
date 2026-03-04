@@ -1,0 +1,2 @@
+# Force LF in repo, auto-convert to native on checkout
+* text=auto eol=lf
