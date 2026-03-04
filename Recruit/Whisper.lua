@@ -211,11 +211,10 @@ function GRIP:OnWhisperReceived(senderName, messageText)
   end
 
   if not full then
-    for name in pairs(state.pendingInvite or {}) do
-      local short = name:match("^[^-]+")
-      local senderShort = tostring(senderName):match("^[^-]+")
-      if name == senderName or short == senderShort then
-        full = name
+    for invName in pairs(state.pendingInvite or {}) do
+      local shortInv = invName:match("^[^-]+")
+      if invName == senderName or shortInv == senderShort then
+        full = invName
         break
       end
     end

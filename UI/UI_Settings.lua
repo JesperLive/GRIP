@@ -477,8 +477,8 @@ function GRIP:UI_CreateSettings(parent)
       return
     end
 
-    GRIPDB_CHAR.config.scanMinLevel = GRIP:Clamp(a1, 1, 100)
-    GRIPDB_CHAR.config.scanMaxLevel = GRIP:Clamp(b1, GRIPDB_CHAR.config.scanMinLevel, 100)
+    GRIPDB_CHAR.config.scanMinLevel = GRIP:Clamp(a1, 1, 90)
+    GRIPDB_CHAR.config.scanMaxLevel = GRIP:Clamp(b1, GRIPDB_CHAR.config.scanMinLevel, 90)
     GRIPDB_CHAR.config.scanStep = GRIP:Clamp(c1, 1, 20)
 
     W.ClearDirty(settings.minEdit, settings.maxEdit, settings.stepEdit)

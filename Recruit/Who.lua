@@ -294,8 +294,8 @@ function GRIP:BuildWhoQueue()
     return
   end
 
-  local minL = self:Clamp(cfg.scanMinLevel or 1, 1, 100)
-  local maxL = self:Clamp(cfg.scanMaxLevel or 90, minL, 100)
+  local minL = self:Clamp(cfg.scanMinLevel or 1, 1, 90)
+  local maxL = self:Clamp(cfg.scanMaxLevel or 90, minL, 90)
   local step = self:Clamp(cfg.scanStep or 5, 1, 20)
 
   local zoneFilter = ""
@@ -373,11 +373,11 @@ function GRIP:SendNextWho()
   -- Ghost Mode: queue scan instead of executing directly
   if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
     state.pendingWho = { filter = filter, sentAt = 0, ghostQueued = true }
-    local capturedFilter = filter
+    local capturedPending = state.pendingWho
     GRIP.Ghost:QueueAction("scan", function()
-      if state.pendingWho and state.pendingWho.filter == capturedFilter then
-        state.pendingWho.sentAt = GetTime()
-        state.pendingWho.ghostQueued = nil
+      if state.pendingWho == capturedPending then
+        capturedPending.sentAt = GetTime()
+        capturedPending.ghostQueued = nil
       end
       state.lastWhoSentAt = GetTime()
       if C_FriendList and C_FriendList.SetWhoToUi then
@@ -387,17 +387,15 @@ function GRIP:SendNextWho()
       if cfg.suppressWhoUI and not InCombatLockdown() and FriendsFrame and FriendsFrame:IsShown() then
         HideUIPanel(FriendsFrame)
       end
-
-      self:Debug("SendWho (ghost):", capturedFilter)
-      C_FriendList.SendWho(capturedFilter,
+      self:Debug("SendWho (ghost):", filter)
+      C_FriendList.SendWho(filter,
         Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
-
       -- F1: Catch any synchronous frame open from SendWho
       HideFriendsWhoUIIfNeeded()
       C_Timer.After(10, function()
-        if state.pendingWho and state.pendingWho.filter == capturedFilter
-           and (GetTime() - state.pendingWho.sentAt) >= 10 then
-          self:Debug("WHO timeout (ghost):", capturedFilter)
+        if state.pendingWho == capturedPending
+           and (GetTime() - capturedPending.sentAt) >= 10 then
+          self:Debug("WHO timeout (ghost):", filter)
           state.pendingWho = nil
           self:UpdateUI()
           if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
@@ -405,7 +403,7 @@ function GRIP:SendNextWho()
           end
         end
       end)
-    end, { filter = capturedFilter })
+    end, { filter = filter })
     self:Print(("Queued /who (Ghost): %s (%d/%d)"):format(
       filter, state.whoIndex - 1, #state.whoQueue))
     self:UpdateUI()

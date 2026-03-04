@@ -56,14 +56,9 @@ end
 -- This is intentionally conservative: only returns something if we see an @Name or Name-Realm token.
 local function ExtractTargetNameFromMessage(msg)
   if type(msg) ~= "string" then return nil end
-  -- @Name-Realm or @Name
+  -- @Name-Realm or @Name (explicit prefix only — avoids false-positives on hyphenated words)
   local at = msg:match("@([%a][%a']+[%-]?[%a']*)")
   if at and at ~= "" then return at end
-
-  -- Name-Realm (very rough): starts with a letter, contains '-' somewhere, no spaces
-  local nrealm = msg:match("([%a][%w']+%-%w+)")
-  if nrealm and nrealm ~= "" then return nrealm end
-
   return nil
 end
 
