@@ -3,7 +3,7 @@
 
 local ADDON_NAME, GRIP = ...
 GRIP.ADDON_NAME = ADDON_NAME
-GRIP.VERSION = "0.5.0-beta"
+GRIP.VERSION = "0.7.0"
 
 -- Optional global for debugging in /run
 _G.GRIP = GRIP

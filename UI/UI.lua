@@ -16,6 +16,8 @@ local C_Timer = C_Timer
 local state = GRIP.state
 local W = GRIP.UIW
 
+local DISCORD_URL = "https://discord.gg/temptingus"
+
 local function HasDB()
   return (_G.GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.lists and GRIPDB_CHAR.filters) and true or false
 end
@@ -479,6 +481,58 @@ function GRIP:CreateUI()
   f._postCooldownUntil = 0
 
   AttachResizeGrip(f)
+
+  -- Discord support link (bottom-right, left of resize grip)
+  local function ShowURLCopy(url)
+    if not f._urlCopy then
+      local uc = CreateFrame("Frame", nil, f, "BasicFrameTemplateWithInset")
+      uc:SetSize(340, 80)
+      uc:SetPoint("CENTER", f, "CENTER", 0, 0)
+      uc:SetFrameStrata("FULLSCREEN_DIALOG")
+      uc:EnableMouse(true)
+      uc:SetMovable(true)
+      uc:RegisterForDrag("LeftButton")
+      uc:SetScript("OnDragStart", uc.StartMoving)
+      uc:SetScript("OnDragStop", uc.StopMovingOrSizing)
+
+      local label = uc:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+      label:SetPoint("TOPLEFT", 12, -28)
+      label:SetText("Press Ctrl+C to copy:")
+
+      local eb = CreateFrame("EditBox", nil, uc, "InputBoxTemplate")
+      eb:SetSize(306, 22)
+      eb:SetPoint("TOPLEFT", 14, -44)
+      eb:SetAutoFocus(true)
+      eb:SetScript("OnEscapePressed", function() uc:Hide() end)
+      eb:SetScript("OnEnterPressed", function() uc:Hide() end)
+      uc._eb = eb
+      f._urlCopy = uc
+    end
+    f._urlCopy._eb:SetText(url)
+    f._urlCopy:Show()
+    f._urlCopy._eb:HighlightText()
+    f._urlCopy._eb:SetFocus()
+  end
+
+  local discordBtn = CreateFrame("Button", nil, f)
+  discordBtn:SetSize(120, 16)
+  discordBtn:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -26, 6)
+  local discordText = discordBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  discordText:SetPoint("RIGHT")
+  discordText:SetText("|cff7289daDiscord Support|r")
+  discordBtn:SetScript("OnEnter", function(self)
+    discordText:SetText("|cffFFFFFFDiscord Support|r")
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:SetText("Click to copy Discord invite link")
+    GameTooltip:Show()
+  end)
+  discordBtn:SetScript("OnLeave", function()
+    discordText:SetText("|cff7289daDiscord Support|r")
+    GameTooltip:Hide()
+  end)
+  discordBtn:SetScript("OnClick", function()
+    ShowURLCopy(DISCORD_URL)
+  end)
 
   -- Hook ESC (and swallow keys) in editboxes too.
   HookAllEditBoxesForEsc(f)

@@ -2,26 +2,39 @@
 
 **Target:** Retail / Midnight (12.0.1+)
 **Interface:** 120001
-**Version:** 0.5.0-beta
+**Version:** 0.7.0
+
+[![Discord](https://img.shields.io/badge/Discord-Tempting%20Us-7289da?logo=discord&logoColor=white)](https://discord.gg/temptingus)
+
+---
+
+## Screenshots
+
+| Home | Ghost Mode Active |
+|:---:|:---:|
+| ![Home](screenshots/home.png) | ![Ghost Mode](screenshots/ghost_active.png) |
+
+| Settings | Settings (cont.) | Ads |
+|:---:|:---:|:---:|
+| ![Settings](screenshots/settings.png) | ![Settings 2](screenshots/settings_2.png) | ![Ads](screenshots/ads.png) |
 
 ---
 
 ## Features
 
-- `/who` scanning for unguilded characters
-- Whisper queue with rate limiting
+- `/who` scanning for unguilded characters with auto-expanding saturated brackets
+- Whisper queue with rate limiting, multiple templates, and sequential/random rotation
 - Guild invites (hardware-event gated, one per click/keybind)
 - Trade/General post scheduling (hardware-event gated)
 - Temp + permanent blacklisting with configurable duration
+- Account-wide blacklist shared across all characters
 - Daily whisper cap (default 500/day) with 80% warning
 - Opt-out response detection (auto-blacklists "no thanks" etc.)
-- Multiple whisper templates with sequential/random rotation
 - Sound feedback for key events (queue done, invite accepted, cap warning)
-- Expansion-grouped zone filter with seasonal detection
-- Minimap button + addon compartment support
-- Ghost Mode (experimental) — full pipeline automation via invisible overlay frame
+- Expansion-grouped zone filter with dynamic discovery and seasonal detection
 - Campaign cooldown — session fatigue protection with soft warning + hard auto-pause
-- Account-wide blacklist — shared across all characters on the account
+- Minimap button + addon compartment support with right-click dropdown
+- Ghost Mode (experimental) — full pipeline automation via invisible overlay frame with combat pause, session limits, and persistent cooldown
 
 ---
 
@@ -40,11 +53,16 @@ GRIP queues and organizes these actions and provides buttons/keybinds so you can
 
 ## Install
 
-1. Copy the `GRIP` folder into:
+**CurseForge / Wago / WoWInterface** — search for "GRIP" or install via your addon manager.
+
+**Manual install:**
+
+1. Download the latest release from [GitHub Releases](https://github.com/JesperLive/GRIP/releases).
+2. Extract the `GRIP` folder into:
 
    `World of Warcraft/_retail_/Interface/AddOns/GRIP/`
 
-2. Restart WoW or run `/reload`.
+3. Restart WoW or run `/reload`.
 
 ---
 
@@ -64,6 +82,7 @@ GRIP queues and organizes these actions and provides buttons/keybinds so you can
 - Configure zone/race/class filters (zones grouped by expansion)
 - Edit whisper templates (multiple templates with rotation)
 - Toggle sound feedback for individual events
+- Ghost Mode enable + session/cooldown sliders
 
 ### Ads
 - Configure General and Trade messages
@@ -108,6 +127,7 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip clear          — clear Potential list
 /grip status         — print counts
 /grip link           — show guild name + Guild Finder link resolution
+/grip reset          — reset UI window position and size
 
 /grip minimap on|off|toggle
 
@@ -124,6 +144,7 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip set zoneonly on|off
 /grip set hidewhispers on|off
 /grip set ghostmode on|off
+/grip set cooldown <min>|on|off
 
 /grip templates list
 /grip templates add <message>
@@ -131,7 +152,6 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip templates rotation seq|random
 
 /grip ghost start|stop|status
-/grip set cooldown <min>|on|off
 
 /grip debug on|off
 /grip debug dump [n]
@@ -143,6 +163,14 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip zones diag|reseed|deep|export
 /grip tracegate on|off|toggle
 ```
+
+---
+
+## Support
+
+Join our Discord for help, feedback, or feature requests:
+
+**[discord.gg/temptingus](https://discord.gg/temptingus)**
 
 ---
 
@@ -159,15 +187,11 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 
 ---
 
-## Notes
+## Technical Notes
 
 - `/who` results are server-throttled; GRIP enforces a minimum delay between scans.
 - Whispers are not hardware-restricted but are server rate-limited.
 - Instance/battleground/scenario characters are excluded by default.
 - Blacklist entries expire automatically based on configuration.
-- Debug logging can be enabled via slash commands and optionally persisted to SavedVariables.
-- Opt-out detection auto-blacklists candidates who reply with common refusal phrases.
-- Daily whisper cap resets at midnight (calendar date).
-- Sound cues can be toggled individually in Settings.
-- Ghost Mode is experimental and disabled by default. Enable in Settings, then `/grip ghost start`.
 - Blacklists and no-response counters are account-wide (shared across all characters). Config, potential list, and filters are per-character.
+- Ghost Mode is experimental and disabled by default. Enable in Settings, then `/grip ghost start`.
