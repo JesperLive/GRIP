@@ -467,7 +467,7 @@ end
 
 -- ------------------------------------------------------------
 -- Fallback Debug helpers used by Slash.lua
--- (A future Debug.lua can override these methods.)
+-- (Debug.lua overrides Logger.Capture at load time.)
 -- ------------------------------------------------------------
 function GRIP:UpdateDebugCapture()
   -- Ensure SavedVariables tables exist if capture is enabled.

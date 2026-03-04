@@ -105,14 +105,6 @@ local function Lower(s)
   return s:lower()
 end
 
-local function GetRealmToken()
-  local r = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
-  r = GRIP:Trim(r)
-  -- Be conservative: many systems store realm without spaces.
-  r = r:gsub("%s+", "")
-  return r
-end
-
 -- Centralized blacklist decision:
 -- Use the shared "last-line defense" gate so WHO ingestion and purge match the execution pipelines.
 local function IsBlacklistedName(fullName)
