@@ -1012,12 +1012,8 @@ function GRIP:UI_UpdateHome()
     if home.blFrame and home.blFrame.empty then
       home.blFrame.empty:Show()
     end
-    if home.blFrame and home.blFrame.rows then
-      for i = 1, #home.blFrame.rows do
-        local r = home.blFrame.rows[i]
-        if r.stripe then r.stripe:Hide() end
-        r:Hide()
-      end
+    if home.blFrame and home.blFrame.scrollBox then
+      home.blFrame.scrollBox:SetDataProvider(CreateDataProvider())
     end
 
     return

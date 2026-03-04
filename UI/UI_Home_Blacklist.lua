@@ -1,5 +1,5 @@
 -- GRIP: UI Home Page — Blacklist Panel
--- Permanent blacklist display panel with FauxScrollFrame rows.
+-- Permanent blacklist display panel with ScrollBox rows.
 
 local ADDON_NAME, GRIP = ...
 
@@ -62,7 +62,7 @@ local function GetBlacklistReason(e)
 end
 
 -- ----------------------------
--- Shell + row pool
+-- Shell + ScrollBox
 -- ----------------------------
 
 function GRIP:EnsureBlacklistShell(home)
@@ -135,11 +135,110 @@ function GRIP:EnsureBlacklistShell(home)
   bl.bg:SetPoint("BOTTOMRIGHT", bl, "BOTTOMRIGHT", 0, 0)
   bl.bg:SetColorTexture(1, 1, 1, 0.02)
 
-  -- FauxScrollFrame
-  local sf = CreateFrame("ScrollFrame", nil, bl, "FauxScrollFrameTemplate")
-  sf:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
-  sf:SetPoint("BOTTOMRIGHT", bl, "BOTTOMRIGHT", -2, 0)
-  bl.scroll = sf
+  -- ScrollBox
+  local scrollBox = CreateFrame("Frame", nil, bl, "WowScrollBoxList")
+  scrollBox:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
+  scrollBox:SetPoint("BOTTOMRIGHT", bl, "BOTTOMRIGHT", -16, 0)
+  bl.scrollBox = scrollBox
+
+  -- ScrollBar
+  local scrollBar = CreateFrame("EventFrame", nil, bl, "MinimalScrollBar")
+  scrollBar:SetPoint("TOPLEFT", scrollBox, "TOPRIGHT", 4, 0)
+  scrollBar:SetPoint("BOTTOMLEFT", scrollBox, "BOTTOMRIGHT", 4, 0)
+  scrollBar:SetHideIfUnscrollable(true)
+
+  -- View
+  local view = CreateScrollBoxListLinearView(0, 0, 0, 0, 0)
+  view:SetElementExtent(BL_ROW_H)
+
+  -- Element initializer
+  view:SetElementInitializer("Button", function(row, elementData)
+    if not row._initialized then
+      row._initialized = true
+      row:SetHeight(BL_ROW_H)
+
+      row.stripe = row:CreateTexture(nil, "BACKGROUND")
+      row.stripe:SetAllPoints(row)
+      row.stripe:SetColorTexture(1, 1, 1, 0.07)
+      row.stripe:Hide()
+
+      row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+      row:RegisterForClicks("LeftButtonUp")
+
+      row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.name:SetJustifyH("LEFT")
+      if row.name.SetWordWrap then row.name:SetWordWrap(false) end
+
+      row.reason = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+      row.reason:SetJustifyH("LEFT")
+      if row.reason.SetWordWrap then row.reason:SetWordWrap(false) end
+
+      row._nameKey = nil
+
+      row:SetScript("OnClick", function(self)
+        if not HasDB() then return end
+        local n = self._nameKey
+        if type(n) ~= "string" or n == "" then return end
+        GRIP:ConfirmUnblacklist(n)
+      end)
+
+      row:SetScript("OnEnter", function(self)
+        local n = self._nameKey
+        if not n or not _G.GRIPDB or not GRIPDB.blacklistPerm then return end
+        local e = GRIPDB.blacklistPerm[n]
+        if not e then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(n, 1, 1, 1)
+        if type(e) == "table" then
+          if e.reason and e.reason ~= "" then
+            GameTooltip:AddLine("Reason: " .. e.reason, 0.8, 0.8, 0.6, true)
+          end
+          if e.at and type(e.at) == "number" and e.at > 0 then
+            GameTooltip:AddLine("Added: " .. date("%Y-%m-%d", e.at), 0.6, 0.6, 0.6)
+          end
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("Click to remove from blacklist", 0.5, 0.5, 0.5)
+        GameTooltip:Show()
+      end)
+      row:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+      end)
+    end
+
+    -- Populate (runs every display pass)
+    local cw = bl._blColWidths
+    local pad = cw and cw.pad or 6
+    local wName = cw and cw.name or 110
+    local wReason = cw and cw.reason or 60
+
+    row._nameKey = elementData.key
+
+    row.name:ClearAllPoints()
+    row.name:SetPoint("LEFT", row, "LEFT", pad, 0)
+    ClampFontString(row.name, wName)
+    row.name:SetText(elementData.key)
+
+    row.reason:ClearAllPoints()
+    row.reason:SetPoint("LEFT", row, "LEFT", pad + wName + pad, 0)
+    ClampFontString(row.reason, wReason)
+
+    local reason = GetBlacklistReason(elementData.entry)
+    if reason == "" then
+      row.reason:SetText("Click to remove")
+    else
+      row.reason:SetText(reason)
+    end
+
+    if elementData.index % 2 == 0 then
+      row.stripe:Show()
+    else
+      row.stripe:Hide()
+    end
+  end)
+
+  -- Wire ScrollBox + ScrollBar + View
+  ScrollUtil.InitScrollBoxListWithScrollBar(scrollBox, scrollBar, view)
 
   -- Empty state
   bl.empty = bl:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -149,110 +248,6 @@ function GRIP:EnsureBlacklistShell(home)
   bl.empty:SetJustifyV("TOP")
   bl.empty:SetText("Permanent blacklist is empty.\nTip: right-click a Potential entry to add it.")
   bl.empty:Hide()
-
-  -- Row pool (dynamic row count based on visible height)
-  local function initBlRow(frame)
-    frame:SetHeight(BL_ROW_H)
-    frame:Hide()
-
-    frame.stripe = frame:CreateTexture(nil, "BACKGROUND")
-    frame.stripe:SetAllPoints(frame)
-    frame.stripe:SetColorTexture(1, 1, 1, 0.07)
-    frame.stripe:Hide()
-
-    frame:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-    frame:RegisterForClicks("LeftButtonUp")
-
-    frame.name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.name:SetJustifyH("LEFT")
-    if frame.name.SetWordWrap then frame.name:SetWordWrap(false) end
-
-    frame.reason = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    frame.reason:SetJustifyH("LEFT")
-    if frame.reason.SetWordWrap then frame.reason:SetWordWrap(false) end
-
-    frame._nameKey = nil
-
-    frame:SetScript("OnClick", function(self)
-      if not HasDB() then return end
-      local n = self._nameKey
-      if type(n) ~= "string" or n == "" then return end
-      GRIP:ConfirmUnblacklist(n)
-    end)
-
-    frame:SetScript("OnEnter", function(self)
-      local n = self._nameKey
-      if not n or not _G.GRIPDB or not GRIPDB.blacklistPerm then return end
-      local e = GRIPDB.blacklistPerm[n]
-      if not e then return end
-      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-      GameTooltip:AddLine(n, 1, 1, 1)
-      if type(e) == "table" then
-        if e.reason and e.reason ~= "" then
-          GameTooltip:AddLine("Reason: " .. e.reason, 0.8, 0.8, 0.6, true)
-        end
-        if e.at and type(e.at) == "number" and e.at > 0 then
-          GameTooltip:AddLine("Added: " .. date("%Y-%m-%d", e.at), 0.6, 0.6, 0.6)
-        end
-      end
-      GameTooltip:AddLine(" ")
-      GameTooltip:AddLine("Click to remove from blacklist", 0.5, 0.5, 0.5)
-      GameTooltip:Show()
-    end)
-    frame:SetScript("OnLeave", function(self)
-      GameTooltip:Hide()
-    end)
-  end
-
-  local function resetBlRow(pool, frame)
-    frame:Hide()
-    frame:ClearAllPoints()
-    frame._nameKey = nil
-    if frame.stripe then frame.stripe:Hide() end
-  end
-
-  bl._rowPool = CreateFramePool("Button", bl, nil, resetBlRow, false, initBlRow)
-  bl.rows = {}
-
-  local function OnScroll()
-    GRIP:UI_UpdateHome()
-  end
-  sf:SetScript("OnVerticalScroll", function(self, offset)
-    FauxScrollFrame_OnVerticalScroll(self, offset, BL_ROW_H, OnScroll)
-  end)
-end
-
--- ----------------------------
--- Row resize
--- ----------------------------
-
-local function ResizeBlacklistRows(home)
-  if not home or not home.blFrame or not home.blFrame.scroll or not home.blFrame._rowPool then return end
-  local bl = home.blFrame
-  local sf = bl.scroll
-  local h = tonumber(sf:GetHeight()) or 0
-  if h <= 0 then
-    for i = #bl.rows, 1, -1 do
-      bl._rowPool:Release(bl.rows[i])
-      bl.rows[i] = nil
-    end
-    return
-  end
-  local needed = math.floor(h / BL_ROW_H) + 1
-  if needed < 4 then needed = 4 end
-  local current = #bl.rows
-  if needed == current then return end
-  if needed > current then
-    for i = current + 1, needed do
-      local row = bl._rowPool:Acquire()
-      bl.rows[i] = row
-    end
-  else
-    for i = needed + 1, current do
-      bl._rowPool:Release(bl.rows[i])
-      bl.rows[i] = nil
-    end
-  end
 end
 
 -- ----------------------------
@@ -260,7 +255,7 @@ end
 -- ----------------------------
 
 function GRIP:LayoutBlacklistPanel(home)
-  if not home or not home.blFrame or not home.blFrame.header then return end
+  if not home or not home.blFrame or not home.blFrame.scrollBox then return end
   local bl = home.blFrame
   local w = tonumber(bl:GetWidth()) or 0
   if w <= 0 then return end
@@ -287,29 +282,7 @@ function GRIP:LayoutBlacklistPanel(home)
   bl.hReason:SetPoint("LEFT", bl.header, "LEFT", x, -9)
   ClampFontString(bl.hReason, wReason)
 
-  ResizeBlacklistRows(home)
-
-  for i = 1, #(bl.rows or {}) do
-    local row = bl.rows[i]
-    row:ClearAllPoints()
-    if i == 1 then
-      row:SetPoint("TOPLEFT", bl.scroll, "TOPLEFT", 0, 0)
-      row:SetPoint("TOPRIGHT", bl.scroll, "TOPRIGHT", 0, 0)
-    else
-      row:SetPoint("TOPLEFT", bl.rows[i - 1], "BOTTOMLEFT", 0, 0)
-      row:SetPoint("TOPRIGHT", bl.rows[i - 1], "BOTTOMRIGHT", 0, 0)
-    end
-
-    local rx = pad
-    row.name:ClearAllPoints()
-    row.name:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.name, wName)
-    rx = rx + wName + pad
-
-    row.reason:ClearAllPoints()
-    row.reason:SetPoint("LEFT", row, "LEFT", rx, 0)
-    ClampFontString(row.reason, wReason)
-  end
+  bl._blColWidths = { name = wName, reason = wReason, pad = pad }
 end
 
 -- ----------------------------
@@ -317,7 +290,7 @@ end
 -- ----------------------------
 
 function GRIP:UpdateBlacklistRows(home)
-  if not home or not home.blFrame or not home.blFrame.scroll or not home.blFrame.rows then return end
+  if not home or not home.blFrame or not home.blFrame.scrollBox then return end
   if not HasDB() then return end
 
   local bl = home.blFrame
@@ -325,10 +298,6 @@ function GRIP:UpdateBlacklistRows(home)
   bl._names = names
 
   local total = #names
-  local scroll = bl.scroll
-  local offset = FauxScrollFrame_GetOffset(scroll) or 0
-
-  FauxScrollFrame_Update(scroll, total, #bl.rows, BL_ROW_H)
 
   local tempCount = (GRIP and GRIP.Count and GRIP:Count(GRIPDB.blacklist)) or 0
   if total == 0 then
@@ -344,31 +313,12 @@ function GRIP:UpdateBlacklistRows(home)
     if bl.empty then bl.empty:Hide() end
   end
 
-  for i = 1, #bl.rows do
-    local row = bl.rows[i]
-    local idx = i + offset
-    local name = names[idx]
-    if name then
-      local e = GRIPDB.blacklistPerm[name]
-      row._nameKey = name
-      row.name:SetText(name)
-
-      local reason = GetBlacklistReason(e)
-      if reason == "" then
-        row.reason:SetText("Click to remove")
-      else
-        row.reason:SetText(reason)
-      end
-
-      if row.stripe then
-        if (idx % 2) == 0 then row.stripe:Show() else row.stripe:Hide() end
-      end
-
-      row:Show()
-    else
-      row._nameKey = nil
-      if row.stripe then row.stripe:Hide() end
-      row:Hide()
-    end
+  local data = {}
+  for i, name in ipairs(names) do
+    local e = GRIPDB.blacklistPerm[name]
+    data[i] = { key = name, entry = e, index = i }
   end
+  local provider = CreateDataProvider()
+  provider:InsertTable(data)
+  bl.scrollBox:SetDataProvider(provider, ScrollBoxConstants.RetainScrollPosition)
 end
