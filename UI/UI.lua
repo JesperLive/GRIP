@@ -384,7 +384,7 @@ local function MakeFrameTopmost(f)
   if not f then return end
 
   if f.SetFrameStrata then
-    f:SetFrameStrata(“DIALOG”)
+    f:SetFrameStrata("DIALOG")
   end
   if f.SetToplevel then
     f:SetToplevel(true)
