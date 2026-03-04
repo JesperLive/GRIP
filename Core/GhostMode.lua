@@ -57,7 +57,7 @@ local function Dbg(...)
 end
 
 -- ----------------------------------------------------------------
--- Raw chat send (Phase 1 backward compat)
+-- Raw chat send (prefer C_ChatInfo, fall back to SendChatMessage)
 -- ----------------------------------------------------------------
 
 local function RawSend(msg, chatType, languageID, target)
@@ -73,7 +73,7 @@ local function RawSend(msg, chatType, languageID, target)
 end
 
 -- ----------------------------------------------------------------
--- Phase 1 rate limiting (backward compat)
+-- Rate limiting (non-session queue path)
 -- ----------------------------------------------------------------
 
 local function CanSendNow()
@@ -383,7 +383,7 @@ function Ghost:QueueAction(actionType, actionFn, meta)
 end
 
 -- ----------------------------------------------------------------
--- Phase 1 backward-compat API
+-- Queue/send API (used by SendChatMessageCompat routing)
 -- ----------------------------------------------------------------
 
 function Ghost:ShouldQueue(chatType)
@@ -467,7 +467,7 @@ function Ghost:Send(chatType, msg, languageID, target, isHardwareEvent, meta)
 end
 
 -- ----------------------------------------------------------------
--- Phase 1 backward-compat API (no current callers — retained as
+-- Public flush API (no internal callers — retained as
 -- public surface for macro/WeakAura integration)
 -- ----------------------------------------------------------------
 function Ghost:FlushOne(isHardwareEvent)

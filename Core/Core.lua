@@ -378,7 +378,7 @@ if not Logger._gripFallbackInstalled then
   end
 end
 
--- Back-compat wrappers used across the addon:
+-- Convenience wrappers used across the addon:
 function GRIP:GetDebugConfig()
   return Logger:GetConfig()
 end

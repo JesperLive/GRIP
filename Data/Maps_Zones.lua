@@ -176,7 +176,7 @@ GRIP.ZONES_BY_EXPANSION = {
   }},
 }
 
--- Build flattened STATIC_ZONES for backward compatibility.
+-- Build flattened STATIC_ZONES (used as fallback by GetZonesGroupedForUI).
 GRIP.STATIC_ZONES = {}
 for _, group in ipairs(GRIP.ZONES_BY_EXPANSION) do
   for _, z in ipairs(group.zones) do

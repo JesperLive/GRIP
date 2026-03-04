@@ -303,7 +303,7 @@ local function NormalizeConfigAliases(cfg)
 end
 
 -- =========================================================================
--- Legacy migration helpers
+-- Schema migration helpers
 -- =========================================================================
 
 local function NowEpochSafe(self)

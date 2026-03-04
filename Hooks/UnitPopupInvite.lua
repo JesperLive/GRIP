@@ -260,7 +260,7 @@ local function InstallMenuAPI()
 end
 
 -- ------------------------------------------------------------
--- Legacy UnitPopup fallback (only if Menu API is unavailable)
+-- UnitPopup fallback (used when modern Menu API is unavailable)
 -- ------------------------------------------------------------
 local function InsertUnique(t, value)
   if type(t) ~= "table" then return end
