@@ -13,6 +13,7 @@ local time, date = time, date
 
 -- WoW API
 local GetTime = GetTime
+local InCombatLockdown = InCombatLockdown
 local C_DateAndTime = C_DateAndTime
 local C_Timer = C_Timer
 
@@ -331,6 +332,12 @@ function GRIP:WhisperTick()
   if not cfg.whisperEnabled then
     self:StopWhispers()
     return
+  end
+
+  -- F7: Defer whisper if invite should follow but can't (combat)
+  if InCombatLockdown() and cfg.inviteEnabled then
+    GRIP:Debug("Whisper deferred: in combat, invite can't follow")
+    return  -- skip this tick, whisper stays in queue
   end
 
   state.pendingWhisper = state.pendingWhisper or {}

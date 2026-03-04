@@ -383,9 +383,17 @@ function GRIP:SendNextWho()
       if C_FriendList and C_FriendList.SetWhoToUi then
         C_FriendList.SetWhoToUi(true)
       end
+      -- F1: Pre-hide FriendsFrame before SendWho to prevent flash
+      if cfg.suppressWhoUI and not InCombatLockdown() and FriendsFrame and FriendsFrame:IsShown() then
+        HideUIPanel(FriendsFrame)
+      end
+
       self:Debug("SendWho (ghost):", capturedFilter)
       C_FriendList.SendWho(capturedFilter,
         Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
+
+      -- F1: Catch any synchronous frame open from SendWho
+      HideFriendsWhoUIIfNeeded()
       C_Timer.After(10, function()
         if state.pendingWho and state.pendingWho.filter == capturedFilter
            and (GetTime() - state.pendingWho.sentAt) >= 10 then
@@ -412,8 +420,16 @@ function GRIP:SendNextWho()
     C_FriendList.SetWhoToUi(true)
   end
 
+  -- F1: Pre-hide FriendsFrame before SendWho to prevent flash
+  if cfg.suppressWhoUI and not InCombatLockdown() and FriendsFrame and FriendsFrame:IsShown() then
+    HideUIPanel(FriendsFrame)
+  end
+
   self:Debug("SendWho:", filter)
   C_FriendList.SendWho(filter, Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
+
+  -- F1: Catch any synchronous frame open from SendWho
+  HideFriendsWhoUIIfNeeded()
 
   C_Timer.After(10, function()
     if state.pendingWho and (GetTime() - state.pendingWho.sentAt) >= 10 then
