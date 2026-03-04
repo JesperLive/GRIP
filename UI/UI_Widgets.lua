@@ -6,7 +6,7 @@ local ADDON_NAME, GRIP = ...
 -- Lua
 local type, tostring = type, tostring
 local ipairs = ipairs
-local max, abs = math.max, math.abs
+local max, abs, floor = math.max, math.abs, math.floor
 
 GRIP.UIW = GRIP.UIW or {}
 local W = GRIP.UIW
@@ -556,6 +556,44 @@ function W.CreateGroupedChecklist(parent, titleText, w, h)
   end
 
   return box
+end
+
+-- ---------------------------
+-- Slider widget
+-- ---------------------------
+function W.CreateSlider(parent, label, minVal, maxVal, step, default, width, onChanged)
+  width = width or 160
+
+  local slider = CreateFrame("Slider", nil, parent, "OptionsSliderTemplate")
+  slider:SetSize(width, 17)
+  slider:SetMinMaxValues(minVal, maxVal)
+  slider:SetValueStep(step)
+  slider:SetObeyStepOnDrag(true)
+  slider:SetValue(default or minVal)
+
+  -- Hide the built-in Low/High labels — we show our own value label instead.
+  if slider.Low  then slider.Low:SetText("")  end
+  if slider.High then slider.High:SetText("") end
+
+  -- Label above the slider
+  local lbl = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  lbl:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
+  lbl:SetText(label or "")
+  slider._gripLabel = lbl
+
+  -- Value readout to the right
+  local val = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  val:SetPoint("LEFT", slider, "RIGHT", 8, 0)
+  val:SetText(floor(default or minVal) .. " min")
+  slider._gripValue = val
+
+  slider:SetScript("OnValueChanged", function(self, v)
+    v = floor(v + 0.5)
+    val:SetText(v .. " min")
+    if onChanged then onChanged(v) end
+  end)
+
+  return slider
 end
 
 -- ── Shared UI helpers (centralized from per-file locals) ───────────────

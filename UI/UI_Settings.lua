@@ -180,8 +180,8 @@ local function UpdateScrollContentHeight(settings)
   consider(settings.whisperSF)
   consider(settings.whisperHdr)
 
-  consider(settings.ghostApply)
-  consider(settings.ghostMaxLbl)
+  consider(settings.ghostCooldownSlider)
+  consider(settings.ghostSessionSlider)
   consider(settings.ghostEnabled)
   consider(settings.ghostHdr)
 
@@ -864,39 +864,22 @@ function GRIP:UI_CreateSettings(parent)
   settings.ghostEnabled:SetPoint("TOPLEFT", settings.ghostHdr, "BOTTOMLEFT", 0, -4)
   GRIP:AttachTooltip(settings.ghostEnabled, "Ghost Mode", "Enables the Ghost overlay that captures hardware events\nto automatically drain whisper/invite/post queues.")
 
-  settings.ghostMaxLbl, settings.ghostMaxEdit = W.CreateLabeledEdit(s, "Session max (min)", 50)
-  settings.ghostMaxLbl:SetPoint("TOPLEFT", settings.ghostEnabled, "BOTTOMLEFT", 16, -6)
-  settings.ghostMaxEdit:SetPoint("LEFT", settings.ghostMaxLbl, "RIGHT", 8, 0)
-
-  settings.ghostCoolLbl, settings.ghostCoolEdit = W.CreateLabeledEdit(s, "Cooldown (min)", 50)
-  settings.ghostCoolLbl:SetPoint("LEFT", settings.ghostMaxEdit, "RIGHT", 16, 0)
-  settings.ghostCoolEdit:SetPoint("LEFT", settings.ghostCoolLbl, "RIGHT", 8, 0)
-
-  settings.ghostApply = W.CreateUIButton(s, "Apply", 60, 22, function()
+  settings.ghostSessionSlider = W.CreateSlider(s, "Ghost Session Max (minutes)", 5, 120, 5, 60, 160, function(v)
     if not HasDB() then return end
-    settings.ghostMaxEdit:ClearFocus()
-    settings.ghostCoolEdit:ClearFocus()
-    local maxV = tonumber(settings.ghostMaxEdit:GetText())
-    local coolV = tonumber(settings.ghostCoolEdit:GetText())
-    if maxV then
-      GRIPDB_CHAR.config.ghostSessionMaxMinutes = GRIP:Clamp(maxV, 5, 120)
-    end
-    if coolV then
-      GRIPDB_CHAR.config.ghostCooldownMinutes = GRIP:Clamp(coolV, 1, 60)
-    end
-    W.ClearDirty(settings.ghostMaxEdit, settings.ghostCoolEdit)
-    GRIP:Print(("Ghost Mode: session max %d min, cooldown %d min"):format(
-      GRIPDB_CHAR.config.ghostSessionMaxMinutes, GRIPDB_CHAR.config.ghostCooldownMinutes))
-    GRIP:UpdateUI()
+    GRIPDB_CHAR.config.ghostSessionMaxMinutes = v
   end)
-  settings.ghostApply:SetPoint("LEFT", settings.ghostCoolEdit, "RIGHT", 12, 0)
-  GRIP:AttachTooltip(settings.ghostApply, "Apply", "Save session max and cooldown values.")
+  settings.ghostSessionSlider:SetPoint("TOPLEFT", settings.ghostEnabled, "BOTTOMLEFT", 16, -22)
+
+  settings.ghostCooldownSlider = W.CreateSlider(s, "Ghost Cooldown (minutes)", 1, 60, 1, 10, 160, function(v)
+    if not HasDB() then return end
+    GRIPDB_CHAR.config.ghostCooldownMinutes = v
+  end)
+  settings.ghostCooldownSlider:SetPoint("TOPLEFT", settings.ghostSessionSlider, "BOTTOMLEFT", 0, -24)
 
   -- Button accent underlines
   W.AddButtonAccent(settings.applyLevels, 1, 0.82, 0)
   W.AddButtonAccent(settings.whisperSave, 1, 0.82, 0)
   W.AddButtonAccent(settings.whisperPreview, 1, 0.82, 0)
-  W.AddButtonAccent(settings.ghostApply, 1, 0.82, 0)
   W.AddButtonAccent(settings.clearFilters, 0.8, 0.3, 0.3)
   W.AddButtonAccent(settings.whisperRemove, 0.8, 0.3, 0.3)
 
@@ -958,9 +941,8 @@ function GRIP:UI_UpdateSettings()
     W.SetEnabledSafe(s.soundCapWarning, false)
 
     W.SetEnabledSafe(s.ghostEnabled, false)
-    W.SetEnabledSafe(s.ghostMaxEdit, false)
-    W.SetEnabledSafe(s.ghostCoolEdit, false)
-    W.SetEnabledSafe(s.ghostApply, false)
+    W.SetEnabledSafe(s.ghostSessionSlider, false)
+    W.SetEnabledSafe(s.ghostCooldownSlider, false)
 
     if s.whisperRemaining then s.whisperRemaining:SetText("") end
     pcall(function() GRIP:UI_LayoutSettings() end)
@@ -1033,11 +1015,10 @@ function GRIP:UI_UpdateSettings()
   local ghostOn = GRIPDB_CHAR.config.ghostModeEnabled and true or false
   W.SetEnabledSafe(s.ghostEnabled, true)
   s.ghostEnabled:SetChecked(ghostOn)
-  W.SetEnabledSafe(s.ghostMaxEdit, ghostOn)
-  W.SetEnabledSafe(s.ghostCoolEdit, ghostOn)
-  W.SetEnabledSafe(s.ghostApply, ghostOn)
-  W.SetTextIfUnfocused(s.ghostMaxEdit, tostring(GRIPDB_CHAR.config.ghostSessionMaxMinutes or 60))
-  W.SetTextIfUnfocused(s.ghostCoolEdit, tostring(GRIPDB_CHAR.config.ghostCooldownMinutes or 10))
+  W.SetEnabledSafe(s.ghostSessionSlider, ghostOn)
+  W.SetEnabledSafe(s.ghostCooldownSlider, ghostOn)
+  if s.ghostSessionSlider then s.ghostSessionSlider:SetValue(GRIPDB_CHAR.config.ghostSessionMaxMinutes or 60) end
+  if s.ghostCooldownSlider then s.ghostCooldownSlider:SetValue(GRIPDB_CHAR.config.ghostCooldownMinutes or 10) end
 
   -- Keep layout responsive (UI.lua calls it too, but this makes Settings robust if called directly).
   pcall(function() GRIP:UI_LayoutSettings() end)
