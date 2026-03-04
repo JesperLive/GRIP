@@ -199,6 +199,10 @@ function Ghost:IsSessionActive()
   return state.ghost and state.ghost.sessionActive == true
 end
 
+function Ghost:IsSessionLocked()
+  return self:IsSessionActive()
+end
+
 function Ghost:GetSessionElapsed()
   if not self:IsSessionActive() then return 0 end
   local started = state.ghost and state.ghost.sessionStartedAt

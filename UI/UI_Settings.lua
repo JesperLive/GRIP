@@ -952,20 +952,24 @@ function GRIP:UI_UpdateSettings()
   if s._initHint then s._initHint:Hide() end
 
   -- Re-enable controls now that DB exists.
-  W.SetEnabledSafe(s.minEdit, true)
-  W.SetEnabledSafe(s.maxEdit, true)
-  W.SetEnabledSafe(s.stepEdit, true)
-  W.SetEnabledSafe(s.zoneOnly, true)
-  W.SetEnabledSafe(s.applyLevels, true)
+  -- Lock scan/filter controls during Ghost session to prevent mid-session config changes.
+  local ghostLocked = GRIP.Ghost and GRIP.Ghost.IsSessionLocked and GRIP.Ghost:IsSessionLocked()
+  local filterEnabled = not ghostLocked
 
-  W.SetEnabledSafe(s.zoneAll, true)
-  W.SetEnabledSafe(s.zoneNone, true)
-  W.SetEnabledSafe(s.zoneCurrent, true)
-  W.SetEnabledSafe(s.raceAll, true)
-  W.SetEnabledSafe(s.raceNone, true)
-  W.SetEnabledSafe(s.classAll, true)
-  W.SetEnabledSafe(s.classNone, true)
-  W.SetEnabledSafe(s.clearFilters, true)
+  W.SetEnabledSafe(s.minEdit, filterEnabled)
+  W.SetEnabledSafe(s.maxEdit, filterEnabled)
+  W.SetEnabledSafe(s.stepEdit, filterEnabled)
+  W.SetEnabledSafe(s.zoneOnly, filterEnabled)
+  W.SetEnabledSafe(s.applyLevels, filterEnabled)
+
+  W.SetEnabledSafe(s.zoneAll, filterEnabled)
+  W.SetEnabledSafe(s.zoneNone, filterEnabled)
+  W.SetEnabledSafe(s.zoneCurrent, filterEnabled)
+  W.SetEnabledSafe(s.raceAll, filterEnabled)
+  W.SetEnabledSafe(s.raceNone, filterEnabled)
+  W.SetEnabledSafe(s.classAll, filterEnabled)
+  W.SetEnabledSafe(s.classNone, filterEnabled)
+  W.SetEnabledSafe(s.clearFilters, filterEnabled)
 
   W.SetEnabledSafe(s.whisperEdit, true)
   W.SetEnabledSafe(s.whisperAppendLink, true)
@@ -984,6 +988,14 @@ function GRIP:UI_UpdateSettings()
   s.zoneList:Render(GRIP:GetZonesGroupedForUI(), GRIPDB_CHAR.filters.zones)
   s.raceList:Render(GRIPDB_CHAR.lists.races, GRIPDB_CHAR.filters.races)
   s.classList:Render(GRIPDB_CHAR.lists.classes, GRIPDB_CHAR.filters.classes)
+
+  -- Grey out checklist panels during Ghost session
+  if s.zoneList.EnableMouse then s.zoneList:EnableMouse(filterEnabled) end
+  if s.raceList.EnableMouse then s.raceList:EnableMouse(filterEnabled) end
+  if s.classList.EnableMouse then s.classList:EnableMouse(filterEnabled) end
+  if s.zoneList.SetAlpha then s.zoneList:SetAlpha(filterEnabled and 1.0 or 0.45) end
+  if s.raceList.SetAlpha then s.raceList:SetAlpha(filterEnabled and 1.0 or 0.45) end
+  if s.classList.SetAlpha then s.classList:SetAlpha(filterEnabled and 1.0 or 0.45) end
 
   -- Multi-template: reload drafts when edit box isn't actively being used.
   if not s.whisperEdit:HasFocus() and not s.whisperEdit._gripDirty then

@@ -365,6 +365,9 @@ function GRIP:ShowCompartmentMenu()
   MenuUtil.CreateContextMenu(UIParent, function(owner, rootDescription)
     rootDescription:CreateTitle("GRIP v" .. (GRIP.VERSION or "?"))
 
+    local ghostLocked = GRIP.Ghost and GRIP.Ghost.IsSessionLocked
+      and GRIP.Ghost:IsSessionLocked()
+
     rootDescription:CreateButton("Toggle UI", function()
       GRIP:ToggleUI()
     end)
@@ -375,12 +378,17 @@ function GRIP:ShowCompartmentMenu()
       end
     end)
 
-    rootDescription:CreateButton("Build Scan Queue", function()
+    local buildBtn = rootDescription:CreateButton("Build Scan Queue", function()
+      if ghostLocked then
+        GRIP:Print("Locked during Ghost session.")
+        return
+      end
       if GRIP.BuildWhoQueue then
         GRIP:BuildWhoQueue()
         GRIP:Print("Who queue rebuilt.")
       end
     end)
+    if ghostLocked then buildBtn:SetEnabled(false) end
 
     -- Ghost Mode toggle (only if ghost mode is enabled in config)
     local cfg = GRIP:GetCfg()
@@ -410,9 +418,13 @@ function GRIP:ShowCompartmentMenu()
     -- Whisper queue toggle
     local whisperActive = (GRIP.state and GRIP.state.whisperTicker)
       and true or false
-    rootDescription:CreateButton(
+    local whisperBtn = rootDescription:CreateButton(
       whisperActive and "Stop Whispers" or "Start Whispers",
       function()
+        if ghostLocked then
+          GRIP:Print("Locked during Ghost session.")
+          return
+        end
         if whisperActive and GRIP.StopWhispers then
           GRIP:StopWhispers()
         elseif GRIP.StartWhispers then
@@ -420,6 +432,7 @@ function GRIP:ShowCompartmentMenu()
         end
       end
     )
+    if ghostLocked then whisperBtn:SetEnabled(false) end
   end)
 end
 

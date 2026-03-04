@@ -93,6 +93,14 @@ local function PrintDebugUsage()
   GRIP:Print("Usage: /grip debug on|off | dump [n] | copy [n] | clear | capture on|off [max] | status")
 end
 
+local function IsGhostLocked()
+  return GRIP.Ghost and GRIP.Ghost.IsSessionLocked and GRIP.Ghost:IsSessionLocked()
+end
+
+local function PrintGhostLocked()
+  GRIP:Print("Command locked during Ghost session. Use /grip ghost stop first.")
+end
+
 local function BoolFromWord(w)
   w = (w or ""):lower()
   return (w == "on" or w == "1" or w == "true" or w == "yes")
@@ -219,26 +227,31 @@ function GRIP:HandleSlash(msg)
   end
 
   if cmd == "build" then
+    if IsGhostLocked() then PrintGhostLocked() return end
     self:BuildWhoQueue()
     return
   end
 
   if cmd == "scan" or cmd == "who" then
+    if IsGhostLocked() then PrintGhostLocked() return end
     self:SendNextWho()
     return
   end
 
   if cmd == "whisper" then
+    if IsGhostLocked() then PrintGhostLocked() return end
     self:StartWhispers()
     return
   end
 
   if cmd == "invite" then
+    if IsGhostLocked() then PrintGhostLocked() return end
     self:InviteNext()
     return
   end
 
   if cmd == "post" then
+    if IsGhostLocked() then PrintGhostLocked() return end
     self:PostNext()
     return
   end
@@ -432,6 +445,7 @@ function GRIP:HandleSlash(msg)
   end
 
   if cmd == "clear" then
+    if IsGhostLocked() then PrintGhostLocked() return end
     GRIPDB_CHAR.potential = GRIPDB_CHAR.potential or {}
     wipe(GRIPDB_CHAR.potential)
 

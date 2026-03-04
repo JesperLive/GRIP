@@ -1021,10 +1021,11 @@ function GRIP:UI_UpdateHome()
 
   if home._initHint then home._initHint:Hide() end
 
-  W.SetEnabledSafe(home.btnScan, true)
-  W.SetEnabledSafe(home.btnWhisperInvite, true)
-  W.SetEnabledSafe(home.btnPostNext, true)
-  W.SetEnabledSafe(home.btnClear, true)
+  local ghostLocked = GRIP.Ghost and GRIP.Ghost.IsSessionLocked and GRIP.Ghost:IsSessionLocked()
+  W.SetEnabledSafe(home.btnScan, not ghostLocked)
+  W.SetEnabledSafe(home.btnWhisperInvite, not ghostLocked)
+  W.SetEnabledSafe(home.btnPostNext, not ghostLocked)
+  W.SetEnabledSafe(home.btnClear, not ghostLocked)
 
   local pot = self:Count(GRIPDB_CHAR.potential)
   local blPerm = self:Count(GRIPDB.blacklistPerm)
@@ -1088,7 +1089,10 @@ function GRIP:UI_UpdateHome()
   end
 
   local scanLeft = GRIP:SecondsLeft(f._scanCooldownUntil)
-  if scanLeft > 0 then
+  if ghostLocked then
+    home.btnScan:Disable()
+    home.btnScan:SetText("Scan")
+  elseif scanLeft > 0 then
     home.btnScan:Disable()
     home.btnScan:SetText(("Scan (%.0fs)"):format(ceil(scanLeft)))
   else
@@ -1097,14 +1101,14 @@ function GRIP:UI_UpdateHome()
   end
 
   local recruitLeft = GRIP:SecondsLeft(GetRecruitCooldownUntil())
-  if recruitLeft > 0 then
+  if ghostLocked or recruitLeft > 0 then
     home.btnWhisperInvite:Disable()
   else
     home.btnWhisperInvite:Enable()
   end
 
   local postLeft = GRIP:SecondsLeft(GetPostCooldownUntil())
-  if postLeft > 0 then
+  if ghostLocked or postLeft > 0 then
     home.btnPostNext:Disable()
   else
     home.btnPostNext:Enable()
