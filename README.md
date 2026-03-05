@@ -2,7 +2,7 @@
 
 **Target:** Retail / Midnight (12.0.1+)
 **Interface:** 120001
-**Version:** 1.0.0
+**Version:** 1.3.0
 
 [![Discord](https://img.shields.io/badge/Discord-Tempting%20Us-7289da?logo=discord&logoColor=white)](https://discord.gg/temptingus)
 
@@ -28,8 +28,10 @@
 - Trade/General post scheduling (hardware-event gated)
 - Temp + permanent blacklisting with configurable duration
 - Account-wide blacklist shared across all characters
+- Raider.IO integration — optionally filter candidates by M+ score when the Raider.IO addon is installed (fail-open: works fine without it)
+- Officer blacklist sync — guild officers running GRIP automatically share permanent blacklist entries via addon communication (set-union merge, never removes entries)
 - Daily whisper cap (default 500/day) with 80% warning
-- Opt-out response detection (auto-blacklists "no thanks" etc.)
+- Opt-out response detection (auto-blacklists "no thanks" etc.) with optional aggressive tier for profanity-based rejections
 - Sound feedback for key events (queue done, invite accepted, cap warning)
 - Expansion-grouped zone filter with dynamic discovery and seasonal detection
 - Campaign cooldown — session fatigue protection with soft warning + hard auto-pause
@@ -86,6 +88,7 @@ GRIP queues and organizes these actions and provides buttons/keybinds so you can
 - Configure zone/race/class filters (zones grouped by expansion)
 - Edit whisper templates (multiple templates with rotation)
 - Toggle sound feedback for individual events
+- Raider.IO minimum score filter (when RIO addon installed)
 - Ghost Mode enable + session/cooldown sliders
 
 ### Ads
@@ -156,6 +159,9 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip set ghostmode on|off
 /grip set cooldown <min>|on|off
 /grip set invitefirst on|off
+/grip set aggressive on|off
+/grip set riominscore <n>
+/grip set riocolumn on|off
 
 /grip templates list
 /grip templates add <message>
@@ -163,6 +169,8 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip templates rotation seq|random
 
 /grip ghost start|stop|status
+
+/grip sync on|off|now
 
 /grip debug on|off
 /grip debug dump [n]
@@ -196,6 +204,10 @@ Join our Discord for help, feedback, or feature requests:
 - **Opt-out detection:** GRIP automatically detects rejection replies ("no thanks",
   "stop", etc.) in English, French, German, and Spanish and blacklists those players.
   Configure active languages in Settings.
+- **Raider.IO:** The M+ score filter requires the Raider.IO addon to be installed
+  separately. Without it, the filter is simply skipped.
+- **Officer sync:** Blacklist sync requires at least two guild officers running GRIP.
+  Uses the GUILD addon channel — no external servers.
 - **Not affiliated with Blizzard:** GRIP is a third-party addon. Use at your
   own discretion.
 
@@ -209,3 +221,4 @@ Join our Discord for help, feedback, or feature requests:
 - Blacklist entries expire automatically based on configuration.
 - Blacklists and no-response counters are account-wide (shared across all characters). Config, potential list, and filters are per-character.
 - Ghost Mode is experimental and disabled by default. Enable in Settings, then `/grip ghost start`.
+- Officer blacklist sync uses AceComm + LibSerialize + LibDeflate over the GUILD addon channel. Set-union merge only (entries are added, never removed). Sync failures are pcall-wrapped and cannot break core functionality.
