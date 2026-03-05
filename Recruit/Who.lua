@@ -23,6 +23,7 @@ local state = GRIP.state
 
 local MIN_WHO_INTERVAL = 15
 local WHO_SATURATED = 50
+local WHO_TIMEOUT    = 10    -- seconds: /who query timeout
 
 local function HideFriendsWhoUIIfNeeded()
   local cfg = GRIP:GetCfg()
@@ -298,8 +299,8 @@ function GRIP:BuildWhoQueue()
     return
   end
 
-  local minL = self:Clamp(cfg.scanMinLevel or 1, 1, 90)
-  local maxL = self:Clamp(cfg.scanMaxLevel or 90, minL, 90)
+  local minL = self:Clamp(cfg.scanMinLevel or GRIP.MIN_SCAN_LEVEL, GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
+  local maxL = self:Clamp(cfg.scanMaxLevel or GRIP.MAX_SCAN_LEVEL, minL, GRIP.MAX_SCAN_LEVEL)
   local step = self:Clamp(cfg.scanStep or 5, 1, 20)
 
   local zoneFilter = ""
@@ -396,9 +397,9 @@ function GRIP:SendNextWho()
         Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
       -- F1: Catch any synchronous frame open from SendWho
       HideFriendsWhoUIIfNeeded()
-      C_Timer.After(10, function()
+      C_Timer.After(WHO_TIMEOUT, function()
         if state.pendingWho == capturedPending
-           and (GetTime() - capturedPending.sentAt) >= 10 then
+           and (GetTime() - capturedPending.sentAt) >= WHO_TIMEOUT then
           self:Debug("WHO timeout (ghost):", filter)
           state.pendingWho = nil
           self:UpdateUI()
@@ -433,8 +434,8 @@ function GRIP:SendNextWho()
   -- F1: Catch any synchronous frame open from SendWho
   HideFriendsWhoUIIfNeeded()
 
-  C_Timer.After(10, function()
-    if state.pendingWho and (GetTime() - state.pendingWho.sentAt) >= 10 then
+  C_Timer.After(WHO_TIMEOUT, function()
+    if state.pendingWho and (GetTime() - state.pendingWho.sentAt) >= WHO_TIMEOUT then
       self:Debug("WHO timeout:", state.pendingWho.filter)
       state.pendingWho = nil
       self:UpdateUI()

@@ -8,12 +8,23 @@ GRIP.VERSION = "0.7.0"
 -- Optional global for debugging in /run
 _G.GRIP = GRIP
 
+-- Shared constants (referenced by multiple modules)
+GRIP.MAX_CHAT_MSG_LEN    = 250   -- WoW chat message hard limit
+GRIP.MAX_SCAN_LEVEL      = 90    -- Midnight level cap
+GRIP.MIN_SCAN_LEVEL      = 1
+
 -- Lua
 local type, tostring, tonumber, select = type, tostring, tonumber, select
 local pairs, pcall, wipe = pairs, pcall, wipe
 local concat = table.concat
 local floor, max = math.floor, math.max
 local time, date = time, date
+
+-- Local constants
+local DEBUG_LOG_MIN       = 50
+local DEBUG_LOG_MAX       = 5000
+local DEBUG_LOG_DEFAULT   = 800
+local SOUNDKIT_FALLBACK   = 8959   -- SOUNDKIT.RAID_WARNING fallback ID
 
 -- Keybinding labels (shown in Key Bindings UI)
 BINDING_HEADER_GRIP = "GRIP"
@@ -198,7 +209,7 @@ function GRIP:RecordCampaignAction(actionType)
     st.campaignHardPaused = true
     self:Print(("Whisper queue auto-paused after %d minutes of continuous recruiting. Take a break, then /grip whisper to resume."):format(math.floor(elapsed / 60)))
     if cfg.soundCapWarning ~= false then
-      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or SOUNDKIT_FALLBACK)
     end
     self:StopWhispers()
     -- Reset window so resuming starts fresh
@@ -214,7 +225,7 @@ function GRIP:RecordCampaignAction(actionType)
     st.campaignSoftWarned = true
     self:Print(("You've been recruiting for %d minutes (%d actions). Consider taking a 5-minute break to reduce Silence risk."):format(math.floor(elapsed / 60), st.campaignActionCount))
     if cfg.soundCapWarning ~= false then
-      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+      self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or SOUNDKIT_FALLBACK)
     end
   end
 end
@@ -311,9 +322,9 @@ if not Logger._gripFallbackInstalled then
   end
 
   local function CaptureMax(cfg)
-    local n = tonumber(cfg and (cfg.debugCaptureMax or cfg.debugPersistMax)) or 800
-    if n < 50 then n = 50 end
-    if n > 5000 then n = 5000 end
+    local n = tonumber(cfg and (cfg.debugCaptureMax or cfg.debugPersistMax)) or DEBUG_LOG_DEFAULT
+    if n < DEBUG_LOG_MIN then n = DEBUG_LOG_MIN end
+    if n > DEBUG_LOG_MAX then n = DEBUG_LOG_MAX end
     return n
   end
 

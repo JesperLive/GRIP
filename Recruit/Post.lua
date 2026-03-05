@@ -17,6 +17,14 @@ local C_Timer = C_Timer
 
 local state = GRIP.state
 
+-- Constants
+local POST_QUEUE_MAX_DEFAULT  = 20
+local POST_INTERVAL_MIN       = 1     -- minutes
+local POST_INTERVAL_MAX       = 180   -- minutes
+local MIN_POST_INTERVAL_FLOOR = 3     -- seconds: absolute minimum between posts
+local MIN_POST_INTERVAL_CAP   = 120   -- seconds: absolute maximum for minPostInterval
+local MIN_POST_INTERVAL_DEFAULT = 8   -- seconds
+
 -- Structured context for execution gate diagnostics (trace remains opt-in).
 local function GateCtx(phase, extra)
   return GRIP:BuildGateCtx("post", "Recruit/Post", phase, extra)
@@ -111,7 +119,7 @@ local function EnqueuePost(channelToken, messageTemplate, reason)
 
   state.postQueue = state.postQueue or {}
 
-  if #state.postQueue >= (tonumber(cfg.postQueueMax) or 20) then
+  if #state.postQueue >= (tonumber(cfg.postQueueMax) or POST_QUEUE_MAX_DEFAULT) then
     GRIP:Debug("Post queue full; skipping enqueue.")
     return false
   end
@@ -226,7 +234,7 @@ function GRIP:StartPostScheduler()
 
   if state.postTicker then return end
 
-  local interval = self:Clamp(tonumber(cfg.postIntervalMinutes) or 15, 1, 180) * 60
+  local interval = self:Clamp(tonumber(cfg.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
   local nextAt = GetTime() + interval
 
   self:Print(("Post scheduler enabled: every %d min (queues messages; click Post Next to send)."):format(interval / 60))
@@ -238,7 +246,7 @@ function GRIP:StartPostScheduler()
       return
     end
 
-    interval = GRIP:Clamp(tonumber(cfg2.postIntervalMinutes) or 15, 1, 180) * 60
+    interval = GRIP:Clamp(tonumber(cfg2.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
     if GetTime() >= nextAt then
       GRIP:QueuePostCycle("scheduled")
       -- Phase 2e: auto-drain through Ghost if session active
@@ -304,9 +312,9 @@ function GRIP:PostNext()
   end
 
   local now = GetTime()
-  local minInterval = tonumber(cfg.minPostInterval) or 8
-  if minInterval < 3 then minInterval = 3 end
-  if minInterval > 120 then minInterval = 120 end
+  local minInterval = tonumber(cfg.minPostInterval) or MIN_POST_INTERVAL_DEFAULT
+  if minInterval < MIN_POST_INTERVAL_FLOOR then minInterval = MIN_POST_INTERVAL_FLOOR end
+  if minInterval > MIN_POST_INTERVAL_CAP then minInterval = MIN_POST_INTERVAL_CAP end
 
   if (now - (state.lastPostSentAt or 0)) < minInterval then
     self:Print(("Please wait %.1fs before posting again."):format(

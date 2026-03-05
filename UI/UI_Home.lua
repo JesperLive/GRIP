@@ -861,7 +861,7 @@ function GRIP:UI_CreateHome(parent)
   -- Destructive action visual cue
   local clearText = home.btnClear:GetFontString()
   if clearText then
-    clearText:SetTextColor(1, 0.6, 0.6)
+    clearText:SetTextColor(unpack(GRIP.COLORS.DANGER_RED))
   end
 
   -- Button icons (14x14, left of text)

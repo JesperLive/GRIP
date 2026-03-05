@@ -23,6 +23,13 @@ local SendChatMessage = SendChatMessage
 
 local state = GRIP.state
 
+-- Constants
+local WHISPER_BUF_TTL         = 15    -- seconds: recent whisper buffer expiry
+local WHISPER_MATCH_WINDOW    = 5     -- seconds: incoming reply match window
+local GUILD_LINK_CACHE_TTL    = 300   -- seconds: runtime guild link cache (5 min)
+local GUILD_LINK_SV_TTL       = 600   -- seconds: SV guild link cache (10 min)
+local GATE_TRACE_PREVIEW_MAX  = 80    -- chars: truncate gate trace msg preview
+
 -- ----------------------------
 -- Optional: hide outgoing whisper echoes in chat ("To X: ...")
 -- This does NOT affect event processing (CHAT_MSG_WHISPER_INFORM still fires).
@@ -37,7 +44,7 @@ local function CleanupRecentWhispers(buf, now)
   now = now or GetTime()
   for i = #buf, 1, -1 do
     local e = buf[i]
-    if (not e) or (now - (e.t or 0) > 15) then
+    if (not e) or (now - (e.t or 0) > WHISPER_BUF_TTL) then
       table.remove(buf, i)
     end
   end
@@ -62,7 +69,7 @@ local function RecentWhisperMatches(msg, author)
   author = tostring(author or "")
   for i = #buf, 1, -1 do
     local e = buf[i]
-    if e and (now - (e.t or 0)) < 5 then
+    if e and (now - (e.t or 0)) < WHISPER_MATCH_WINDOW then
       if author == e.target or author:match("^[^-]+") == tostring(e.target):match("^[^-]+") then
         table.remove(buf, i)  -- consume the match
         return true
@@ -134,8 +141,8 @@ end
 
 function GRIP:SafeTruncateChat(msg)
   msg = tostring(msg or "")
-  if #msg > 250 then
-    msg = msg:sub(1, 250)
+  if #msg > GRIP.MAX_CHAT_MSG_LEN then
+    msg = msg:sub(1, GRIP.MAX_CHAT_MSG_LEN)
   end
   msg = msg:gsub("[\r\n]+", " ")
   return msg
@@ -201,7 +208,7 @@ function GRIP:GetGuildFinderLink()
   -- Path 0: Runtime cache (5 min TTL)
   local now = GetTime()
   if state._gripGuildLinkCache and state._gripGuildLinkCacheAt then
-    if (now - state._gripGuildLinkCacheAt) < 300 then
+    if (now - state._gripGuildLinkCacheAt) < GUILD_LINK_CACHE_TTL then
       return state._gripGuildLinkCache
     end
   end
@@ -209,7 +216,7 @@ function GRIP:GetGuildFinderLink()
   -- Path 0b: SV cache (10 min TTL, survives /reload)
   if _G.GRIPDB_CHAR and GRIPDB_CHAR._guildLinkCache then
     local sv = GRIPDB_CHAR._guildLinkCache
-    if sv.link and sv.at and (time() - sv.at) < 600 then
+    if sv.link and sv.at and (time() - sv.at) < GUILD_LINK_SV_TTL then
       -- Promote to runtime cache
       state._gripGuildLinkCache = sv.link
       state._gripGuildLinkCacheAt = now
@@ -347,7 +354,7 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
     --   - If needed, truncate from the non-link portions, keeping the last occurrence of link intact.
     tpl = tpl:gsub("[\r\n]+", " ")
 
-    local MAX = 250
+    local MAX = GRIP.MAX_CHAT_MSG_LEN
     if #tpl > MAX then
       local linkPos = tpl:find(link, 1, true)
       local lastPos
@@ -514,8 +521,8 @@ end
 
 local function PreviewForTrace(msg)
   msg = tostring(msg or "")
-  if #msg > 80 then
-    return msg:sub(1, 80) .. "…"
+  if #msg > GATE_TRACE_PREVIEW_MAX then
+    return msg:sub(1, GATE_TRACE_PREVIEW_MAX) .. "…"
   end
   return msg
 end

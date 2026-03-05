@@ -515,8 +515,8 @@ function GRIP:UI_CreateSettings(parent)
       return
     end
 
-    GRIPDB_CHAR.config.scanMinLevel = GRIP:Clamp(a1, 1, 90)
-    GRIPDB_CHAR.config.scanMaxLevel = GRIP:Clamp(b1, GRIPDB_CHAR.config.scanMinLevel, 90)
+    GRIPDB_CHAR.config.scanMinLevel = GRIP:Clamp(a1, GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
+    GRIPDB_CHAR.config.scanMaxLevel = GRIP:Clamp(b1, GRIPDB_CHAR.config.scanMinLevel, GRIP.MAX_SCAN_LEVEL)
     GRIPDB_CHAR.config.scanStep = GRIP:Clamp(c1, 1, 20)
 
     W.ClearDirty(settings.minEdit, settings.maxEdit, settings.stepEdit)
@@ -641,7 +641,7 @@ function GRIP:UI_CreateSettings(parent)
   end)
   settings.clearFilters:SetPoint("TOPLEFT", settings.classList, "TOPRIGHT", 12, -2)
   GRIP:AttachTooltip(settings.clearFilters, "Clear Selections", "Deselect all zones, races, and classes.\nEmpty filters = allow all.")
-  do local fs = settings.clearFilters:GetFontString(); if fs then fs:SetTextColor(1, 0.6, 0.6) end end
+  do local fs = settings.clearFilters:GetFontString(); if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end end
 
   -- Separator: filter checklists → whisper templates
   settings.sep2 = s:CreateTexture(nil, "ARTWORK")
@@ -704,7 +704,7 @@ function GRIP:UI_CreateSettings(parent)
   end)
   settings.whisperRemove:SetPoint("LEFT", settings.whisperAdd, "RIGHT", 4, 0)
   GRIP:AttachTooltip(settings.whisperRemove, "Remove Template", "Remove the current template (min 1).")
-  do local fs = settings.whisperRemove:GetFontString(); if fs then fs:SetTextColor(1, 0.6, 0.6) end end
+  do local fs = settings.whisperRemove:GetFontString(); if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end end
 
   -- Edit box (anchored to navigation bar; layout hook re-anchors + sizes it)
   settings.whisperSF, settings.whisperEdit = W.CreateMultilineEdit(s, 1, 60)

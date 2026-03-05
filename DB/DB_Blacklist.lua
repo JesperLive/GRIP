@@ -99,10 +99,11 @@ local function ContextToString(context)
   end
 
   -- Shallow, stable-ish representation; avoids recursion/surprises.
+  local MAX_CONTEXT_DISPLAY = 12
   local parts, n = {}, 0
   for k, v in pairs(context) do
     n = n + 1
-    if n > 12 then
+    if n > MAX_CONTEXT_DISPLAY then
       parts[#parts + 1] = "…"
       break
     end

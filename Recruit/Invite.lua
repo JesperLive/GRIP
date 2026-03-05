@@ -22,11 +22,14 @@ local ACTION_COOLDOWN = 1.0
 local NO_RESPONSE_TIMEOUT = 70
 local NO_RESPONSE_SECONDS = 24 * 60 * 60
 local NO_RESPONSE_ESCALATE_COUNT = 7
+local WHISPER_CONFIRM_TIMEOUT = 8     -- seconds: wait for whisper send confirmation
+local BLACKLIST_DAYS_MIN      = 1
+local BLACKLIST_DAYS_MAX      = 365
 
 local function GetBlacklistDays(cfg)
   local n = tonumber(cfg and cfg.blacklistDays) or 0
-  if n <= 0 then n = 1 end
-  if n > 365 then n = 365 end
+  if n <= 0 then n = BLACKLIST_DAYS_MIN end
+  if n > BLACKLIST_DAYS_MAX then n = BLACKLIST_DAYS_MAX end
   return n
 end
 
@@ -74,7 +77,7 @@ local function ConsumeCooldown()
 end
 
 local function StartWhisperConfirmTimeout(name)
-  C_Timer.After(8, function()
+  C_Timer.After(WHISPER_CONFIRM_TIMEOUT, function()
     if state.pendingWhisper and state.pendingWhisper[name] then
       state.pendingWhisper[name] = nil
       GRIP:Debug("Whisper confirm timeout:", name)

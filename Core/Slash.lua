@@ -17,6 +17,25 @@ local C_ClubFinder = C_ClubFinder
 
 local state = GRIP.state
 
+-- Constants
+local DUMP_LINES_DEFAULT      = 50
+local DUMP_LINES_MIN          = 1
+local DUMP_LINES_MAX          = 200
+local PERMBL_DISPLAY_CAP      = 20
+local MAX_WHISPER_TEMPLATES   = 10
+local DEBUG_PERSIST_MIN       = 100
+local DEBUG_PERSIST_MAX       = 5000
+local SCAN_STEP_MIN           = 1
+local SCAN_STEP_MAX           = 20
+local VERBOSITY_MIN           = 1
+local VERBOSITY_MAX           = 3
+local BLACKLIST_DAYS_MIN      = 1
+local BLACKLIST_DAYS_MAX      = 365
+local POST_INTERVAL_MIN       = 1
+local POST_INTERVAL_MAX       = 180
+local COOLDOWN_MIN            = 5
+local COOLDOWN_MAX            = 120
+
 local function SplitArgs(msg)
   msg = (msg or ""):gsub("^%s+", ""):gsub("%s+$", "")
   local a, b = msg:match("^(%S+)%s*(.*)$")
@@ -114,8 +133,8 @@ local function BoolFromWord(w)
 end
 
 local function DumpPersisted(n)
-  n = tonumber(n) or 50
-  n = GRIP:Clamp(n, 1, 200)
+  n = tonumber(n) or DUMP_LINES_DEFAULT
+  n = GRIP:Clamp(n, DUMP_LINES_MIN, DUMP_LINES_MAX)
 
   if not GRIP.GetPersistedDebugLines then
     GRIP:Print("Debug dump unavailable (Debug module not wired yet).")
@@ -316,7 +335,7 @@ function GRIP:HandleSlash(msg)
       local total = #names
       self:Print(("Permanent blacklist: %d"):format(total))
 
-      local cap = 20
+      local cap = PERMBL_DISPLAY_CAP
       for i = 1, math.min(total, cap) do
         local n = names[i]
         local e = _G.GRIPDB and GRIPDB.blacklistPerm and GRIPDB.blacklistPerm[n]
@@ -407,8 +426,8 @@ function GRIP:HandleSlash(msg)
         return
       end
       cfg.whisperMessages = cfg.whisperMessages or {}
-      if #cfg.whisperMessages >= 10 then
-        self:Print("Max 10 templates.")
+      if #cfg.whisperMessages >= MAX_WHISPER_TEMPLATES then
+        self:Print(("Max %d templates."):format(MAX_WHISPER_TEMPLATES))
         return
       end
       cfg.whisperMessages[#cfg.whisperMessages + 1] = subrest
@@ -750,13 +769,13 @@ function GRIP:HandleSlash(msg)
     end
 
     if sub == "dump" then
-      DumpPersisted(tonumber(subrest) or 50)
+      DumpPersisted(tonumber(subrest) or DUMP_LINES_DEFAULT)
       return
     end
 
     if sub == "copy" then
       if self.ShowDebugCopyFrame then
-        self:ShowDebugCopyFrame(tonumber(subrest) or 200)
+        self:ShowDebugCopyFrame(tonumber(subrest) or DUMP_LINES_MAX)
       else
         self:Print("Debug copy frame unavailable.")
       end
@@ -783,7 +802,7 @@ function GRIP:HandleSlash(msg)
 
       local nMax = tonumber(maybeMax)
       if nMax then
-        local clamped = self:Clamp(nMax, 100, 5000)
+        local clamped = self:Clamp(nMax, DEBUG_PERSIST_MIN, DEBUG_PERSIST_MAX)
         GRIPDB_CHAR.config.debugPersistMax = clamped
         GRIPDB_CHAR.config.debugCaptureMax = clamped
       else
@@ -849,7 +868,7 @@ function GRIP:HandleSlash(msg)
     if key == "blacklistdays" then
       local n = tonumber(val)
       if n then
-        cfg.blacklistDays = self:Clamp(n, 1, 365)
+        cfg.blacklistDays = self:Clamp(n, BLACKLIST_DAYS_MIN, BLACKLIST_DAYS_MAX)
         self:Print("Blacklist days set to " .. cfg.blacklistDays)
         self:Debug("Set blacklistDays:", cfg.blacklistDays)
       end
@@ -859,7 +878,7 @@ function GRIP:HandleSlash(msg)
     if key == "interval" then
       local n = tonumber(val)
       if n then
-        cfg.postIntervalMinutes = self:Clamp(n, 1, 180)
+        cfg.postIntervalMinutes = self:Clamp(n, POST_INTERVAL_MIN, POST_INTERVAL_MAX)
         self:Print("Post interval set to " .. cfg.postIntervalMinutes .. " minutes.")
         self:Debug("Set postIntervalMinutes:", cfg.postIntervalMinutes)
         self:StartPostScheduler()
@@ -879,9 +898,9 @@ function GRIP:HandleSlash(msg)
       local a, b, c = val:match("^(%S+)%s+(%S+)%s+(%S+)")
       a, b, c = tonumber(a), tonumber(b), tonumber(c)
       if a and b and c then
-        cfg.scanMinLevel = self:Clamp(a, 1, 90)
-        cfg.scanMaxLevel = self:Clamp(b, cfg.scanMinLevel, 90)
-        cfg.scanStep = self:Clamp(c, 1, 20)
+        cfg.scanMinLevel = self:Clamp(a, GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
+        cfg.scanMaxLevel = self:Clamp(b, cfg.scanMinLevel, GRIP.MAX_SCAN_LEVEL)
+        cfg.scanStep = self:Clamp(c, SCAN_STEP_MIN, SCAN_STEP_MAX)
         self:Print(("Scan levels set: %d-%d step %d"):format(cfg.scanMinLevel, cfg.scanMaxLevel, cfg.scanStep))
         self:Debug("Set levels:", cfg.scanMinLevel, cfg.scanMaxLevel, cfg.scanStep)
       else
@@ -905,7 +924,7 @@ function GRIP:HandleSlash(msg)
     if key == "verbosity" then
       local n = tonumber(val)
       if n then
-        cfg.debugVerbosity = self:Clamp(n, 1, 3)
+        cfg.debugVerbosity = self:Clamp(n, VERBOSITY_MIN, VERBOSITY_MAX)
         self:Print("Debug verbosity set to: " .. cfg.debugVerbosity)
         self:Debug("Verbosity now:", cfg.debugVerbosity)
       end
@@ -978,7 +997,7 @@ function GRIP:HandleSlash(msg)
         self:Print(("Campaign cooldown enabled (%d min)."):format(cfg.campaignCooldownMinutes or 30))
       else
         local n = tonumber(val)
-        if n and n >= 5 and n <= 120 then
+        if n and n >= COOLDOWN_MIN and n <= COOLDOWN_MAX then
           cfg.campaignCooldownMinutes = n
           cfg.campaignCooldownEnabled = true
           self:Print(("Campaign cooldown set to %d minutes."):format(n))
@@ -986,7 +1005,7 @@ function GRIP:HandleSlash(msg)
           cfg.campaignCooldownEnabled = false
           self:Print("Campaign cooldown disabled.")
         else
-          self:Print("Usage: /grip set cooldown <5-120|on|off>")
+          self:Print(("Usage: /grip set cooldown <%d-%d|on|off>"):format(COOLDOWN_MIN, COOLDOWN_MAX))
         end
       end
       return

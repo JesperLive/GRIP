@@ -11,6 +11,15 @@ local max, abs, floor = math.max, math.abs, math.floor
 GRIP.UIW = GRIP.UIW or {}
 local W = GRIP.UIW
 
+-- Shared UI color palette (use unpack() when passing to SetTextColor etc.)
+GRIP.COLORS = {
+  GOLD       = { 1, 0.82, 0, 1 },
+  LIGHT_GREY = { 0.8, 0.8, 0.8, 1 },
+  DANGER_RED = { 1, 0.6, 0.6, 1 },
+  GREEN      = { 0.4, 1, 0.4, 1 },
+  LIGHT_BLUE = { 0.6, 0.8, 1, 1 },
+}
+
 -- UIPanelScrollFrameTemplate’s scrollbar is anchored to the RIGHT of the scrollframe (outside it).
 -- This inset ensures the scrollbar stays visually inside the window border.
 local PAGE_SCROLL_RIGHT_INSET = 32
@@ -469,7 +478,7 @@ function W.CreateGroupedChecklist(parent, titleText, w, h)
       hdr:ClearAllPoints()
       hdr:SetPoint("TOPLEFT", child, "TOPLEFT", 4, y)
       hdr:SetText(group.name or "")
-      hdr:SetTextColor(1, 0.82, 0, 1)
+      hdr:SetTextColor(unpack(GRIP.COLORS.GOLD))
       hdr:Show()
 
       -- Per-group All / None buttons (small, inside scrollable area)

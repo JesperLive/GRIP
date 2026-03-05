@@ -19,6 +19,17 @@ local C_Timer = C_Timer
 
 local state = GRIP.state
 
+-- Constants
+local OVERLAY_FRAME_LEVEL     = 9999
+local UPDATE_THROTTLE         = 0.2   -- seconds: overlay OnUpdate throttle
+local AUTO_WHO_DELAY          = 0.5   -- seconds: delay before auto-who after session start
+local SESSION_MIN_MINUTES     = 5
+local SESSION_MAX_MINUTES     = 120
+local COOLDOWN_MIN_MINUTES    = 1
+local COOLDOWN_MAX_MINUTES    = 60
+local QUEUE_MIN               = 1
+local QUEUE_MAX               = 200
+
 GRIP.Ghost = GRIP.Ghost or {}
 local Ghost = GRIP.Ghost
 
@@ -96,7 +107,7 @@ end
 local overlay = CreateFrame("Frame", nil, UIParent)
 overlay:SetAllPoints(UIParent)
 overlay:SetFrameStrata("TOOLTIP")
-overlay:SetFrameLevel(9999)
+overlay:SetFrameLevel(OVERLAY_FRAME_LEVEL)
 overlay:EnableMouse(true)
 overlay:EnableMouseWheel(true)
 overlay:SetMouseMotionEnabled(true)
@@ -150,7 +161,7 @@ local updater = CreateFrame("Frame")
 local updaterElapsed = 0
 updater:SetScript("OnUpdate", function(_, dt)
   updaterElapsed = updaterElapsed + dt
-  if updaterElapsed < 0.2 then return end
+  if updaterElapsed < UPDATE_THROTTLE then return end
   updaterElapsed = 0
   if not Ghost:IsSessionActive() then
     if overlay:IsShown() then overlay:Hide() end
@@ -212,7 +223,7 @@ end
 
 function Ghost:GetSessionMaxSeconds()
   local cfg = GRIP:GetCfg()
-  local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, 5, 120)
+  local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, SESSION_MIN_MINUTES, SESSION_MAX_MINUTES)
   return maxMin * 60
 end
 
@@ -259,7 +270,7 @@ function Ghost:StartSession()
 
   -- Auto-queue first /who scan
   if type(GRIP.SendNextWho) == "function" then
-    C_Timer.After(0.5, function()
+    C_Timer.After(AUTO_WHO_DELAY, function()
       if Ghost:IsSessionActive() then
         GRIP:SendNextWho()
       end
@@ -302,7 +313,7 @@ function Ghost:StopSession(reason)
   -- Set persistent cooldown
   local cfg = GRIP:GetCfg()
   if cfg then
-    local cooldownMin = GRIP:Clamp(tonumber(cfg.ghostCooldownMinutes) or 10, 1, 60)
+    local cooldownMin = GRIP:Clamp(tonumber(cfg.ghostCooldownMinutes) or 10, COOLDOWN_MIN_MINUTES, COOLDOWN_MAX_MINUTES)
     cfg.ghostCooldownUntil = time() + (cooldownMin * 60)
   end
 
@@ -325,7 +336,7 @@ function Ghost:CheckSessionTimeout()
   if not self:IsSessionActive() then return end
 
   local cfg = GRIP:GetCfg()
-  local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, 5, 120)
+  local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, SESSION_MIN_MINUTES, SESSION_MAX_MINUTES)
   local elapsed = time() - (state.ghost.sessionStartedAt or time())
   if elapsed >= (maxMin * 60) then
     self:StopSession("timeout")
@@ -357,7 +368,7 @@ function Ghost:QueueAction(actionType, actionFn, meta)
 
   state.ghost.queue = state.ghost.queue or {}
 
-  local maxLen = GRIP:Clamp(CfgNum("ghostModeMaxQueue", 50), 1, 200)
+  local maxLen = GRIP:Clamp(CfgNum("ghostModeMaxQueue", 50), QUEUE_MIN, QUEUE_MAX)
   if #state.ghost.queue >= maxLen then
     Dbg("Ghost: queue full, dropping:", tostring(actionType))
     return false, "queue_full"
@@ -408,7 +419,7 @@ function Ghost:Queue(chatType, msg, languageID, target, meta)
   end
 
   -- Legacy queue: wrap as action-based item for FlushOne compat
-  local maxLen = GRIP:Clamp(CfgNum("ghostModeMaxQueue", 50), 1, 200)
+  local maxLen = GRIP:Clamp(CfgNum("ghostModeMaxQueue", 50), QUEUE_MIN, QUEUE_MAX)
   if #state.ghost.queue >= maxLen then
     Dbg("Ghost: queue full; dropping new item. max=", maxLen, "type=", tostring(chatType))
     return false, "queue_full"
