@@ -325,6 +325,13 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
     if self:IsBlank(link) then
       if inGuild then
         link = guildName
+        -- P-1: One-time per-session notice about guild link fallback
+        if not state._gripGuildLinkFallbackNotified then
+          state._gripGuildLinkFallbackNotified = true
+          self:Print("Note: {guildlink} couldn't resolve a clickable Guild Finder link — using guild name instead.")
+          self:Print("To fix: Open your Communities window (J) once per session, or ensure your guild has an active Guild Finder listing.")
+          self:Print("Use /grip link for diagnostics.")
+        end
       else
         link = "your guild"
       end

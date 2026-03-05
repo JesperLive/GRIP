@@ -460,13 +460,29 @@ function GRIP:HandleSlash(msg)
   end
 
   if cmd == "status" then
-    self:Print(("Potential: %d, Blacklist: %d, WhoQueue: %d/%d, PostQueue: %d"):format(
-      self:Count(GRIPDB_CHAR.potential),
-      self:Count(GRIPDB.blacklist),
-      (state.whoIndex - 1),
-      #state.whoQueue,
-      #state.postQueue
-    ))
+    local potCount = self:Count(GRIPDB_CHAR.potential)
+    local blTemp = self:Count(GRIPDB.blacklist)
+    local blPerm = self:Count(GRIPDB.blacklistPerm)
+    local optOutCount = 0
+    local noResponseCount = 0
+    if type(GRIPDB.blacklistPerm) == "table" then
+      for _, entry in pairs(GRIPDB.blacklistPerm) do
+        if type(entry) == "table" then
+          if entry.reason == "opt-out" then
+            optOutCount = optOutCount + 1
+          elseif entry.reason == "no-response" then
+            noResponseCount = noResponseCount + 1
+          end
+        end
+      end
+    end
+    self:Print(("Potential: %d, WhoQueue: %d/%d, PostQueue: %d"):format(
+      potCount, (state.whoIndex - 1), #state.whoQueue, #state.postQueue))
+    self:Print(("  Blacklist: %d perm, %d temp"):format(blPerm, blTemp))
+    if optOutCount > 0 or noResponseCount > 0 then
+      self:Print(("  Perm breakdown: %d opt-out, %d no-response, %d other"):format(
+        optOutCount, noResponseCount, blPerm - optOutCount - noResponseCount))
+    end
     local sent, cap = self:GetWhisperCapStatus()
     if cap > 0 then
       self:Print(("  Whispers today: %d/%d"):format(sent, cap))

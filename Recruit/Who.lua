@@ -33,6 +33,10 @@ local function HideFriendsWhoUIIfNeeded()
   end
 end
 
+-- Some WoW clients return (numWhos, totalCount) from GetNumWhoResults()
+-- while others swap the two values. This normalizer detects the swap by
+-- checking if numWhos > totalCount (which should never happen under normal
+-- conditions) and corrects it. See Who.lua ProcessWhoResults for usage.
 local function NormalizeWhoCounts(a, b)
   local numWhos = tonumber(a) or 0
   local total = tonumber(b) or 0

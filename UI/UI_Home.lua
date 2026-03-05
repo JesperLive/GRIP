@@ -967,6 +967,53 @@ function GRIP:UI_CreateHome(parent)
   return home
 end
 
+function GRIP:EnsureOnboarding(home)
+  if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then return end
+  if GRIPDB_CHAR.config._onboardingDismissed then return end
+  if home._onboarding then return end
+  local ob = CreateFrame("Frame", nil, home, "BackdropTemplate")
+  ob:SetPoint("TOPLEFT", home.potFrame or home, "TOPLEFT", 10, -10)
+  ob:SetPoint("BOTTOMRIGHT", home.potFrame or home, "BOTTOMRIGHT", -10, 10)
+  ob:SetFrameStrata("DIALOG")
+  ob:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 14,
+    insets = { left = 4, right = 4, top = 4, bottom = 4 },
+  })
+  ob:SetBackdropColor(0.08, 0.08, 0.12, 0.95)
+  ob:SetBackdropBorderColor(1, 0.82, 0, 0.6)
+  local title = ob:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  title:SetPoint("TOP", ob, "TOP", 0, -16)
+  title:SetText("|cffffd100Welcome to GRIP!|r")
+  local body = ob:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  body:SetPoint("TOP", title, "BOTTOM", 0, -12)
+  body:SetPoint("LEFT", ob, "LEFT", 20, 0)
+  body:SetPoint("RIGHT", ob, "RIGHT", -20, 0)
+  body:SetJustifyH("LEFT")
+  body:SetSpacing(4)
+  body:SetText(
+    "|cffffd100Quick Setup:|r\n\n"
+    .. "1. |cffffffffGo to Settings|r tab — set your level range and whisper message\n"
+    .. "2. |cffffffffCustomize filters|r — pick which zones, races, and classes to target\n"
+    .. "3. |cffffffffClick Scan|r — find unguilded players via /who\n"
+    .. "4. |cffffffffClick Whisper+Invite|r — recruit candidates one by one\n\n"
+    .. "|cff888888Tip: Use {player} for the target's name and {guildlink} for a\n"
+    .. "clickable guild link in your whisper message.|r\n\n"
+    .. "|cff888888Type /grip help for all commands.|r"
+  )
+  local dismiss = W.CreateUIButton(ob, "Got it!", 100, 26, function()
+    if _G.GRIPDB_CHAR and GRIPDB_CHAR.config then
+      GRIPDB_CHAR.config._onboardingDismissed = true
+    end
+    ob:Hide()
+    GRIP:UpdateUI()
+  end)
+  dismiss:SetPoint("BOTTOM", ob, "BOTTOM", 0, 16)
+  W.AddButtonAccent(dismiss, 1, 0.82, 0)
+  home._onboarding = ob
+end
+
 function GRIP:UI_UpdateHome()
   if not state.ui or not state.ui.home or not state.ui.home:IsShown() then return end
   local f = state.ui
@@ -1020,6 +1067,12 @@ function GRIP:UI_UpdateHome()
   end
 
   if home._initHint then home._initHint:Hide() end
+
+  self:EnsureOnboarding(home)
+  if home._onboarding and home._onboarding:IsShown() then
+    if home.potEmpty then home.potEmpty:Hide() end
+    if home.potEmptyIcon then home.potEmptyIcon:Hide() end
+  end
 
   local ghostLocked = GRIP.Ghost and GRIP.Ghost.IsSessionLocked and GRIP.Ghost:IsSessionLocked()
   W.SetEnabledSafe(home.btnScan, not ghostLocked)
