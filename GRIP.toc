@@ -23,6 +23,7 @@ Core/GhostMode.lua
 
 # -- Static data
 Data/Maps_Zones.lua
+Data/OptOut_Phrases.lua
 
 # -- Database layer
 DB/DB_Util.lua

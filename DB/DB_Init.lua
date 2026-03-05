@@ -85,6 +85,7 @@ local DEFAULT_DB_CHAR = {
 
     -- Auto-blacklist candidates who reply with opt-out phrases
     optOutDetection = true,
+    optOutLanguages = {"en"},
 
     -- Sound feedback
     soundEnabled = true,

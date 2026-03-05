@@ -48,60 +48,49 @@ local function IncrementWhisperCount()
 end
 
 -- Opt-out detection: two-tier hybrid approach (OPT-6, v0.9.0)
--- SAFE_PHRASES: multi-word/abbreviation phrases matched by plain substring.
---   Low false-positive risk — "no thanks" won't appear in innocent messages.
--- RISKY_PHRASES: single-word phrases matched with word-boundary detection.
---   "no", "stop", "pass" would false-positive as substrings of "know", "nonstop", "passport".
---   MatchWholeWord() ensures they only match as standalone words.
+-- Phrase data lives in Data/OptOut_Phrases.lua (GRIP.OPT_OUT).
+-- SAFE phrases: plain substring matching (fast path, low FP risk).
+-- RISKY phrases: word-boundary matching via MatchWholeWord (single-word, high FP risk without boundaries).
+-- Active language set configured via GRIPDB_CHAR.config.optOutLanguages (OPT-8).
+-- Until OPT-8, defaults to {"en"} only.
 
-local SAFE_PHRASES = {
-  "no thanks",
-  "no thank you",
-  "no ty",
-  "not interested",
-  "no interest",
-  "don't want",
-  "dont want",
-  "leave me alone",
-  "don't whisper",
-  "dont whisper",
-  "don't message",
-  "dont message",
-  "don't contact",
-  "dont contact",
-  "already in a guild",
-  "already guilded",
-  "have a guild",
-  "got a guild",
-  "i'm in a guild",
-  "im in a guild",
-  "reported",
-  "reporting you",
-  "blocked",
-  "nty",
-  "i'll pass",
-  "ill pass",
-  "not for me",
-  "thanks but no thanks",
-  "go away",
-  "fuck off",
-  "piss off",
-  "just looking",
-}
+local activeSafe, activeRisky
 
-local RISKY_PHRASES = {
-  "stop",
-  "spam",
-  "no",
-  "pass",
-  "nope",
-  "nah",
-}
+local function RebuildOptOutPhrases()
+  activeSafe = {}
+  activeRisky = {}
+  local cfg = GRIP:GetCfg()
+  local langs = (cfg and cfg.optOutLanguages) or {"en"}
+  local seen = {}  -- deduplicate across languages
+  for _, lang in ipairs(langs) do
+    local data = GRIP.OPT_OUT and GRIP.OPT_OUT[lang]
+    if data then
+      if data.safe then
+        for _, phrase in ipairs(data.safe) do
+          if not seen[phrase] then
+            seen[phrase] = true
+            activeSafe[#activeSafe + 1] = phrase
+          end
+        end
+      end
+      if data.risky then
+        for _, phrase in ipairs(data.risky) do
+          if not seen[phrase] then
+            seen[phrase] = true
+            activeRisky[#activeRisky + 1] = phrase
+          end
+        end
+      end
+    end
+  end
+end
+
+function GRIP:RebuildOptOutPhrases()
+  RebuildOptOutPhrases()
+end
 
 local function MatchWholeWord(text, word)
-  -- Escape Lua magic characters in the word
   local escaped = word:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
-  -- Pattern: word bounded by non-alphanumeric or string edges
   if text:find("^" .. escaped .. "$") then return true end
   if text:find("^" .. escaped .. "%W") then return true end
   if text:find("%W" .. escaped .. "$") then return true end
@@ -111,16 +100,17 @@ end
 
 local function IsOptOutMessage(text)
   if type(text) ~= "string" or text == "" then return false end
+  if not activeSafe then RebuildOptOutPhrases() end
   local low = text:lower()
   -- Fast path: safe multi-word/abbreviation phrases (plain substring)
-  for i = 1, #SAFE_PHRASES do
-    if low:find(SAFE_PHRASES[i], 1, true) then
+  for i = 1, #activeSafe do
+    if low:find(activeSafe[i], 1, true) then
       return true
     end
   end
   -- Boundary-checked path: risky single-word phrases
-  for i = 1, #RISKY_PHRASES do
-    if MatchWholeWord(low, RISKY_PHRASES[i]) then
+  for i = 1, #activeRisky do
+    if MatchWholeWord(low, activeRisky[i]) then
       return true
     end
   end
