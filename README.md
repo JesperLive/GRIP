@@ -2,7 +2,7 @@
 
 **Target:** Retail / Midnight (12.0.1+)
 **Interface:** 120001
-**Version:** 0.7.0
+**Version:** 1.0.0
 
 [![Discord](https://img.shields.io/badge/Discord-Tempting%20Us-7289da?logo=discord&logoColor=white)](https://discord.gg/temptingus)
 
@@ -35,6 +35,10 @@
 - Campaign cooldown — session fatigue protection with soft warning + hard auto-pause
 - Minimap button + addon compartment support with right-click dropdown
 - Ghost Mode (experimental) — full pipeline automation via invisible overlay frame with combat pause, session limits, and persistent cooldown
+- Invite-first mode — send guild invite before whispering to reduce Silence risk
+- Multilingual opt-out detection (EN/FR/DE/ES) with word-boundary-aware matching
+- Recruitment statistics — 30-day rolling daily stats, hourly bucketing, accept rate, and peak hour analysis
+- First-run onboarding guide for new users
 
 ---
 
@@ -89,6 +93,10 @@ GRIP queues and organizes these actions and provides buttons/keybinds so you can
 - Set post interval (scheduler queues messages only)
 - Use **Post Next** to actually send
 
+### Stats
+- Today / 7-day / 30-day recruitment summaries
+- Accept rate and peak activity hours
+
 ---
 
 ## Minimap Button
@@ -126,6 +134,8 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip post           — send next queued post (hardware event)
 /grip clear          — clear Potential list
 /grip status         — print counts
+/grip stats [7d|30d]     — print recruitment stats summary
+/grip stats reset        — clear stats history
 /grip link           — show guild name + Guild Finder link resolution
 /grip reset          — reset UI window position and size
 
@@ -145,6 +155,7 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 /grip set hidewhispers on|off
 /grip set ghostmode on|off
 /grip set cooldown <min>|on|off
+/grip set invitefirst on|off
 
 /grip templates list
 /grip templates add <message>
@@ -182,6 +193,9 @@ Join our Discord for help, feedback, or feature requests:
 - **Guild Finder listing:** The `{guildlink}` template token only works if your
   guild has an active listing in the Guild Finder. Without one, GRIP falls back
   to your guild name.
+- **Opt-out detection:** GRIP automatically detects rejection replies ("no thanks",
+  "stop", etc.) in English, French, German, and Spanish and blacklists those players.
+  Configure active languages in Settings.
 - **Not affiliated with Blizzard:** GRIP is a third-party addon. Use at your
   own discretion.
 
