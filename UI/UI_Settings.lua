@@ -35,6 +35,37 @@ local function SetAll(list, filterTbl)
   end
 end
 
+local function ToggleOptOutLanguage(lang, checked)
+  if not _G.GRIPDB_CHAR then return end
+  local cfg = GRIPDB_CHAR.config
+  local langs = cfg.optOutLanguages or {"en"}
+  if checked then
+    local found = false
+    for _, l in ipairs(langs) do
+      if l == lang then found = true; break end
+    end
+    if not found then
+      langs[#langs + 1] = lang
+    end
+  else
+    for i = #langs, 1, -1 do
+      if langs[i] == lang then
+        table.remove(langs, i)
+      end
+    end
+  end
+  -- Ensure "en" is always present
+  local hasEN = false
+  for _, l in ipairs(langs) do
+    if l == "en" then hasEN = true; break end
+  end
+  if not hasEN then
+    table.insert(langs, 1, "en")
+  end
+  cfg.optOutLanguages = langs
+  GRIP:RebuildOptOutPhrases()
+end
+
 -- Expansion-aware budgeting for the whisper editor.
 -- We budget in BYTES (Lua #), which is the safest to align with what actually gets sent.
 local function EstimateWhisperRenderedBytes(rawText)
@@ -185,6 +216,12 @@ local function UpdateScrollContentHeight(settings)
   consider(settings.ghostSessionSlider)
   consider(settings.ghostEnabled)
   consider(settings.ghostHdr)
+
+  consider(settings.optOutES)
+  consider(settings.optOutDE)
+  consider(settings.optOutFR)
+  consider(settings.optOutEN)
+  consider(settings.optOutHdr)
 
   consider(settings.soundCapWarning)
   consider(settings.soundScanComplete)
@@ -853,10 +890,50 @@ function GRIP:UI_CreateSettings(parent)
   settings.soundCapWarning:SetPoint("TOPLEFT", settings.soundScanComplete, "BOTTOMLEFT", 0, -2)
   GRIP:AttachTooltip(settings.soundCapWarning, "Cap Warning", "Play a sound when approaching the daily whisper cap.")
 
-  -- Separator: sound feedback → ghost mode
+  -- Separator: sound feedback → opt-out languages
+  settings.sep5 = s:CreateTexture(nil, "ARTWORK")
+  settings.sep5:SetHeight(1)
+  settings.sep5:SetPoint("TOPLEFT", settings.soundCapWarning, "BOTTOMLEFT", -16, -8)
+  settings.sep5:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
+  settings.sep5:SetColorTexture(1, 1, 1, 0.08)
+
+  -- Opt-Out Detection Languages section
+  settings.optOutHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  settings.optOutHdr:SetPoint("TOPLEFT", settings.sep5, "BOTTOMLEFT", 0, -8)
+  settings.optOutHdr:SetText("Opt-Out Detection Languages")
+
+  settings.optOutEN = W.CreateCheckbox(s, "English", function(btn)
+    btn:SetChecked(true)
+    GRIP:Print("English is always enabled for opt-out detection.")
+  end)
+  settings.optOutEN:SetPoint("TOPLEFT", settings.optOutHdr, "BOTTOMLEFT", 0, -4)
+  GRIP:AttachTooltip(settings.optOutEN, "English (Required)", "English opt-out phrases are always active and cannot be disabled.")
+
+  settings.optOutFR = W.CreateCheckbox(s, "Français (French)", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    ToggleOptOutLanguage("fr", btn:GetChecked() and true or false)
+  end)
+  settings.optOutFR:SetPoint("TOPLEFT", settings.optOutEN, "BOTTOMLEFT", 0, -2)
+  GRIP:AttachTooltip(settings.optOutFR, "French Opt-Out Phrases", "Enable French opt-out phrase detection for EU-FR realms.\nPhrases: non merci, pas intéressé, déjà dans une guilde, etc.")
+
+  settings.optOutDE = W.CreateCheckbox(s, "Deutsch (German)", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    ToggleOptOutLanguage("de", btn:GetChecked() and true or false)
+  end)
+  settings.optOutDE:SetPoint("TOPLEFT", settings.optOutFR, "BOTTOMLEFT", 0, -2)
+  GRIP:AttachTooltip(settings.optOutDE, "German Opt-Out Phrases", "Enable German opt-out phrase detection for EU-DE realms.\nPhrases: nein danke, nicht interessiert, hab schon ne gilde, etc.")
+
+  settings.optOutES = W.CreateCheckbox(s, "Español (Spanish)", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    ToggleOptOutLanguage("es", btn:GetChecked() and true or false)
+  end)
+  settings.optOutES:SetPoint("TOPLEFT", settings.optOutDE, "BOTTOMLEFT", 0, -2)
+  GRIP:AttachTooltip(settings.optOutES, "Spanish Opt-Out Phrases", "Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc.")
+
+  -- Separator: opt-out languages → ghost mode
   settings.sep4 = s:CreateTexture(nil, "ARTWORK")
   settings.sep4:SetHeight(1)
-  settings.sep4:SetPoint("TOPLEFT", settings.soundCapWarning, "BOTTOMLEFT", -16, -8)
+  settings.sep4:SetPoint("TOPLEFT", settings.optOutES, "BOTTOMLEFT", 0, -8)
   settings.sep4:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
   settings.sep4:SetColorTexture(1, 1, 1, 0.08)
 
@@ -950,6 +1027,11 @@ function GRIP:UI_UpdateSettings()
     W.SetEnabledSafe(s.soundScanComplete, false)
     W.SetEnabledSafe(s.soundCapWarning, false)
 
+    W.SetEnabledSafe(s.optOutEN, false)
+    W.SetEnabledSafe(s.optOutFR, false)
+    W.SetEnabledSafe(s.optOutDE, false)
+    W.SetEnabledSafe(s.optOutES, false)
+
     W.SetEnabledSafe(s.ghostEnabled, false)
     W.SetEnabledSafe(s.ghostSessionSlider, false)
     W.SetEnabledSafe(s.ghostCooldownSlider, false)
@@ -1034,6 +1116,19 @@ function GRIP:UI_UpdateSettings()
   s.soundInviteAccepted:SetChecked(GRIPDB_CHAR.config.soundInviteAccepted and true or false)
   s.soundScanComplete:SetChecked(GRIPDB_CHAR.config.soundScanComplete and true or false)
   s.soundCapWarning:SetChecked(GRIPDB_CHAR.config.soundCapWarning and true or false)
+
+  -- Opt-out language checkboxes
+  W.SetEnabledSafe(s.optOutEN, true)
+  s.optOutEN:SetChecked(true)  -- always on
+  W.SetEnabledSafe(s.optOutFR, true)
+  W.SetEnabledSafe(s.optOutDE, true)
+  W.SetEnabledSafe(s.optOutES, true)
+  local langs = GRIPDB_CHAR.config.optOutLanguages or {"en"}
+  local langSet = {}
+  for _, l in ipairs(langs) do langSet[l] = true end
+  s.optOutFR:SetChecked(langSet["fr"] and true or false)
+  s.optOutDE:SetChecked(langSet["de"] and true or false)
+  s.optOutES:SetChecked(langSet["es"] and true or false)
 
   -- Ghost Mode
   local ghostOn = GRIPDB_CHAR.config.ghostModeEnabled and true or false
