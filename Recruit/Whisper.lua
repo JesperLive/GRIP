@@ -73,6 +73,19 @@ local OPT_OUT_PHRASES = {
   "reporting you",
   "spam",
   "blocked",
+  -- OPT-1: Safe abbreviations
+  "nty",
+  -- OPT-2: Safe multi-word polite rejections
+  "i'll pass",
+  "ill pass",
+  "not for me",
+  "thanks but no thanks",
+  -- OPT-3: Hostile responses (strong signal to stop)
+  "go away",
+  "fuck off",
+  "piss off",
+  -- OPT-4: WoW-specific soft rejection
+  "just looking",
 }
 
 local function IsOptOutMessage(text)
