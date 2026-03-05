@@ -2,7 +2,7 @@
 ## Title: GRIP – Guild Recruitment Automation
 ## Notes: /who scan for unguilded players, whisper/invite queues, and Trade/General post queue (queued; click/keybind to send).
 ## Author: GRIP
-## Version: 0.8.3
+## Version: 0.8.4
 ## SavedVariables: GRIPDB
 ## SavedVariablesPerCharacter: GRIPDB_CHAR
 ## IconTexture: Interface\Icons\INV_Misc_GroupLooking
