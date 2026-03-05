@@ -471,6 +471,7 @@ function GRIP:CreateUI()
   f.page = CreateFrame("Frame", nil, f)
   f.page:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -56)
   f.page:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 10)
+  f.page:SetClipsChildren(true)
 
   -- Content accent line (subtle gold divider below tabs)
   f.contentAccent = f:CreateTexture(nil, "ARTWORK")

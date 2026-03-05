@@ -63,6 +63,12 @@ function GRIP:PrintHelp()
   self:Print("  /grip zones deep stop - cancel a running deep scan")
   self:Print("  /grip zones export  - write static zones Lua to SavedVariables for copy/paste")
 
+  self:Print("Stats:")
+  self:Print("  /grip stats              - show today's stats")
+  self:Print("  /grip stats 7d           - show last 7 days")
+  self:Print("  /grip stats 30d          - show last 30 days")
+  self:Print("  /grip stats reset        - clear all stats history")
+
   self:Print("Minimap:")
   self:Print("  /grip minimap on|off|toggle - minimap button visibility")
 
@@ -515,6 +521,72 @@ function GRIP:HandleSlash(msg)
       self:Print("  Ghost Mode: enabled (no active session)")
     end
     self:Debug("Status requested.")
+    return
+  end
+
+  if cmd == "stats" then
+    local sub = (rest or ""):lower():gsub("^%s+",""):gsub("%s+$","")
+    if sub == "reset" then
+      if _G.GRIPDB_CHAR and GRIPDB_CHAR.stats then
+        GRIPDB_CHAR.stats = { days = {}, today = nil }
+        self:Print("Stats reset.")
+        self:UpdateUI()
+      end
+      return
+    end
+    -- Determine time window
+    local n, label
+    if sub == "7d" or sub == "week" then
+      n, label = 7, "Last 7 Days"
+    elseif sub == "30d" or sub == "month" then
+      n, label = 30, "Last 30 Days"
+    else
+      n, label = 1, "Today"
+    end
+    self:EnsureStatsToday()
+    local stats = GRIPDB_CHAR.stats
+    if not stats then
+      self:Print("No stats data available.")
+      return
+    end
+    local data
+    local keys = {"whispers","invites","accepted","declined","optOuts","posts","scans"}
+    if n == 1 then
+      data = {}
+      local t = stats.today
+      if t and type(t) == "table" then
+        for _, k in ipairs(keys) do data[k] = t[k] or 0 end
+      else
+        for _, k in ipairs(keys) do data[k] = 0 end
+      end
+    else
+      data = {}
+      for _, k in ipairs(keys) do data[k] = 0 end
+      -- Include today
+      if stats.today and type(stats.today) == "table" then
+        for _, k in ipairs(keys) do data[k] = (stats.today[k] or 0) end
+      end
+      -- Include history (last n-1 entries)
+      if stats.days and type(stats.days) == "table" then
+        local historyCount = n - 1
+        local startIdx = math.max(1, #stats.days - historyCount + 1)
+        for i = startIdx, #stats.days do
+          local day = stats.days[i]
+          if day and type(day) == "table" then
+            for _, k in ipairs(keys) do data[k] = data[k] + (day[k] or 0) end
+          end
+        end
+      end
+    end
+    self:Print(label .. ":")
+    self:Print(("  Whispers: %d | Invites: %d | Accepted: %d | Declined: %d"):format(
+      data.whispers or 0, data.invites or 0, data.accepted or 0, data.declined or 0))
+    self:Print(("  Opt-Outs: %d | Posts: %d | Scans: %d"):format(
+      data.optOuts or 0, data.posts or 0, data.scans or 0))
+    local rate = (data.whispers and data.whispers > 0)
+      and ("%.1f%%"):format(((data.accepted or 0) / data.whispers) * 100)
+      or "N/A"
+    self:Print(("  Accept Rate: %s"):format(rate))
     return
   end
 

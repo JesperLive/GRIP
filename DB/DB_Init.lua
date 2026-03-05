@@ -128,6 +128,9 @@ local DEFAULT_DB_CHAR = {
 
     -- Execution gate diagnostics (opt-in)
     traceExecutionGate = false,
+
+    -- Onboarding overlay dismissed flag
+    _onboardingDismissed = false,
   },
 
   minimap = {
@@ -614,6 +617,7 @@ function GRIP:EnsureStatsToday()
   local st = GRIPDB_CHAR.stats
 
   if st.today and type(st.today) == "table" and st.today.date == today then
+    if type(st.today.hours) ~= "table" then st.today.hours = {} end
     return st.today
   end
 
@@ -627,6 +631,7 @@ function GRIP:EnsureStatsToday()
     date = today,
     whispers = 0, invites = 0, accepted = 0, declined = 0,
     optOuts = 0, posts = 0, scans = 0,
+    hours = {},  -- [0..23] = total action count for that hour
   }
 
   -- Prune to max days (remove oldest from front)
@@ -641,4 +646,10 @@ function GRIP:RecordStat(key)
   local t = self:EnsureStatsToday()
   if not t then return end
   t[key] = (t[key] or 0) + 1
+
+  -- Hourly bucketing
+  if type(t.hours) ~= "table" then t.hours = {} end
+  local ct = C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime()
+  local h = ct and ct.hour or tonumber(date("%H")) or 0
+  t.hours[h] = (t.hours[h] or 0) + 1
 end

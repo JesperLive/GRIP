@@ -969,6 +969,17 @@ end
 
 function GRIP:EnsureOnboarding(home)
   if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then return end
+
+  -- Smart-dismiss: skip onboarding if user already has recruitment data
+  if _G.GRIPDB and (GRIP:Count(GRIPDB.blacklist) > 0 or GRIP:Count(GRIPDB.blacklistPerm) > 0) then
+    return
+  end
+  if _G.GRIPDB_CHAR then
+    if GRIP:Count(GRIPDB_CHAR.potential) > 0 then return end
+    if GRIPDB_CHAR.stats and GRIPDB_CHAR.stats.today and (GRIPDB_CHAR.stats.today.whispers or 0) > 0 then return end
+    if GRIPDB_CHAR.stats and GRIPDB_CHAR.stats.days and #GRIPDB_CHAR.stats.days > 0 then return end
+  end
+
   if GRIPDB_CHAR.config._onboardingDismissed then return end
   if home._onboarding then return end
   local ob = CreateFrame("Frame", nil, home, "BackdropTemplate")

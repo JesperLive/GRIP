@@ -74,6 +74,47 @@ local function FormatRate(accepted, whispers)
   return format("%.1f%%", (accepted / whispers) * 100)
 end
 
+local function FindPeakHour(days, n, today)
+  local hourTotals = {}
+  -- Sum today's hours
+  if today and type(today) == "table" and type(today.hours) == "table" then
+    for h, count in pairs(today.hours) do
+      hourTotals[h] = (hourTotals[h] or 0) + count
+    end
+  end
+  -- Sum history hours (last n-1 entries)
+  if days and type(days) == "table" then
+    local historyCount = n - 1
+    local startIdx = max(1, #days - historyCount + 1)
+    for i = startIdx, #days do
+      local day = days[i]
+      if day and type(day) == "table" and type(day.hours) == "table" then
+        for h, count in pairs(day.hours) do
+          hourTotals[h] = (hourTotals[h] or 0) + count
+        end
+      end
+    end
+  end
+  -- Find peak
+  local peakHour, peakCount = nil, 0
+  for h, count in pairs(hourTotals) do
+    if count > peakCount then
+      peakHour = h
+      peakCount = count
+    end
+  end
+  return peakHour, peakCount
+end
+
+local function FormatHour(h)
+  if not h then return "N/A" end
+  if h == 0 then return "12am"
+  elseif h < 12 then return h .. "am"
+  elseif h == 12 then return "12pm"
+  else return (h - 12) .. "pm"
+  end
+end
+
 -- =========================================================================
 -- Page creation
 -- =========================================================================
@@ -131,9 +172,21 @@ function GRIP:CreateStatsPage(parent)
     section.rateValue:SetPoint("TOPLEFT", page, "TOPLEFT", VALUE_X, y)
     section.rateValue:SetText("N/A")
 
+    y = y - ROW_HEIGHT
+
+    -- Peak Hour row
+    section.peakLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    section.peakLabel:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X + 8, y)
+    section.peakLabel:SetText("Peak Hour")
+    section.peakLabel:SetTextColor(0.6, 0.8, 1, 1)
+
+    section.peakValue = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    section.peakValue:SetPoint("TOPLEFT", page, "TOPLEFT", VALUE_X, y)
+    section.peakValue:SetText("N/A")
+
     y = y - ROW_HEIGHT - SECTION_GAP
 
-    function section:Update(data)
+    function section:Update(data, peakHour, peakCount)
       for _, key in ipairs(STAT_KEYS) do
         local row = self.rows[key]
         if row and row.value then
@@ -141,6 +194,11 @@ function GRIP:CreateStatsPage(parent)
         end
       end
       self.rateValue:SetText(FormatRate(data.accepted or 0, data.whispers or 0))
+      if peakHour then
+        self.peakValue:SetText(format("%s (%d actions)", FormatHour(peakHour), peakCount))
+      else
+        self.peakValue:SetText("N/A")
+      end
     end
 
     return section
@@ -184,13 +242,16 @@ function GRIP:UpdateStatsPage()
       todayData[k] = today[k] or 0
     end
   end
-  if page._sectionToday then page._sectionToday:Update(todayData) end
+  local todayPeakH, todayPeakC = FindPeakHour(nil, 1, today)
+  if page._sectionToday then page._sectionToday:Update(todayData, todayPeakH, todayPeakC) end
 
   -- 7 days: today + last 6 from history
   local data7 = SumDays(days, 7, today)
-  if page._section7d then page._section7d:Update(data7) end
+  local peak7H, peak7C = FindPeakHour(days, 7, today)
+  if page._section7d then page._section7d:Update(data7, peak7H, peak7C) end
 
   -- 30 days: today + last 29 from history
   local data30 = SumDays(days, 30, today)
-  if page._section30d then page._section30d:Update(data30) end
+  local peak30H, peak30C = FindPeakHour(days, 30, today)
+  if page._section30d then page._section30d:Update(data30, peak30H, peak30C) end
 end
