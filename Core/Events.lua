@@ -403,11 +403,12 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
       end
     end
 
-    -- Invite lifecycle: sent (informational only)
+    -- Invite lifecycle: sent (invite delivered to player)
     if PAT_GUILD_INVITE_SENT then
       local who = msg:match(PAT_GUILD_INVITE_SENT)
       if who then
         GRIP:Debug("Invite sent system msg:", who)
+        GRIP:OnInviteSystemSent(who)
       end
     end
 

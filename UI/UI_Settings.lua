@@ -840,7 +840,7 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.inviteFirst = btn:GetChecked() and true or false
   end)
   settings.inviteFirst:SetPoint("TOPLEFT", settings.hideWhisperEcho, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.inviteFirst, "Invite First", "Send guild invite before whisper. Only whispers players\nwho receive and accept the invite.\nReduces risk of reports from players who block invites.")
+  GRIP:AttachTooltip(settings.inviteFirst, "Invite First", "Send guild invite before whisper. Only whispers players\nwho successfully receive the invite.\nReduces risk of reports from players who block invites.")
 
   -- Separator: whisper templates → sound feedback
   settings.sep3 = s:CreateTexture(nil, "ARTWORK")

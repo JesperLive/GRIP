@@ -416,6 +416,36 @@ function GRIP:AutoQueueGhostInvite(name)
   self:UpdateUI()
 end
 
+function GRIP:OnInviteSystemSent(targetName)
+  local cfg = GRIP:GetCfg()
+  local pot = GRIP:GetPotential()
+  if not cfg or not pot then return end
+  local full = GRIP:ResolvePotentialName(targetName)
+  if not full then return end
+  local entry = pot[full]
+  if not entry then return end
+  entry.inviteSent = true
+  -- Invite-first: send whisper now that invite was delivered
+  if cfg.inviteFirst and cfg.whisperEnabled and not entry.whisperAttempted then
+    if not GRIP:BL_ExecutionGate(full, GateCtx("invite-first:sent")) then return end
+    local msg = GRIP:ApplyTemplate(GRIP:PickWhisperTemplate(), full)
+    if not GRIP:IsBlank(msg) then
+      entry.whisperAttempted = true
+      entry.whisperSuccess = nil
+      entry.whisperLastAt = GRIP:Now()
+      state.pendingWhisper = state.pendingWhisper or {}
+      state.pendingWhisper[full] = true
+      GRIP:SendChatMessageCompat(msg, "WHISPER", nil, full)
+      GRIP:Debug("Whisper (invite-first) ->", full)
+    else
+      entry.whisperAttempted = true
+      entry.whisperSuccess = false
+      GRIP:Debug("Whisper (invite-first) blank; skipped:", full)
+    end
+  end
+  GRIP:UpdateUI()
+end
+
 function GRIP:OnInviteSystemSuccess(targetName)
   local cfg = GRIP:GetCfg()
   local pot = GRIP:GetPotential()
@@ -439,24 +469,6 @@ function GRIP:OnInviteSystemSuccess(targetName)
   entry.invitePending = false
   entry.inviteSuccess = true
   self:RecordStat("accepted")
-
-  -- NH-11: Send welcome whisper for invite-first candidates
-  if cfg.inviteFirst and cfg.whisperEnabled and not entry.whisperAttempted then
-    local msg = GRIP:ApplyTemplate(GRIP:PickWhisperTemplate(), full)
-    if not GRIP:IsBlank(msg) then
-      entry.whisperAttempted = true
-      entry.whisperSuccess = nil
-      entry.whisperLastAt = GRIP:Now()
-      state.pendingWhisper = state.pendingWhisper or {}
-      state.pendingWhisper[full] = true
-      GRIP:SendChatMessageCompat(msg, "WHISPER", nil, full)
-      GRIP:Debug("Whisper (invite-first) ->", full)
-    else
-      entry.whisperAttempted = true
-      entry.whisperSuccess = false
-      GRIP:Debug("Whisper (invite-first) blank; skipped:", full)
-    end
-  end
 
   -- Processed => purgeable blacklist (anti-spam)
   self:Blacklist(full, GetBlacklistDays(cfg))
