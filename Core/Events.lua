@@ -200,6 +200,11 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
       GRIP:EnsureWhisperEchoFilter()
     end
 
+    -- FE4: Officer blacklist sync (delayed broadcast scheduled inside InitSync)
+    if GRIP.InitSync then
+      pcall(function() GRIP:InitSync() end)
+    end
+
     eventFrame:UnregisterEvent("ADDON_LOADED")
     GRIP:Debug("ADDON_LOADED complete.")
     return
@@ -246,6 +251,10 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     GRIP:GetGuildName()
     if GRIP:IsDebugEnabled(3) then
       GRIP:Trace("Guild cache warmed on", event, "guild=", GRIP.state._gripLastGuildName or "?")
+    end
+    -- FE4: Trigger sync hash broadcast on roster changes (cooldown-gated inside SyncBroadcastHash)
+    if event == "GUILD_ROSTER_UPDATE" and GRIP.SyncBroadcastHash then
+      pcall(function() GRIP:SyncBroadcastHash() end)
     end
     return
   end

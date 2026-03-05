@@ -48,6 +48,11 @@ function GRIP:AddPotential(fullName, info)
     end
 
     if info.note then p.note = info.note end
+
+    -- FE3: Cache Raider.IO M+ score at add-time
+    if self.IsRaiderIOAvailable and self:IsRaiderIOAvailable() then
+      p.rioScore = self:GetRaiderIOScore(fullName)
+    end
   end
 
   p.firstSeen = p.firstSeen or self:Now()

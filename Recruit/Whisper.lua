@@ -81,6 +81,14 @@ local function RebuildOptOutPhrases()
           end
         end
       end
+      if cfg and cfg.optOutAggressiveEnabled and data.aggressive then
+        for _, phrase in ipairs(data.aggressive) do
+          if not seen[phrase] then
+            seen[phrase] = true
+            activeSafe[#activeSafe + 1] = phrase
+          end
+        end
+      end
     end
   end
 end

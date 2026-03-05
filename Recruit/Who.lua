@@ -394,7 +394,7 @@ function GRIP:SendNextWho()
       end
       self:Debug("SendWho (ghost):", filter)
       C_FriendList.SendWho(filter,
-        Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
+        Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Addon or 1)
       -- F1: Catch any synchronous frame open from SendWho
       HideFriendsWhoUIIfNeeded()
       C_Timer.After(WHO_TIMEOUT, function()
@@ -429,7 +429,7 @@ function GRIP:SendNextWho()
   end
 
   self:Debug("SendWho:", filter)
-  C_FriendList.SendWho(filter, Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Social or 1)
+  C_FriendList.SendWho(filter, Enum.SocialWhoOrigin and Enum.SocialWhoOrigin.Addon or 1)
 
   -- F1: Catch any synchronous frame open from SendWho
   HideFriendsWhoUIIfNeeded()

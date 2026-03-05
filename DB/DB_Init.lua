@@ -37,6 +37,10 @@ local DEFAULT_DB_ACCOUNT = {
     noResponse = {},   -- [fullName] = count
   },
 
+  -- Officer blacklist sync (FE4)
+  syncEnabled = true,
+  lastSyncAt = 0,
+
   schemaVersion = SCHEMA_VERSION_ACCOUNT,
 }
 
@@ -86,6 +90,7 @@ local DEFAULT_DB_CHAR = {
     -- Auto-blacklist candidates who reply with opt-out phrases
     optOutDetection = true,
     optOutLanguages = {"en"},
+    optOutAggressiveEnabled = false,
 
     -- Sound feedback
     soundEnabled = true,
@@ -99,6 +104,10 @@ local DEFAULT_DB_CHAR = {
     campaignCooldownMinutes = 30,
     campaignGapResetMinutes = 5,
     campaignHardPauseEnabled = true,
+
+    -- Raider.IO integration (FE3)
+    rioMinScore = 0,          -- min M+ score filter (0 = disabled)
+    rioShowColumn = true,     -- show M+ column in potential list
 
     -- Ghost Mode
     ghostModeEnabled = false,
@@ -457,6 +466,10 @@ function GRIP:EnsureDB()
   if type(GRIPDB.counters) ~= "table" then GRIPDB.counters = { noResponse = {} } end
   if type(GRIPDB.counters.noResponse) ~= "table" then GRIPDB.counters.noResponse = {} end
 
+  -- Sync defaults (FE4)
+  if type(GRIPDB.syncEnabled) ~= "boolean" then GRIPDB.syncEnabled = true end
+  if type(GRIPDB.lastSyncAt) ~= "number" then GRIPDB.lastSyncAt = 0 end
+
   -- Migrate legacy blacklist string values to blacklistPerm
   MigrateLegacyBlacklistStrings(self)
 
@@ -510,6 +523,10 @@ function GRIP:EnsureDB()
   local cfg = GRIPDB_CHAR.config
   if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB_CHAR.config.whisperDailyCap end
   if type(cfg.optOutDetection) ~= "boolean" then cfg.optOutDetection = DEFAULT_DB_CHAR.config.optOutDetection end
+  if type(cfg.optOutAggressiveEnabled) ~= "boolean" then cfg.optOutAggressiveEnabled = DEFAULT_DB_CHAR.config.optOutAggressiveEnabled end
+
+  if type(cfg.rioMinScore) ~= "number" then cfg.rioMinScore = DEFAULT_DB_CHAR.config.rioMinScore end
+  if type(cfg.rioShowColumn) ~= "boolean" then cfg.rioShowColumn = DEFAULT_DB_CHAR.config.rioShowColumn end
 
   if type(cfg.soundEnabled) ~= "boolean" then cfg.soundEnabled = DEFAULT_DB_CHAR.config.soundEnabled end
   if type(cfg.soundWhisperDone) ~= "boolean" then cfg.soundWhisperDone = DEFAULT_DB_CHAR.config.soundWhisperDone end

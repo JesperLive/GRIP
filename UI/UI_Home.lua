@@ -326,6 +326,7 @@ local function EnsurePotentialTable(home)
   home.hClass  = H("Class")
   home.hRace   = H("Race")
   home.hZone   = H("Zone")
+  home.hRio    = H("M+")
   home.hW      = H("W")
   home.hI      = H("I")
 
@@ -398,6 +399,10 @@ local function EnsurePotentialTable(home)
       row.zone:SetJustifyH("LEFT")
       if row.zone.SetWordWrap then row.zone:SetWordWrap(false) end
 
+      row.rioText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.rioText:SetJustifyH("RIGHT")
+      if row.rioText.SetWordWrap then row.rioText:SetWordWrap(false) end
+
       row.wIcon = row:CreateTexture(nil, "OVERLAY")
       row.wIcon:SetSize(14, 14)
       row.wIcon:Hide()
@@ -448,6 +453,9 @@ local function EnsurePotentialTable(home)
         end
         if e.zone or e.area then
           GameTooltip:AddLine("Zone: " .. (e.zone or e.area or "Unknown"), 0.8, 0.8, 0.6)
+        end
+        if e.rioScore then
+          GameTooltip:AddLine("M+ Score: " .. tostring(e.rioScore), 0.6, 0.8, 1.0)
         end
         if e.whisperAttempted then
           local ws = e.whisperSuccess == true and "|cff00ff00Sent|r" or e.whisperSuccess == false and "|cffff0000Failed|r" or "|cffffff00Pending|r"
@@ -509,6 +517,17 @@ local function EnsurePotentialTable(home)
     ClampFontString(row.zone, cw.zone)
     rx = rx + cw.zone + pad
 
+    -- FE3: Raider.IO M+ column (conditional)
+    if cw.rio and cw.rio > 0 then
+      row.rioText:ClearAllPoints()
+      row.rioText:SetPoint("LEFT", row, "LEFT", rx, 0)
+      ClampFontString(row.rioText, cw.rio)
+      row.rioText:Show()
+      rx = rx + cw.rio + pad
+    else
+      row.rioText:Hide()
+    end
+
     row.wIcon:ClearAllPoints()
     row.wIcon:SetPoint("LEFT", row, "LEFT", rx + 2 + cw.seamPad, 0)
     rx = rx + cw.wi + pad
@@ -552,6 +571,12 @@ local function EnsurePotentialTable(home)
 
     row.race:SetText(e.race or "?")
     row.zone:SetText(e.zone or e.area or "")
+
+    -- FE3: M+ score
+    if cw.rio and cw.rio > 0 then
+      local score = e.rioScore
+      row.rioText:SetText(score and tostring(score) or "\xE2\x80\x94")
+    end
 
     SetStatusIcon(row.wIcon, e.whisperAttempted, e.whisperSuccess, false)
     SetStatusIcon(row.iIcon, e.inviteAttempted, e.inviteSuccess, e.invitePending)
@@ -600,7 +625,13 @@ local function LayoutPotentialTable(home)
   local wWI    = 22
   local wName  = 140
 
+  -- FE3: Raider.IO M+ column (conditional on addon presence + config)
+  local cfg = (_G.GRIPDB_CHAR and GRIPDB_CHAR.config) or {}
+  local showRio = (cfg.rioShowColumn ~= false) and GRIP:IsRaiderIOAvailable()
+  local wRio = showRio and 50 or 0
+
   local fixed = pad + wName + wLvl + wClass + wRace + wWI + wWI + (pad * 6)
+  if wRio > 0 then fixed = fixed + wRio + pad end
   local wZone = usable - fixed
 
   if wZone < 80 then
@@ -637,6 +668,17 @@ local function LayoutPotentialTable(home)
   ClampFontString(home.hZone, wZone)
   x = x + wZone + pad
 
+  -- FE3: M+ header (conditional)
+  if wRio > 0 then
+    home.hRio:ClearAllPoints()
+    home.hRio:SetPoint("LEFT", home.potHeader, "LEFT", x, 0)
+    ClampFontString(home.hRio, wRio)
+    home.hRio:Show()
+    x = x + wRio + pad
+  else
+    home.hRio:Hide()
+  end
+
   home.hW:ClearAllPoints()
   home.hW:SetPoint("LEFT", home.potHeader, "LEFT", x + seamPad, 0)
   ClampFontString(home.hW, wWI)
@@ -649,7 +691,7 @@ local function LayoutPotentialTable(home)
   -- Store column widths for the ScrollBox element initializer
   home._colWidths = {
     name = wName, lvl = wLvl, class = wClass, race = wRace,
-    zone = wZone, wi = wWI, pad = pad, seamPad = seamPad,
+    zone = wZone, rio = wRio, wi = wWI, pad = pad, seamPad = seamPad,
   }
 end
 

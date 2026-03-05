@@ -55,5 +55,11 @@ function GRIP:FiltersAllowWhoInfo(info)
     end
   end
 
+  -- FE3: Raider.IO M+ score filter (optional)
+  if info.fullName and GRIP.RaiderIOFilterAllows and not GRIP:RaiderIOFilterAllows(info.fullName) then
+    GRIP:Debug("RIO filter blocked:", info.fullName)
+    return false
+  end
+
   return true
 end

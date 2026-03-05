@@ -38,9 +38,6 @@ GRIP.OPT_OUT.en = {
     "ill pass",
     "not for me",
     "thanks but no thanks",
-    "go away",
-    "fuck off",
-    "piss off",
     "just looking",
   },
   risky = {
@@ -50,6 +47,14 @@ GRIP.OPT_OUT.en = {
     "pass",
     "nope",
     "nah",
+  },
+  aggressive = {
+    "go away",
+    "fuck off",
+    "piss off",
+    "bugger off",
+    "screw off",
+    "sod off",
   },
 }
 

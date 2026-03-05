@@ -217,6 +217,7 @@ local function UpdateScrollContentHeight(settings)
   consider(settings.ghostEnabled)
   consider(settings.ghostHdr)
 
+  consider(settings.optOutAggressive)
   consider(settings.optOutES)
   consider(settings.optOutDE)
   consider(settings.optOutFR)
@@ -930,16 +931,103 @@ function GRIP:UI_CreateSettings(parent)
   settings.optOutES:SetPoint("TOPLEFT", settings.optOutDE, "BOTTOMLEFT", 0, -2)
   GRIP:AttachTooltip(settings.optOutES, "Spanish Opt-Out Phrases", "Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc.")
 
-  -- Separator: opt-out languages → ghost mode
+  settings.optOutAggressive = W.CreateCheckbox(s, "Aggressive language detection", function(btn)
+    if not _G.GRIPDB_CHAR then return end
+    GRIPDB_CHAR.config.optOutAggressiveEnabled = btn:GetChecked() and true or false
+    GRIP:RebuildOptOutPhrases()
+  end)
+  settings.optOutAggressive:SetPoint("TOPLEFT", settings.optOutES, "BOTTOMLEFT", 0, -8)
+  GRIP:AttachTooltip(settings.optOutAggressive,
+    "Aggressive Language Detection",
+    "Enable detection of explicit/hostile rejection phrases as opt-outs.\n" ..
+    "Phrases: fuck off, piss off, go away, bugger off, screw off, sod off.\n" ..
+    "These are unambiguous rejections with near-zero false positive risk.\n" ..
+    "Default: off.")
+
+  -- Separator: opt-out languages → Raider.IO
+  settings.sepRio = s:CreateTexture(nil, "ARTWORK")
+  settings.sepRio:SetHeight(1)
+  settings.sepRio:SetPoint("TOPLEFT", settings.optOutAggressive, "BOTTOMLEFT", 0, -8)
+  settings.sepRio:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
+  settings.sepRio:SetColorTexture(1, 1, 1, 0.08)
+
+  -- Raider.IO Integration section (FE3)
+  settings.rioHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  settings.rioHdr:SetPoint("TOPLEFT", settings.sepRio, "BOTTOMLEFT", 0, -8)
+  settings.rioHdr:SetText("Raider.IO Integration")
+
+  settings.rioNote = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  settings.rioNote:SetPoint("TOPLEFT", settings.rioHdr, "BOTTOMLEFT", 0, -4)
+  settings.rioNote:SetJustifyH("LEFT")
+  if settings.rioNote.SetWordWrap then settings.rioNote:SetWordWrap(true) end
+  settings.rioNote:SetText("Requires the Raider.IO addon to be installed.")
+
+  settings.rioMinScoreLabel = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  settings.rioMinScoreLabel:SetPoint("TOPLEFT", settings.rioNote, "BOTTOMLEFT", 0, -8)
+  settings.rioMinScoreLabel:SetText("Minimum M+ Score (0 = disabled):")
+
+  settings.rioMinScoreEB = CreateFrame("EditBox", nil, s, "InputBoxTemplate")
+  settings.rioMinScoreEB:SetSize(60, 20)
+  settings.rioMinScoreEB:SetPoint("LEFT", settings.rioMinScoreLabel, "RIGHT", 8, 0)
+  settings.rioMinScoreEB:SetAutoFocus(false)
+  settings.rioMinScoreEB:SetNumeric(true)
+  settings.rioMinScoreEB:SetMaxLetters(5)
+  settings.rioMinScoreEB:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+  settings.rioMinScoreEB:SetScript("OnEscapePressed", function(self)
+    self:ClearFocus()
+    if GRIP.state.ui and GRIP.state.ui.frame then GRIP.state.ui.frame:Hide() end
+  end)
+  settings.rioMinScoreEB:SetScript("OnTextChanged", function(self, userInput)
+    if not userInput then return end
+    if not HasDB() then return end
+    local n = tonumber(self:GetText()) or 0
+    if n < 0 then n = 0 end
+    GRIPDB_CHAR.config.rioMinScore = n
+  end)
+
+  settings.rioShowColumn = W.CreateCheckbox(s, "Show M+ column in Potential list", function(btn)
+    if not HasDB() then btn:SetChecked(true) return end
+    GRIPDB_CHAR.config.rioShowColumn = btn:GetChecked() and true or false
+    GRIP:UpdateUI()
+  end)
+  settings.rioShowColumn:SetPoint("TOPLEFT", settings.rioMinScoreLabel, "BOTTOMLEFT", 0, -8)
+  GRIP:AttachTooltip(settings.rioShowColumn, "M+ Column", "Show the M+ score column in the Home page Potential list.\nOnly visible when Raider.IO addon is installed.")
+
+  -- Separator: Raider.IO → sync
   settings.sep4 = s:CreateTexture(nil, "ARTWORK")
   settings.sep4:SetHeight(1)
-  settings.sep4:SetPoint("TOPLEFT", settings.optOutES, "BOTTOMLEFT", 0, -8)
+  settings.sep4:SetPoint("TOPLEFT", settings.rioShowColumn, "BOTTOMLEFT", 0, -8)
   settings.sep4:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
   settings.sep4:SetColorTexture(1, 1, 1, 0.08)
 
+  -- Officer Blacklist Sync section (FE4)
+  settings.syncHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  settings.syncHdr:SetPoint("TOPLEFT", settings.sep4, "BOTTOMLEFT", 0, -8)
+  settings.syncHdr:SetText("Officer Blacklist Sync")
+
+  settings.syncEnabled = W.CreateCheckbox(s, "Enable officer blacklist sync", function(btn)
+    if not _G.GRIPDB then btn:SetChecked(false) return end
+    GRIPDB.syncEnabled = btn:GetChecked() and true or false
+    if GRIPDB.syncEnabled and GRIP.InitSync then
+      pcall(function() GRIP:InitSync() end)
+    end
+  end)
+  settings.syncEnabled:SetPoint("TOPLEFT", settings.syncHdr, "BOTTOMLEFT", 0, -4)
+  GRIP:AttachTooltip(settings.syncEnabled, "Blacklist Sync",
+    "Syncs permanent blacklist entries between guild officers running GRIP.\n"
+    .. "Uses guild chat channel (invisible to players).\n"
+    .. "Entries are only added, never removed (set-union merge).")
+
+  -- Separator: sync → ghost mode
+  settings.sep5 = s:CreateTexture(nil, "ARTWORK")
+  settings.sep5:SetHeight(1)
+  settings.sep5:SetPoint("TOPLEFT", settings.syncEnabled, "BOTTOMLEFT", 0, -8)
+  settings.sep5:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
+  settings.sep5:SetColorTexture(1, 1, 1, 0.08)
+
   -- Ghost Mode section
   settings.ghostHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  settings.ghostHdr:SetPoint("TOPLEFT", settings.sep4, "BOTTOMLEFT", 0, -8)
+  settings.ghostHdr:SetPoint("TOPLEFT", settings.sep5, "BOTTOMLEFT", 0, -8)
   settings.ghostHdr:SetText("Ghost Mode (Experimental)")
 
   settings.ghostEnabled = W.CreateCheckbox(s, "Enable Ghost Mode", function(btn)
@@ -1031,6 +1119,9 @@ function GRIP:UI_UpdateSettings()
     W.SetEnabledSafe(s.optOutFR, false)
     W.SetEnabledSafe(s.optOutDE, false)
     W.SetEnabledSafe(s.optOutES, false)
+    W.SetEnabledSafe(s.optOutAggressive, false)
+
+    W.SetEnabledSafe(s.syncEnabled, false)
 
     W.SetEnabledSafe(s.ghostEnabled, false)
     W.SetEnabledSafe(s.ghostSessionSlider, false)
@@ -1129,6 +1220,51 @@ function GRIP:UI_UpdateSettings()
   s.optOutFR:SetChecked(langSet["fr"] and true or false)
   s.optOutDE:SetChecked(langSet["de"] and true or false)
   s.optOutES:SetChecked(langSet["es"] and true or false)
+
+  W.SetEnabledSafe(s.optOutAggressive, not ghostLocked)
+  s.optOutAggressive:SetChecked(GRIPDB_CHAR.config.optOutAggressiveEnabled and true or false)
+
+  -- Raider.IO section (FE3)
+  local rioAvailable = GRIP:IsRaiderIOAvailable()
+  local rioEnabled = rioAvailable and not ghostLocked
+  if s.rioNote then
+    if rioAvailable then
+      s.rioNote:SetText("Raider.IO addon detected.")
+      s.rioNote:SetTextColor(0.4, 0.8, 0.4)
+    else
+      s.rioNote:SetText("Raider.IO addon not installed. Controls are disabled.")
+      s.rioNote:SetTextColor(0.5, 0.5, 0.5)
+    end
+  end
+  W.SetEnabledSafe(s.rioMinScoreEB, rioEnabled)
+  if s.rioMinScoreEB and not s.rioMinScoreEB:HasFocus() then
+    s.rioMinScoreEB:SetText(tostring(GRIPDB_CHAR.config.rioMinScore or 0))
+  end
+  W.SetEnabledSafe(s.rioShowColumn, rioEnabled)
+  if s.rioShowColumn then
+    s.rioShowColumn:SetChecked(GRIPDB_CHAR.config.rioShowColumn ~= false)
+  end
+  -- Dim the header when RIO not available
+  if s.rioHdr then
+    if rioAvailable then
+      s.rioHdr:SetTextColor(1, 0.82, 0)
+    else
+      s.rioHdr:SetTextColor(0.5, 0.5, 0.5)
+    end
+  end
+  if s.rioMinScoreLabel then
+    if rioAvailable then
+      s.rioMinScoreLabel:SetTextColor(1, 1, 1)
+    else
+      s.rioMinScoreLabel:SetTextColor(0.5, 0.5, 0.5)
+    end
+  end
+
+  -- Officer Blacklist Sync (FE4)
+  W.SetEnabledSafe(s.syncEnabled, true)
+  if s.syncEnabled then
+    s.syncEnabled:SetChecked(_G.GRIPDB and GRIPDB.syncEnabled ~= false)
+  end
 
   -- Ghost Mode
   local ghostOn = GRIPDB_CHAR.config.ghostModeEnabled and true or false

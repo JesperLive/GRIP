@@ -2,7 +2,7 @@
 ## Title: GRIP – Guild Recruitment Automation
 ## Notes: /who scan for unguilded players, whisper/invite queues, and Trade/General post queue (queued; click/keybind to send).
 ## Author: Sataana
-## Version: 1.0.0
+## Version: 1.3.0
 ## SavedVariables: GRIPDB
 ## SavedVariablesPerCharacter: GRIPDB_CHAR
 ## IconTexture: Interface\Icons\INV_Misc_GroupLooking
@@ -12,6 +12,14 @@
 ## X-Curse-Project-ID: 1477526
 ## X-Wago-ID: L6J97yNv
 ## X-WoWI-ID: 27072
+
+# -- Libraries (loaded before addon code)
+Libs/LibStub/LibStub.lua
+Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua
+Libs/ChatThrottleLib/ChatThrottleLib.lua
+Libs/AceComm-3.0/AceComm-3.0.lua
+Libs/LibSerialize/lib.xml
+Libs/LibDeflate/lib.xml
 
 # -- Core bootstrap (must load first)
 Core/Core.lua
@@ -30,11 +38,13 @@ DB/DB_Util.lua
 DB/DB_Zones.lua
 DB/DB_Init.lua
 DB/DB_Blacklist.lua
+Sync/Sync.lua
 
 # -- Hooks (depend on DB + gate)
 Hooks/UnitPopupInvite.lua
 
 DB/DB_Filters.lua
+DB/DB_RaiderIO.lua
 DB/DB_Potential.lua
 
 # -- Recruitment pipeline (who → whisper → invite → post)

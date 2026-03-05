@@ -35,6 +35,7 @@ local POST_INTERVAL_MIN       = 1
 local POST_INTERVAL_MAX       = 180
 local COOLDOWN_MIN            = 5
 local COOLDOWN_MAX            = 120
+local SYNC_COOLDOWN           = 3600
 
 local function SplitArgs(msg)
   msg = (msg or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -64,6 +65,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip templates list|add|remove|rotation  - manage whisper templates")
   self:Print("  /grip permbl list|add|remove|clear   - manage permanent blacklist (ignore list)")
   self:Print("  /grip ghost [start|stop|status]       - Ghost Mode session control")
+  self:Print("  /grip sync [on|off|now]              - officer blacklist sync")
   self:Print("  /grip reset              - reset UI window position and size to defaults")
   self:Print("  /grip tracegate on|off|toggle        - execution gate diagnostics (trace mode)")
 
@@ -104,10 +106,13 @@ function GRIP:PrintHelp()
   self:Print("  /grip set hidewhispers on|off            (hide outgoing whisper echoes in chat)")
   self:Print("  /grip set dailycap <number>              (daily whisper cap; 0 = unlimited)")
   self:Print("  /grip set optout on|off                  (auto-blacklist opt-out replies)")
+  self:Print("  /grip set aggressive on|off              (detect explicit/hostile rejections)")
   self:Print("  /grip set sound on|off                   (master toggle for sound feedback)")
   self:Print("  /grip set ghostmode on|off               (experimental: queue CHANNEL sends)")
   self:Print("  /grip set invitefirst on|off             (send invite before whisper)")
   self:Print("  /grip set cooldown <min>|on|off           (campaign cooldown break reminder)")
+  self:Print("  /grip set riominscore <number>            (Raider.IO min M+ score; 0 = off)")
+  self:Print("  /grip set riocolumn on|off                (show/hide M+ column in Potential list)")
   self:Print("Note: {guildlink} in whisper/post messages requires an active Guild Finder listing.")
 end
 
@@ -326,6 +331,50 @@ function GRIP:HandleSlash(msg)
     return
   end
 
+  if cmd == "sync" then
+    local sub = (rest or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+
+    if sub == "on" then
+      if not _G.GRIPDB then self:Print("GRIPDB not initialized.") return end
+      GRIPDB.syncEnabled = true
+      self:Print("Officer blacklist sync: ON")
+      if self.InitSync then pcall(function() self:InitSync() end) end
+      return
+    end
+
+    if sub == "off" then
+      if not _G.GRIPDB then self:Print("GRIPDB not initialized.") return end
+      GRIPDB.syncEnabled = false
+      self:Print("Officer blacklist sync: OFF")
+      return
+    end
+
+    if sub == "now" then
+      if self.SyncForceNow then
+        self:SyncForceNow()
+      else
+        self:Print("Sync module not loaded.")
+      end
+      return
+    end
+
+    -- Default: status
+    local info = self.GetSyncStatus and self:GetSyncStatus() or {}
+    self:Print(("Sync: %s (libs=%s, guild=%s, hash=%s)"):format(
+      info.enabled and "ON" or "OFF",
+      info.libsLoaded and "ok" or "missing",
+      info.inGuild and "yes" or "no",
+      info.hash or "?"
+    ))
+    if info.lastSyncAt and info.lastSyncAt > 0 then
+      local ago = math.floor(time() - info.lastSyncAt)
+      self:Print(("  Last broadcast: %ds ago (cooldown: %ds)"):format(ago, SYNC_COOLDOWN or 3600))
+    else
+      self:Print("  Last broadcast: never")
+    end
+    return
+  end
+
   if cmd == "permbl" or cmd == "permblacklist" then
     local sub, subrest = SplitArgs(rest)
     subrest = GRIP:Trim(subrest)
@@ -538,6 +587,10 @@ function GRIP:HandleSlash(msg)
         elapsed, state.ghost.sessionActionCount or 0, GRIP.Ghost:GetNumPending()))
     elseif cfg_s.ghostModeEnabled then
       self:Print("  Ghost Mode: enabled (no active session)")
+    end
+    -- Sync status
+    if _G.GRIPDB then
+      self:Print(("  Sync: %s"):format(GRIPDB.syncEnabled ~= false and "ON" or "OFF"))
     end
     self:Debug("Status requested.")
     return
@@ -964,6 +1017,15 @@ function GRIP:HandleSlash(msg)
       return
     end
 
+    if key == "aggressive" then
+      local low = (val or ""):lower()
+      local v = (low == "on" or low == "1" or low == "true" or low == "yes")
+      GRIPDB_CHAR.config.optOutAggressiveEnabled = v
+      if self.RebuildOptOutPhrases then self:RebuildOptOutPhrases() end
+      self:Print("Aggressive opt-out detection: " .. (v and "ON" or "OFF"))
+      return
+    end
+
     if key == "sound" or key == "sounds" then
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
@@ -985,6 +1047,32 @@ function GRIP:HandleSlash(msg)
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       cfg.inviteFirst = v
       self:Print("Invite-first mode: " .. (v and "ON" or "OFF"))
+      return
+    end
+
+    if key == "riominscore" or key == "riominimum" then
+      local n = tonumber(val)
+      if not n or n < 0 then
+        self:Print("Usage: /grip set riominscore <number> (0 = disabled)")
+        return
+      end
+      n = math.floor(n)
+      cfg.rioMinScore = n
+      if n == 0 then
+        self:Print("Raider.IO minimum score filter disabled.")
+      else
+        self:Print(("Raider.IO minimum M+ score set to %d."):format(n))
+      end
+      self:UpdateUI()
+      return
+    end
+
+    if key == "riocolumn" then
+      local low = (val or ""):lower()
+      local v = (low == "on" or low == "1" or low == "true" or low == "yes")
+      cfg.rioShowColumn = v
+      self:Print("M+ score column: " .. (v and "ON" or "OFF"))
+      self:UpdateUI()
       return
     end
 

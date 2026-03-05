@@ -8,6 +8,26 @@ license-output: LICENSE
 
 enable-nolib-creation: no
 
+externals:
+  Libs/LibStub:
+    url: https://repos.curseforge.com/wow/libstub/trunk
+    tag: latest
+  Libs/CallbackHandler-1.0:
+    url: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+    tag: latest
+  Libs/ChatThrottleLib:
+    url: https://repos.curseforge.com/wow/chatthrottlelib/trunk
+    tag: latest
+  Libs/AceComm-3.0:
+    url: https://repos.curseforge.com/wow/ace3/trunk/AceComm-3.0
+    tag: latest
+  Libs/LibSerialize:
+    url: https://github.com/rossnichols/LibSerialize
+    tag: latest
+  Libs/LibDeflate:
+    url: https://github.com/SafeteeWoW/LibDeflate
+    tag: latest
+
 ignore:
   - "*.md"
   - "*.yml"
