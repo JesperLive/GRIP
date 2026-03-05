@@ -169,6 +169,7 @@ local function UpdateScrollContentHeight(settings)
   end
 
   consider(settings.hideWhisperEcho)
+  consider(settings.inviteFirst)
   consider(settings.whisperRotRand)
   consider(settings.whisperRotSeq)
   consider(settings.whisperRotLbl)
@@ -796,10 +797,18 @@ function GRIP:UI_CreateSettings(parent)
   settings.hideWhisperEcho:SetPoint("TOPLEFT", settings.whisperSave, "BOTTOMLEFT", 0, -6)
   GRIP:AttachTooltip(settings.hideWhisperEcho, "Hide Whisper Echoes", "Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment.")
 
+  -- NH-11: Invite-first mode checkbox
+  settings.inviteFirst = W.CreateCheckbox(s, "Invite first (safer)", function(btn)
+    if not HasDB() then btn:SetChecked(false) return end
+    GRIPDB_CHAR.config.inviteFirst = btn:GetChecked() and true or false
+  end)
+  settings.inviteFirst:SetPoint("TOPLEFT", settings.hideWhisperEcho, "BOTTOMLEFT", 0, -2)
+  GRIP:AttachTooltip(settings.inviteFirst, "Invite First", "Send guild invite before whisper. Only whispers players\nwho receive and accept the invite.\nReduces risk of reports from players who block invites.")
+
   -- Separator: whisper templates → sound feedback
   settings.sep3 = s:CreateTexture(nil, "ARTWORK")
   settings.sep3:SetHeight(1)
-  settings.sep3:SetPoint("TOPLEFT", settings.hideWhisperEcho, "BOTTOMLEFT", 0, -8)
+  settings.sep3:SetPoint("TOPLEFT", settings.inviteFirst, "BOTTOMLEFT", 0, -8)
   settings.sep3:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
   settings.sep3:SetColorTexture(1, 1, 1, 0.08)
 
@@ -933,6 +942,7 @@ function GRIP:UI_UpdateSettings()
     W.SetEnabledSafe(s.whisperRotSeq, false)
     W.SetEnabledSafe(s.whisperRotRand, false)
     W.SetEnabledSafe(s.hideWhisperEcho, false)
+    W.SetEnabledSafe(s.inviteFirst, false)
 
     W.SetEnabledSafe(s.soundEnabled, false)
     W.SetEnabledSafe(s.soundWhisperDone, false)
@@ -979,6 +989,7 @@ function GRIP:UI_UpdateSettings()
   W.SetEnabledSafe(s.whisperRotSeq, true)
   W.SetEnabledSafe(s.whisperRotRand, true)
   W.SetEnabledSafe(s.hideWhisperEcho, true)
+  W.SetEnabledSafe(s.inviteFirst, true)
 
   W.SetTextIfUnfocused(s.minEdit, tostring(GRIPDB_CHAR.config.scanMinLevel or 1))
   W.SetTextIfUnfocused(s.maxEdit, tostring(GRIPDB_CHAR.config.scanMaxLevel or 90))
@@ -1009,6 +1020,7 @@ function GRIP:UI_UpdateSettings()
 
   -- Whisper echo suppression
   s.hideWhisperEcho:SetChecked(GRIPDB_CHAR.config.suppressWhisperEcho and true or false)
+  s.inviteFirst:SetChecked(GRIPDB_CHAR.config.inviteFirst and true or false)
 
   -- Sound checkboxes
   local soundOn = GRIPDB_CHAR.config.soundEnabled and true or false

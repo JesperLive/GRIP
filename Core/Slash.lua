@@ -81,6 +81,7 @@ function GRIP:PrintHelp()
   self:Print("  /grip set optout on|off                  (auto-blacklist opt-out replies)")
   self:Print("  /grip set sound on|off                   (master toggle for sound feedback)")
   self:Print("  /grip set ghostmode on|off               (experimental: queue CHANNEL sends)")
+  self:Print("  /grip set invitefirst on|off             (send invite before whisper)")
   self:Print("  /grip set cooldown <min>|on|off           (campaign cooldown break reminder)")
   self:Print("Note: {guildlink} in whisper/post messages requires an active Guild Finder listing.")
 end
@@ -869,6 +870,14 @@ function GRIP:HandleSlash(msg)
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       cfg.ghostModeEnabled = v
       self:Print("Ghost Mode: " .. (v and "ON (experimental)" or "OFF"))
+      return
+    end
+
+    if key == "invitefirst" then
+      local low = (val or ""):lower()
+      local v = (low == "on" or low == "1" or low == "true" or low == "yes")
+      cfg.inviteFirst = v
+      self:Print("Invite-first mode: " .. (v and "ON" or "OFF"))
       return
     end
 

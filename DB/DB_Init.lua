@@ -70,6 +70,8 @@ local DEFAULT_DB_CHAR = {
     -- Invite settings
     inviteEnabled = true,
     blacklistDays = 14,
+    -- Invite-first mode: send invite before whisper (safer)
+    inviteFirst = false,
 
     -- Trade/General posts (queued; click to send)
     postEnabled = true,

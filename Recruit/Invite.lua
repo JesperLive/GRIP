@@ -221,7 +221,7 @@ function GRIP:InviteNext()
   local didUIChange = false
 
   -- Whisper (not #hwevent restricted, but we do it here so one click = one candidate)
-  if cfg.whisperEnabled and not entry.whisperAttempted then
+  if cfg.whisperEnabled and not entry.whisperAttempted and not cfg.inviteFirst then
     -- Gate before whisper execution.
     if InviteBlacklistGate(name, pot, cfg, "whisper", GateCtx("whisper:pre")) then
       didUIChange = true
@@ -324,7 +324,7 @@ function GRIP:InviteNext()
     end
   end)
 
-  if cfg.whisperEnabled then
+  if cfg.whisperEnabled and not cfg.inviteFirst then
     self:Print(("Whispered+Invited (attempt): %s"):format(name))
   else
     self:Print(("Invited (attempt): %s"):format(name))
@@ -432,6 +432,24 @@ function GRIP:OnInviteSystemSuccess(targetName)
   state.pendingInvite[full] = nil
   entry.invitePending = false
   entry.inviteSuccess = true
+
+  -- NH-11: Send welcome whisper for invite-first candidates
+  if cfg.inviteFirst and cfg.whisperEnabled and not entry.whisperAttempted then
+    local msg = GRIP:ApplyTemplate(GRIP:PickWhisperTemplate(), full)
+    if not GRIP:IsBlank(msg) then
+      entry.whisperAttempted = true
+      entry.whisperSuccess = nil
+      entry.whisperLastAt = GRIP:Now()
+      state.pendingWhisper = state.pendingWhisper or {}
+      state.pendingWhisper[full] = true
+      GRIP:SendChatMessageCompat(msg, "WHISPER", nil, full)
+      GRIP:Debug("Whisper (invite-first) ->", full)
+    else
+      entry.whisperAttempted = true
+      entry.whisperSuccess = false
+      GRIP:Debug("Whisper (invite-first) blank; skipped:", full)
+    end
+  end
 
   -- Processed => purgeable blacklist (anti-spam)
   self:Blacklist(full, GetBlacklistDays(cfg))

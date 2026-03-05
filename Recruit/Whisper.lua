@@ -252,7 +252,8 @@ function GRIP:BuildWhisperQueue()
   if IsDailyCapReached(cfg) then return end
 
   for name, entry in pairs(pot) do
-    if entry and not entry.whisperAttempted and not IsWhisperBlocked(name, GateCtx("build")) then
+    if entry and not entry.whisperAttempted and not IsWhisperBlocked(name, GateCtx("build"))
+       and not (cfg.inviteFirst and not entry.inviteSuccess) then
       state.whisperQueue[#state.whisperQueue + 1] = name
     end
   end
