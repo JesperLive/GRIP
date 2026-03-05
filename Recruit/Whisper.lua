@@ -47,7 +47,14 @@ local function IncrementWhisperCount()
   GRIPDB_CHAR.counters.whispersSent = (GRIPDB_CHAR.counters.whispersSent or 0) + 1
 end
 
-local OPT_OUT_PHRASES = {
+-- Opt-out detection: two-tier hybrid approach (OPT-6, v0.9.0)
+-- SAFE_PHRASES: multi-word/abbreviation phrases matched by plain substring.
+--   Low false-positive risk — "no thanks" won't appear in innocent messages.
+-- RISKY_PHRASES: single-word phrases matched with word-boundary detection.
+--   "no", "stop", "pass" would false-positive as substrings of "know", "nonstop", "passport".
+--   MatchWholeWord() ensures they only match as standalone words.
+
+local SAFE_PHRASES = {
   "no thanks",
   "no thank you",
   "no ty",
@@ -55,7 +62,6 @@ local OPT_OUT_PHRASES = {
   "no interest",
   "don't want",
   "dont want",
-  "stop",
   "leave me alone",
   "don't whisper",
   "dont whisper",
@@ -71,28 +77,50 @@ local OPT_OUT_PHRASES = {
   "im in a guild",
   "reported",
   "reporting you",
-  "spam",
   "blocked",
-  -- OPT-1: Safe abbreviations
   "nty",
-  -- OPT-2: Safe multi-word polite rejections
   "i'll pass",
   "ill pass",
   "not for me",
   "thanks but no thanks",
-  -- OPT-3: Hostile responses (strong signal to stop)
   "go away",
   "fuck off",
   "piss off",
-  -- OPT-4: WoW-specific soft rejection
   "just looking",
 }
+
+local RISKY_PHRASES = {
+  "stop",
+  "spam",
+  "no",
+  "pass",
+  "nope",
+  "nah",
+}
+
+local function MatchWholeWord(text, word)
+  -- Escape Lua magic characters in the word
+  local escaped = word:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+  -- Pattern: word bounded by non-alphanumeric or string edges
+  if text:find("^" .. escaped .. "$") then return true end
+  if text:find("^" .. escaped .. "%W") then return true end
+  if text:find("%W" .. escaped .. "$") then return true end
+  if text:find("%W" .. escaped .. "%W") then return true end
+  return false
+end
 
 local function IsOptOutMessage(text)
   if type(text) ~= "string" or text == "" then return false end
   local low = text:lower()
-  for i = 1, #OPT_OUT_PHRASES do
-    if low:find(OPT_OUT_PHRASES[i], 1, true) then
+  -- Fast path: safe multi-word/abbreviation phrases (plain substring)
+  for i = 1, #SAFE_PHRASES do
+    if low:find(SAFE_PHRASES[i], 1, true) then
+      return true
+    end
+  end
+  -- Boundary-checked path: risky single-word phrases
+  for i = 1, #RISKY_PHRASES do
+    if MatchWholeWord(low, RISKY_PHRASES[i]) then
       return true
     end
   end
