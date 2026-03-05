@@ -50,6 +50,7 @@ UI/UI_Home_Menu.lua
 UI/UI_Home.lua
 UI/UI_Settings.lua
 UI/UI_Ads.lua
+UI/UI_Stats.lua
 UI/UI.lua
 UI/Minimap.lua
 

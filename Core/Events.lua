@@ -223,6 +223,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
   if event == "WHO_LIST_UPDATE" then
     GRIP:Debug("WHO_LIST_UPDATE received.")
     GRIP:OnWhoListUpdate()
+    GRIP:RecordStat("scans")
     return
   end
 

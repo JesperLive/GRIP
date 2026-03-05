@@ -193,6 +193,9 @@ local function CallActiveLayoutHook(f)
   elseif which == "home" then
     if GRIP.UI_LayoutHome then pcall(GRIP.UI_LayoutHome, GRIP) end
     return
+  elseif which == "stats" then
+    -- Stats page has no dynamic layout hook yet
+    return
   end
 
   -- Fallback if _activePage is missing/invalid.
@@ -239,6 +242,8 @@ local function DispatchUpdateUI(self)
     if self.UI_UpdateSettings then pcall(self.UI_UpdateSettings, self) end
   elseif state.ui.ads and state.ui.ads.IsShown and state.ui.ads:IsShown() then
     if self.UI_UpdateAds then pcall(self.UI_UpdateAds, self) end
+  elseif state.ui.stats and state.ui.stats.IsShown and state.ui.stats:IsShown() then
+    if self.UpdateStatsPage then pcall(self.UpdateStatsPage, self) end
   end
 end
 
@@ -455,6 +460,9 @@ function GRIP:CreateUI()
   f.btnAds = W.CreateUIButton(f, "Ads", 70, 20, function() GRIP:ShowPage("ads") end)
   f.btnAds:SetPoint("LEFT", f.btnSettings, "RIGHT", 6, 0)
 
+  f.btnStats = W.CreateUIButton(f, "Stats", 70, 20, function() GRIP:ShowPage("stats") end)
+  f.btnStats:SetPoint("LEFT", f.btnAds, "RIGHT", 6, 0)
+
   -- Active tab underline (gold accent)
   f.tabUnderline = f:CreateTexture(nil, "ARTWORK")
   f.tabUnderline:SetHeight(2)
@@ -474,6 +482,7 @@ function GRIP:CreateUI()
   f.home = SafeCreatePage("UI_CreateHome", f.page)
   f.settings = SafeCreatePage("UI_CreateSettings", f.page)
   f.ads = SafeCreatePage("UI_CreateAds", f.page)
+  f.stats = SafeCreatePage("CreateStatsPage", f.page)
 
   f._activePage = "home"
   f._scanCooldownUntil = 0
@@ -596,11 +605,15 @@ function GRIP:ShowPage(which)
   if f.home and f.home.Hide then f.home:Hide() end
   if f.settings and f.settings.Hide then f.settings:Hide() end
   if f.ads and f.ads.Hide then f.ads:Hide() end
+  if f.stats and f.stats.Hide then f.stats:Hide() end
 
   if which == "settings" then
     if f.settings and f.settings.Show then f.settings:Show() end
   elseif which == "ads" then
     if f.ads and f.ads.Show then f.ads:Show() end
+  elseif which == "stats" then
+    if f.stats and f.stats.Show then f.stats:Show() end
+    GRIP:UpdateStatsPage()
   else
     if f.home and f.home.Show then f.home:Show() end
     which = "home"
@@ -610,10 +623,14 @@ function GRIP:ShowPage(which)
   TabStyle(f.btnHome, which == "home")
   TabStyle(f.btnSettings, which == "settings")
   TabStyle(f.btnAds, which == "ads")
+  TabStyle(f.btnStats, which == "stats")
 
   -- Position tab underline under the active tab
   if f.tabUnderline then
-    local activeBtn = (which == "settings") and f.btnSettings or (which == "ads") and f.btnAds or f.btnHome
+    local activeBtn = (which == "settings") and f.btnSettings
+      or (which == "ads") and f.btnAds
+      or (which == "stats") and f.btnStats
+      or f.btnHome
     f.tabUnderline:ClearAllPoints()
     f.tabUnderline:SetPoint("BOTTOMLEFT", activeBtn, "BOTTOMLEFT", 0, -1)
     f.tabUnderline:SetPoint("BOTTOMRIGHT", activeBtn, "BOTTOMRIGHT", 0, -1)

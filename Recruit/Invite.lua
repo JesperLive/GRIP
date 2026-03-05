@@ -284,6 +284,7 @@ function GRIP:InviteNext()
     GRIP.Ghost:QueueAction("invite", function()
       GRIP:SafeGuildInvite(inviteName)
       GRIP:RecordCampaignAction("invite")
+      GRIP:RecordStat("invites")
       GRIP:Debug("GuildInvite (ghost) ->", inviteName)
     end, { target = inviteName })
     self:Print(("Queued invite (Ghost): %s"):format(name))
@@ -293,6 +294,7 @@ function GRIP:InviteNext()
 
   self:SafeGuildInvite(name)
   self:RecordCampaignAction("invite")
+  self:RecordStat("invites")
   self:Debug("GuildInvite ->", name)
 
   C_Timer.After(NO_RESPONSE_TIMEOUT, function()
@@ -377,6 +379,7 @@ function GRIP:AutoQueueGhostInvite(name)
     end
     GRIP:SafeGuildInvite(inviteName)
     GRIP:RecordCampaignAction("invite")
+    GRIP:RecordStat("invites")
     GRIP:Debug("GuildInvite (ghost-auto) ->", inviteName)
 
     -- 70-second no-response timeout (starts at execution time)
@@ -432,6 +435,7 @@ function GRIP:OnInviteSystemSuccess(targetName)
   state.pendingInvite[full] = nil
   entry.invitePending = false
   entry.inviteSuccess = true
+  self:RecordStat("accepted")
 
   -- NH-11: Send welcome whisper for invite-first candidates
   if cfg.inviteFirst and cfg.whisperEnabled and not entry.whisperAttempted then
@@ -486,6 +490,7 @@ function GRIP:OnInviteSystemFail(targetName, reason)
   state.pendingInvite[full] = nil
   entry.invitePending = false
   entry.inviteSuccess = false
+  if reason == "declined" then self:RecordStat("declined") end
 
   -- If they were "not found", do NOT blacklist (so they can be rediscovered later).
   -- Otherwise treat as processed (declined/blocked/etc) => purgeable blacklist.

@@ -165,6 +165,12 @@ local DEFAULT_DB_CHAR = {
     lastAt = "",
   },
 
+  -- Recruitment statistics (daily buckets, 30-day rolling window)
+  stats = {
+    days = {},    -- array of { date, whispers, invites, accepted, declined, optOuts, posts, scans }
+    today = nil,  -- populated on first action each day
+  },
+
   schemaVersion = SCHEMA_VERSION_CHAR,
 }
 
@@ -573,5 +579,66 @@ function GRIP:EnsureDB()
   U.PruneFilterKeys(GRIPDB_CHAR.filters.classes, GRIPDB_CHAR.lists.classes)
   U.PruneFilterKeys(GRIPDB_CHAR.filters.races, GRIPDB_CHAR.lists.races)
 
+  -- Stats structure
+  if type(GRIPDB_CHAR.stats) ~= "table" then
+    GRIPDB_CHAR.stats = { days = {}, today = nil }
+  end
+  if type(GRIPDB_CHAR.stats.days) ~= "table" then
+    GRIPDB_CHAR.stats.days = {}
+  end
+
+  self:EnsureStatsToday()
+
   return GRIPDB, GRIPDB_CHAR
+end
+
+-- =========================================================================
+-- Stats helpers
+-- =========================================================================
+
+local STATS_MAX_DAYS = 30
+
+local function GetTodayString()
+  local t = C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime()
+  if t and t.year and t.month and t.monthDay then
+    return ("%04d-%02d-%02d"):format(t.year, t.month, t.monthDay)
+  end
+  return date("%Y-%m-%d")
+end
+
+function GRIP:EnsureStatsToday()
+  if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.stats) ~= "table" then return nil end
+  if type(GRIPDB_CHAR.stats.days) ~= "table" then GRIPDB_CHAR.stats.days = {} end
+
+  local today = GetTodayString()
+  local st = GRIPDB_CHAR.stats
+
+  if st.today and type(st.today) == "table" and st.today.date == today then
+    return st.today
+  end
+
+  -- Roll over previous day
+  if st.today and type(st.today) == "table" and st.today.date and st.today.date ~= today then
+    st.days[#st.days + 1] = st.today
+  end
+
+  -- Create fresh today
+  st.today = {
+    date = today,
+    whispers = 0, invites = 0, accepted = 0, declined = 0,
+    optOuts = 0, posts = 0, scans = 0,
+  }
+
+  -- Prune to max days (remove oldest from front)
+  while #st.days > STATS_MAX_DAYS do
+    tremove(st.days, 1)
+  end
+
+  return st.today
+end
+
+function GRIP:RecordStat(key)
+  local t = self:EnsureStatsToday()
+  if not t then return end
+  t[key] = (t[key] or 0) + 1
 end

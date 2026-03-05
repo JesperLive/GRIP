@@ -250,6 +250,7 @@ function GRIP:OnWhisperReceived(senderName, messageText)
   end
 
   self:BlacklistPermanent(full, "opt-out")
+  self:RecordStat("optOuts")
   self:RemovePotential(full)
   self:UpdateUI()
 end
@@ -449,6 +450,7 @@ function GRIP:WhisperTick()
   -- Whisper is not #hwevent restricted, but is server rate-limited.
   self:SendChatMessageCompat(msg, "WHISPER", nil, name)
   self:RecordCampaignAction("whisper")
+  self:RecordStat("whispers")
 
   C_Timer.After(8, function()
     if state.pendingWhisper and state.pendingWhisper[name] then
