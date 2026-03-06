@@ -103,6 +103,82 @@ function GRIP:EnsureBlacklistShell(home)
   header.title:SetJustifyH("LEFT")
   header.title:SetText("Blacklist")
 
+  -- Export button (right side of title row)
+  local btnExport = CreateFrame("Button", nil, header, "BackdropTemplate")
+  btnExport:SetSize(45, 16)
+  btnExport:SetPoint("TOPRIGHT", header, "TOPRIGHT", -4, -2)
+  btnExport:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Buttons\\WHITE8x8",
+    edgeSize = 1,
+    insets = { left = 1, right = 1, top = 1, bottom = 1 },
+  })
+  btnExport:SetBackdropColor(1, 1, 1, 0.06)
+  btnExport:SetBackdropBorderColor(1, 1, 1, 0.15)
+  btnExport.label = btnExport:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  btnExport.label:SetPoint("CENTER")
+  btnExport.label:SetText("Export")
+  btnExport:SetScript("OnClick", function()
+    if not GRIP.ExportBlacklist then
+      GRIP:Print("Export module not loaded.")
+      return
+    end
+    local str = GRIP:ExportBlacklist()
+    if not str then
+      GRIP:Print("Export failed (empty blacklist or codec error).")
+      return
+    end
+    if StaticPopupDialogs and not StaticPopupDialogs["GRIP_EXPORT"] then
+      -- Popup registered by Slash.lua; trigger it via slash as fallback
+      GRIP:HandleSlash("export bl")
+      return
+    end
+    if StaticPopup_Show then
+      StaticPopup_Show("GRIP_EXPORT", nil, nil, str)
+    end
+    local count = GRIP.Count and GRIP:Count(GRIPDB.blacklistPerm) or 0
+    GRIP:Print(("Exported %d blacklist entries."):format(count))
+  end)
+  btnExport:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:AddLine("Export permanent blacklist")
+    GameTooltip:AddLine("Copies a shareable string to a popup for Ctrl+C.", 0.8, 0.8, 0.8, true)
+    GameTooltip:Show()
+  end)
+  btnExport:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+  -- Import button (left of export)
+  local btnImport = CreateFrame("Button", nil, header, "BackdropTemplate")
+  btnImport:SetSize(45, 16)
+  btnImport:SetPoint("RIGHT", btnExport, "LEFT", -4, 0)
+  btnImport:SetBackdrop({
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Buttons\\WHITE8x8",
+    edgeSize = 1,
+    insets = { left = 1, right = 1, top = 1, bottom = 1 },
+  })
+  btnImport:SetBackdropColor(1, 1, 1, 0.06)
+  btnImport:SetBackdropBorderColor(1, 1, 1, 0.15)
+  btnImport.label = btnImport:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  btnImport.label:SetPoint("CENTER")
+  btnImport.label:SetText("Import")
+  btnImport:SetScript("OnClick", function()
+    if StaticPopupDialogs and not StaticPopupDialogs["GRIP_IMPORT"] then
+      GRIP:HandleSlash("import")
+      return
+    end
+    if StaticPopup_Show then
+      StaticPopup_Show("GRIP_IMPORT")
+    end
+  end)
+  btnImport:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:AddLine("Import blacklist or templates")
+    GameTooltip:AddLine("Paste a GRIP export string to import data.", 0.8, 0.8, 0.8, true)
+    GameTooltip:Show()
+  end)
+  btnImport:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
   -- Mid separator between title and column labels
   header.midLine = header:CreateTexture(nil, "BORDER")
   header.midLine:SetPoint("LEFT", header, "LEFT", 4, 0)

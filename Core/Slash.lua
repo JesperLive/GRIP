@@ -17,6 +17,115 @@ local C_ClubFinder = C_ClubFinder
 
 local state = GRIP.state
 
+-- =========================================================================
+-- Import/Export popups (registered once, lazily)
+-- =========================================================================
+
+local function EnsureExportPopup()
+  if not StaticPopupDialogs then return end
+  if StaticPopupDialogs["GRIP_EXPORT"] then return end
+
+  StaticPopupDialogs["GRIP_EXPORT"] = {
+    text = "Copy this GRIP export string:",
+    button1 = "Close",
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+    hasEditBox = true,
+    editBoxWidth = 350,
+    OnShow = function(self)
+      if self.editBox then
+        self.editBox:SetMaxBytes(0)
+        self.editBox:SetText(self.data or "")
+        self.editBox:HighlightText()
+        self.editBox:SetFocus()
+      end
+    end,
+    EditBoxOnEscapePressed = function(self)
+      local parent = self:GetParent()
+      if parent and parent.button1 and parent.button1.Click then
+        parent.button1:Click()
+      end
+    end,
+  }
+end
+
+local function EnsureImportPopup()
+  if not StaticPopupDialogs then return end
+  if StaticPopupDialogs["GRIP_IMPORT"] then return end
+
+  StaticPopupDialogs["GRIP_IMPORT"] = {
+    text = "Paste a GRIP import string:",
+    button1 = "Import",
+    button2 = "Cancel",
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+    hasEditBox = true,
+    editBoxWidth = 350,
+    OnShow = function(self)
+      if self.editBox then
+        self.editBox:SetMaxBytes(0)
+        self.editBox:SetText("")
+        self.editBox:SetFocus()
+      end
+    end,
+    OnAccept = function(self)
+      local text = self.editBox and self.editBox:GetText() or ""
+      text = text:gsub("^%s+", ""):gsub("%s+$", "")
+      if text == "" then
+        GRIP:Print("No import string provided.")
+        return
+      end
+
+      -- Detect type from prefix
+      if text:sub(1, 9) == "!GRIP:BL:" then
+        if not GRIP.ImportBlacklist then
+          GRIP:Print("Import module not loaded.")
+          return
+        end
+        local result = GRIP:ImportBlacklist(text)
+        if result then
+          GRIP:Print(("Imported: %d new blacklist entries (%d already existed)."):format(
+            result.added, result.existing))
+          GRIP:UpdateUI()
+        else
+          GRIP:Print("Invalid blacklist import string.")
+        end
+      elseif text:sub(1, 10) == "!GRIP:TPL:" then
+        if not GRIP.ImportTemplates then
+          GRIP:Print("Import module not loaded.")
+          return
+        end
+        local result = GRIP:ImportTemplates(text)
+        if result then
+          GRIP:Print(("Imported %d whisper templates (%s rotation)."):format(
+            result.count, result.rotation))
+          GRIP:UpdateUI()
+        else
+          GRIP:Print("Invalid template import string.")
+        end
+      else
+        GRIP:Print("Invalid import string. Must start with !GRIP:BL: or !GRIP:TPL:")
+      end
+    end,
+    EditBoxOnEnterPressed = function(self)
+      local parent = self:GetParent()
+      if parent and parent.button1 and parent.button1.Click then
+        parent.button1:Click()
+      end
+    end,
+    EditBoxOnEscapePressed = function(self)
+      local parent = self:GetParent()
+      if parent and parent.button2 and parent.button2.Click then
+        parent.button2:Click()
+      end
+    end,
+  }
+end
+
 -- Constants
 local DUMP_LINES_DEFAULT      = 50
 local DUMP_LINES_MIN          = 1
@@ -66,6 +175,8 @@ function GRIP:PrintHelp()
   self:Print("  /grip permbl list|add|remove|clear   - manage permanent blacklist (ignore list)")
   self:Print("  /grip ghost [start|stop|status]       - Ghost Mode session control")
   self:Print("  /grip sync [on|off|now]              - officer blacklist sync")
+  self:Print("  /grip export bl|templates            - copy data to clipboard")
+  self:Print("  /grip import                         - paste import string")
   self:Print("  /grip reset              - reset UI window position and size to defaults")
   self:Print("  /grip tracegate on|off|toggle        - execution gate diagnostics (trace mode)")
 
@@ -376,6 +487,62 @@ function GRIP:HandleSlash(msg)
       self:Print(("  Last broadcast: %ds ago (cooldown: %ds)"):format(ago, SYNC_COOLDOWN or 3600))
     else
       self:Print("  Last broadcast: never")
+    end
+    return
+  end
+
+  if cmd == "export" then
+    local sub = (rest or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+
+    if sub == "bl" or sub == "blacklist" then
+      if not self.ExportBlacklist then
+        self:Print("Export module not loaded.")
+        return
+      end
+      local str = self:ExportBlacklist()
+      if not str then
+        self:Print("Export failed (empty blacklist or codec error).")
+        return
+      end
+      local count = self:Count(GRIPDB.blacklistPerm)
+      EnsureExportPopup()
+      if StaticPopup_Show then
+        StaticPopup_Show("GRIP_EXPORT", nil, nil, str)
+      end
+      self:Print(("Exported %d blacklist entries — copy the string from the popup."):format(count))
+      return
+    end
+
+    if sub == "templates" or sub == "tpl" then
+      if not self.ExportTemplates then
+        self:Print("Export module not loaded.")
+        return
+      end
+      local str = self:ExportTemplates()
+      if not str then
+        self:Print("Export failed (no templates or codec error).")
+        return
+      end
+      local cfg = GRIPDB_CHAR.config
+      local count = type(cfg.whisperMessages) == "table" and #cfg.whisperMessages or 0
+      EnsureExportPopup()
+      if StaticPopup_Show then
+        StaticPopup_Show("GRIP_EXPORT", nil, nil, str)
+      end
+      self:Print(("Exported %d whisper templates — copy the string from the popup."):format(count))
+      return
+    end
+
+    self:Print("Usage: /grip export bl|templates")
+    return
+  end
+
+  if cmd == "import" then
+    EnsureImportPopup()
+    if StaticPopup_Show then
+      StaticPopup_Show("GRIP_IMPORT")
+    else
+      self:Print("StaticPopup not available.")
     end
     return
   end

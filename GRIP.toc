@@ -39,6 +39,7 @@ DB/DB_Zones.lua
 DB/DB_Init.lua
 DB/DB_Blacklist.lua
 Sync/Sync.lua
+Sync/ImportExport.lua
 
 # -- Hooks (depend on DB + gate)
 Hooks/UnitPopupInvite.lua
