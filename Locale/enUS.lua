@@ -673,26 +673,55 @@ L["Ghost Cooldown (minutes)"] = true
 -- UI/UI_Ads.lua — Ads page
 -- =========================================================================
 
+-- Page title
 L["Advertisement Config"] = true
-L["Enable scheduled posting"] = true
-L["Scheduled Posting"] = true
-L["When enabled, GRIP will automatically queue Trade/General posts at the configured interval."] = true
-L["Post Interval (minutes):"] = true
-L["General Channel Message:"] = true
-L["Trade Channel Message:"] = true
-L["Save Messages"] = true
-L["Save Ad Messages"] = true
-L["Save the General and Trade channel message templates."] = true
-L["Messages saved."] = true
 
--- Token buttons (shared with Settings)
--- (Already defined above: "Insert {guildlink}", "Insert {guild}", "Insert {player}")
+-- Checkbox + tooltip
+L["Enable scheduler (queues messages every interval)"] = true
+L["Enable Scheduler"] = true
+L["Automatically queues one General + one Trade post\nevery interval. Posts still require a hardware event to send."] = true
 
--- Scheduler status
-L["Scheduler: active (%d min interval)"] = true
-L["Scheduler: paused"] = true
-L["Post queue: %d"] = true
-L["Next post in: %d sec"] = true
+-- Interval + Apply
+L["Interval (minutes)"] = true
+L["Apply"] = true
+L["Apply Interval"] = true
+L["Save the post interval."] = true
+
+-- Section headers
+L["General message (supports {guild} {guildlink})"] = true
+L["Trade message (supports {guild} {guildlink})"] = true
+
+-- Token button tooltips (Ads-specific; titles shared with Settings)
+L["Inserts your guild name at cursor."] = true
+L["Inserts a clickable Guild Finder link at cursor."] = true
+L["Expands tokens and prints the message to chat."] = true
+
+-- Bottom row buttons
+L["Save"] = true
+L["Queue Now"] = true
+-- ("Post Next" already defined in UI_Home section)
+
+-- Bottom row tooltips
+L["Save both General and Trade messages to SavedVariables."] = true
+L["Immediately queues one General + one Trade post.\nUse Post Next to send them."] = true
+L["Sends the next queued channel post.\nRequires a keybind or button click (hardware event)."] = true
+
+-- Print feedback messages
+L["Ads settings unavailable yet (DB not initialized)."] = true
+L["Post scheduler: %s"] = true
+L["Interval must be a number."] = true
+L["Post interval set to %d minutes."] = true
+L["General message is too long after token expansion (max 255)."] = true
+L["Trade message is too long after token expansion (max 255)."] = true
+L["General preview: %s"] = true
+L["Trade preview: %s"] = true
+L["One or both messages exceed 255 bytes after token expansion. Please shorten them first."] = true
+L["Ad messages saved."] = true
+L["Queued one General + one Trade message. Use Post Next to send."] = true
+L["Please wait %.1fs before posting again."] = true
+
+-- Post cooldown label
+L["Post (%.0fs)"] = true
 
 -- =========================================================================
 -- UI/UI_Stats.lua — Stats page

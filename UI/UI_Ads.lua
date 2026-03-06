@@ -14,6 +14,7 @@ local GetTime = GetTime
 
 local state = GRIP.state
 local W = GRIP.UIW
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 local MAX_CHANNEL_BYTES = 255
 
@@ -153,12 +154,12 @@ local function LockUI(a, why)
     if why and why ~= "" then
       a._initHint:SetText(tostring(why))
     else
-      a._initHint:SetText("Initializing\226\128\166 (database not ready yet)")
+      a._initHint:SetText(L["Initializing\xe2\x80\xa6 (database not ready yet)"])
     end
   elseif a.content then
     a._initHint = a.content:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     a._initHint:SetPoint("TOPLEFT", a.title, "BOTTOMLEFT", 0, -4)
-    a._initHint:SetText((why and why ~= "") and tostring(why) or "Initializing\226\128\166 (database not ready yet)")
+    a._initHint:SetText((why and why ~= "") and tostring(why) or L["Initializing\xe2\x80\xa6 (database not ready yet)"])
     a._initHint:Show()
   end
 
@@ -355,48 +356,48 @@ function GRIP:UI_CreateAds(parent)
 
   ads.title = a:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   ads.title:SetPoint("TOPLEFT", a, "TOPLEFT", PAD_L, -2)
-  ads.title:SetText("Advertisement Config")
+  ads.title:SetText(L["Advertisement Config"])
 
-  ads.enabled = W.CreateCheckbox(a, "Enable scheduler (queues messages every interval)", function(btn)
+  ads.enabled = W.CreateCheckbox(a, L["Enable scheduler (queues messages every interval)"], function(btn)
     local cfg = GRIP:GetCfg()
     if not cfg then
-      GRIP:Print("Ads settings unavailable yet (DB not initialized).")
+      GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."])
       btn:SetChecked(false)
       return
     end
     cfg.postEnabled = btn:GetChecked() and true or false
-    GRIP:Print("Post scheduler: " .. (cfg.postEnabled and "ON" or "OFF"))
+    GRIP:Print((L["Post scheduler: %s"]):format(cfg.postEnabled and L["ON"] or L["OFF"]))
     GRIP:StartPostScheduler()
     GRIP:UpdateUI()
   end)
   ads.enabled:SetPoint("TOPLEFT", a, "TOPLEFT", PAD_L, -24)
 
-  ads.intLbl, ads.intEdit = W.CreateLabeledEdit(a, "Interval (minutes)", 70)
+  ads.intLbl, ads.intEdit = W.CreateLabeledEdit(a, L["Interval (minutes)"], 70)
   ads.intLbl:SetPoint("TOPLEFT", ads.enabled, "BOTTOMLEFT", 0, -10)
   ads.intEdit:SetPoint("LEFT", ads.intLbl, "RIGHT", 8, 0)
 
-  ads.apply = W.CreateUIButton(a, "Apply", 70, 20, function()
+  ads.apply = W.CreateUIButton(a, L["Apply"], 70, 20, function()
     local cfg = GRIP:GetCfg()
     if not cfg then
-      GRIP:Print("Ads settings unavailable yet (DB not initialized).")
+      GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."])
       return
     end
 
     ads.intEdit:ClearFocus()
     local n = tonumber(ads.intEdit:GetText())
     if not n then
-      GRIP:Print("Interval must be a number.")
+      GRIP:Print(L["Interval must be a number."])
       return
     end
     cfg.postIntervalMinutes = GRIP:Clamp(n, 1, 180)
     W.ClearDirty(ads.intEdit)
-    GRIP:Print("Post interval set to " .. cfg.postIntervalMinutes .. " minutes.")
+    GRIP:Print((L["Post interval set to %d minutes."]):format(cfg.postIntervalMinutes))
     GRIP:StartPostScheduler()
     GRIP:UpdateUI()
   end)
   ads.apply:SetPoint("TOPLEFT", ads.intLbl, "BOTTOMLEFT", 0, -8)
-  GRIP:AttachTooltip(ads.enabled, "Enable Scheduler", "Automatically queues one General + one Trade post\nevery interval. Posts still require a hardware event to send.")
-  GRIP:AttachTooltip(ads.apply, "Apply Interval", "Save the post interval.")
+  GRIP:AttachTooltip(ads.enabled, L["Enable Scheduler"], L["Automatically queues one General + one Trade post\nevery interval. Posts still require a hardware event to send."])
+  GRIP:AttachTooltip(ads.apply, L["Apply Interval"], L["Save the post interval."])
 
   -- Separator: enable/interval → General editor
   ads.sep1 = a:CreateTexture(nil, "ARTWORK")
@@ -410,7 +411,7 @@ function GRIP:UI_CreateAds(parent)
   -- =======================================================================
   ads.generalHdr = a:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   ads.generalHdr:SetPoint("TOPLEFT", ads.sep1, "BOTTOMLEFT", 0, -6)
-  ads.generalHdr:SetText("General message (supports {guild} {guildlink})")
+  ads.generalHdr:SetText(L["General message (supports {guild} {guildlink})"])
 
   ads.genSF, ads.genEdit = W.CreateMultilineEdit(a, 1, 70)
   ads.genSF:ClearAllPoints()
@@ -438,39 +439,39 @@ function GRIP:UI_CreateAds(parent)
   end
 
   -- Per-editor token buttons + Preview.
-  ads.genInsertGuild = W.CreateUIButton(a, "Insert {guild}", 110, 20, function()
-    if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
+  ads.genInsertGuild = W.CreateUIButton(a, L["Insert {guild}"], 110, 20, function()
+    if not HasCfg() then GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."]) return end
     local ok = TryInsertTokenAtCursor(ads, ads.genEdit, "{guild}", "gen")
     if not ok then
-      GRIP:Print("No room to insert {guild} (max 255 after expansion).")
+      GRIP:Print(L["No room to insert {guild} (max 255 after expansion)."])
     end
   end)
   ads.genInsertGuild:SetPoint("TOPLEFT", ads.genSF, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(ads.genInsertGuild, "Insert {guild}", "Inserts your guild name at cursor.")
+  GRIP:AttachTooltip(ads.genInsertGuild, L["Insert {guild}"], L["Inserts your guild name at cursor."])
 
-  ads.genInsertLink = W.CreateUIButton(a, "Insert {guildlink}", 140, 20, function()
-    if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
+  ads.genInsertLink = W.CreateUIButton(a, L["Insert {guildlink}"], 140, 20, function()
+    if not HasCfg() then GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."]) return end
     local ok = TryInsertTokenAtCursor(ads, ads.genEdit, "{guildlink}", "gen")
     if not ok then
-      GRIP:Print("No room to insert {guildlink} (max 255 after expansion).")
+      GRIP:Print(L["No room to insert {guildlink} (max 255 after expansion)."])
     end
   end)
   ads.genInsertLink:SetPoint("LEFT", ads.genInsertGuild, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.genInsertLink, "Insert {guildlink}", "Inserts a clickable Guild Finder link at cursor.")
+  GRIP:AttachTooltip(ads.genInsertLink, L["Insert {guildlink}"], L["Inserts a clickable Guild Finder link at cursor."])
 
-  ads.genPreview = W.CreateUIButton(a, "Preview", 80, 20, function()
-    if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
+  ads.genPreview = W.CreateUIButton(a, L["Preview"], 80, 20, function()
+    if not HasCfg() then GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."]) return end
     UpdateEditorBudgetUI(ads, "gen")
     local bytes = EstimateChannelRenderedBytes(ads.genEdit:GetText() or "")
     if bytes > MAX_CHANNEL_BYTES then
-      GRIP:Print("General message is too long after token expansion (max 255).")
+      GRIP:Print(L["General message is too long after token expansion (max 255)."])
       return
     end
     local msg = GRIP:ApplyTemplate(ads.genEdit:GetText() or "", nil)
-    GRIP:Print("General preview: " .. msg)
+    GRIP:Print((L["General preview: %s"]):format(msg))
   end)
   ads.genPreview:SetPoint("LEFT", ads.genInsertLink, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.genPreview, "Preview", "Expands tokens and prints the General message to chat.")
+  GRIP:AttachTooltip(ads.genPreview, L["Preview"], L["Expands tokens and prints the message to chat."])
 
   -- Separator: General editor → Trade editor
   ads.sep2 = a:CreateTexture(nil, "ARTWORK")
@@ -484,7 +485,7 @@ function GRIP:UI_CreateAds(parent)
   -- =======================================================================
   ads.tradeHdr = a:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   ads.tradeHdr:SetPoint("TOPLEFT", ads.sep2, "BOTTOMLEFT", 0, -6)
-  ads.tradeHdr:SetText("Trade message (supports {guild} {guildlink})")
+  ads.tradeHdr:SetText(L["Trade message (supports {guild} {guildlink})"])
 
   ads.tradeSF, ads.tradeEdit = W.CreateMultilineEdit(a, 1, 70)
   ads.tradeSF:ClearAllPoints()
@@ -512,39 +513,39 @@ function GRIP:UI_CreateAds(parent)
   end
 
   -- Per-editor token buttons + Preview.
-  ads.tradeInsertGuild = W.CreateUIButton(a, "Insert {guild}", 110, 20, function()
-    if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
+  ads.tradeInsertGuild = W.CreateUIButton(a, L["Insert {guild}"], 110, 20, function()
+    if not HasCfg() then GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."]) return end
     local ok = TryInsertTokenAtCursor(ads, ads.tradeEdit, "{guild}", "trade")
     if not ok then
-      GRIP:Print("No room to insert {guild} (max 255 after expansion).")
+      GRIP:Print(L["No room to insert {guild} (max 255 after expansion)."])
     end
   end)
   ads.tradeInsertGuild:SetPoint("TOPLEFT", ads.tradeSF, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(ads.tradeInsertGuild, "Insert {guild}", "Inserts your guild name at cursor.")
+  GRIP:AttachTooltip(ads.tradeInsertGuild, L["Insert {guild}"], L["Inserts your guild name at cursor."])
 
-  ads.tradeInsertLink = W.CreateUIButton(a, "Insert {guildlink}", 140, 20, function()
-    if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
+  ads.tradeInsertLink = W.CreateUIButton(a, L["Insert {guildlink}"], 140, 20, function()
+    if not HasCfg() then GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."]) return end
     local ok = TryInsertTokenAtCursor(ads, ads.tradeEdit, "{guildlink}", "trade")
     if not ok then
-      GRIP:Print("No room to insert {guildlink} (max 255 after expansion).")
+      GRIP:Print(L["No room to insert {guildlink} (max 255 after expansion)."])
     end
   end)
   ads.tradeInsertLink:SetPoint("LEFT", ads.tradeInsertGuild, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.tradeInsertLink, "Insert {guildlink}", "Inserts a clickable Guild Finder link at cursor.")
+  GRIP:AttachTooltip(ads.tradeInsertLink, L["Insert {guildlink}"], L["Inserts a clickable Guild Finder link at cursor."])
 
-  ads.tradePreview = W.CreateUIButton(a, "Preview", 80, 20, function()
-    if not HasCfg() then GRIP:Print("Ads settings unavailable yet (DB not initialized).") return end
+  ads.tradePreview = W.CreateUIButton(a, L["Preview"], 80, 20, function()
+    if not HasCfg() then GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."]) return end
     UpdateEditorBudgetUI(ads, "trade")
     local bytes = EstimateChannelRenderedBytes(ads.tradeEdit:GetText() or "")
     if bytes > MAX_CHANNEL_BYTES then
-      GRIP:Print("Trade message is too long after token expansion (max 255).")
+      GRIP:Print(L["Trade message is too long after token expansion (max 255)."])
       return
     end
     local msg = GRIP:ApplyTemplate(ads.tradeEdit:GetText() or "", nil)
-    GRIP:Print("Trade preview: " .. msg)
+    GRIP:Print((L["Trade preview: %s"]):format(msg))
   end)
   ads.tradePreview:SetPoint("LEFT", ads.tradeInsertLink, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.tradePreview, "Preview", "Expands tokens and prints the Trade message to chat.")
+  GRIP:AttachTooltip(ads.tradePreview, L["Preview"], L["Expands tokens and prints the message to chat."])
 
   -- Separator: Trade editor → bottom action row
   ads.sep3 = a:CreateTexture(nil, "ARTWORK")
@@ -556,10 +557,10 @@ function GRIP:UI_CreateAds(parent)
   -- =======================================================================
   -- Bottom row: Save (both editors) + Queue + Post
   -- =======================================================================
-  ads.save = W.CreateUIButton(a, "Save", 70, 20, function()
+  ads.save = W.CreateUIButton(a, L["Save"], 70, 20, function()
     local cfg = GRIP:GetCfg()
     if not cfg then
-      GRIP:Print("Ads settings unavailable yet (DB not initialized).")
+      GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."])
       return
     end
 
@@ -567,7 +568,7 @@ function GRIP:UI_CreateAds(parent)
     local genBytes = EstimateChannelRenderedBytes(ads.genEdit:GetText() or "")
     local tradeBytes = EstimateChannelRenderedBytes(ads.tradeEdit:GetText() or "")
     if genBytes > MAX_CHANNEL_BYTES or tradeBytes > MAX_CHANNEL_BYTES then
-      GRIP:Print("One or both messages exceed 255 bytes after token expansion. Please shorten them first.")
+      GRIP:Print(L["One or both messages exceed 255 bytes after token expansion. Please shorten them first."])
       return
     end
 
@@ -576,27 +577,27 @@ function GRIP:UI_CreateAds(parent)
     cfg.postMessageGeneral = ads.genEdit:GetText() or cfg.postMessageGeneral
     cfg.postMessageTrade = ads.tradeEdit:GetText() or cfg.postMessageTrade
     W.ClearDirty(ads.genEdit, ads.tradeEdit)
-    GRIP:Print("Ad messages saved.")
+    GRIP:Print(L["Ad messages saved."])
     GRIP:UpdateUI()
   end)
   ads.save:SetPoint("TOPLEFT", ads.sep3, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(ads.save, "Save", "Save both General and Trade messages to SavedVariables.")
+  GRIP:AttachTooltip(ads.save, L["Save"], L["Save both General and Trade messages to SavedVariables."])
 
-  ads.queueNow = W.CreateUIButton(a, "Queue Now", 90, 20, function()
+  ads.queueNow = W.CreateUIButton(a, L["Queue Now"], 90, 20, function()
     if not HasCfg() then
-      GRIP:Print("Ads settings unavailable yet (DB not initialized).")
+      GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."])
       return
     end
     GRIP:QueuePostCycle("manual-ui")
-    GRIP:Print("Queued one General + one Trade message. Use Post Next to send.")
+    GRIP:Print(L["Queued one General + one Trade message. Use Post Next to send."])
     GRIP:UpdateUI()
   end)
   ads.queueNow:SetPoint("LEFT", ads.save, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.queueNow, "Queue Now", "Immediately queues one General + one Trade post.\nUse Post Next to send them.")
+  GRIP:AttachTooltip(ads.queueNow, L["Queue Now"], L["Immediately queues one General + one Trade post.\nUse Post Next to send them."])
 
-  ads.postNext = W.CreateUIButton(a, "Post Next", 90, 20, function()
+  ads.postNext = W.CreateUIButton(a, L["Post Next"], 90, 20, function()
     if not HasCfg() then
-      GRIP:Print("Ads settings unavailable yet (DB not initialized).")
+      GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."])
       return
     end
 
@@ -604,7 +605,7 @@ function GRIP:UI_CreateAds(parent)
     if state.ui then
       local left = GRIP:SecondsLeft(state.ui._postCooldownUntil)
       if left > 0 then
-        GRIP:Print(("Please wait %.1fs before posting again."):format(left))
+        GRIP:Print((L["Please wait %.1fs before posting again."]):format(left))
         GRIP:UpdateUI()
         return
       end
@@ -617,7 +618,7 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.postNext:SetPoint("LEFT", ads.queueNow, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.postNext, "Post Next", "Sends the next queued channel post.\nRequires a keybind or button click (hardware event).")
+  GRIP:AttachTooltip(ads.postNext, L["Post Next"], L["Sends the next queued channel post.\nRequires a keybind or button click (hardware event)."])
 
   -- Button accent underlines
   W.AddButtonAccent(ads.apply, 1, 0.82, 0)
@@ -643,7 +644,7 @@ function GRIP:UI_UpdateAds()
 
   local cfg = GRIP:GetCfg()
   if not cfg then
-    LockUI(a, "Initializing\226\128\166 (database not ready yet)")
+    LockUI(a, L["Initializing\xe2\x80\xa6 (database not ready yet)"])
     return
   end
 
@@ -667,10 +668,10 @@ function GRIP:UI_UpdateAds()
   local left = GRIP:SecondsLeft(state.ui and state.ui._postCooldownUntil or 0)
   if left > 0 then
     a.postNext:Disable()
-    a.postNext:SetText(("Post (%.0fs)"):format(math.ceil(left)))
+    a.postNext:SetText((L["Post (%.0fs)"]):format(math.ceil(left)))
   else
     a.postNext:Enable()
-    a.postNext:SetText("Post Next")
+    a.postNext:SetText(L["Post Next"])
   end
 
   -- Clear remaining counters if editors are empty (visual polish).
