@@ -1048,10 +1048,10 @@ function GRIP:EnsureOnboarding(home)
   body:SetSpacing(4)
   body:SetText(
     "|cffffd100" .. L["Quick Setup:"] .. "|r\n\n"
-    .. "1. |cffffffff" .. L["1. Settings tab: set your level range and zone/race/class filters."] .. "|r\n"
-    .. "2. |cffffffff" .. L["2. Settings tab: edit your whisper template. Use {player} and {guildlink}."] .. "|r\n"
-    .. "3. |cffffffff" .. L["3. Ads tab: write your Trade/General recruitment messages."] .. "|r\n"
-    .. "4. |cffffffff" .. L["4. Click Scan to start finding unguilded players!"] .. "|r\n\n"
+    .. "|cffffffff" .. L["1. Settings tab: set your level range and zone/race/class filters."] .. "|r\n"
+    .. "|cffffffff" .. L["2. Settings tab: edit your whisper template. Use {player} and {guildlink}."] .. "|r\n"
+    .. "|cffffffff" .. L["3. Ads tab: write your Trade/General recruitment messages."] .. "|r\n"
+    .. "|cffffffff" .. L["4. Click Scan to start finding unguilded players!"] .. "|r\n\n"
     .. "|cff888888" .. L["Tip: Hover any button for details. See /grip help for all commands."] .. "|r\n"
     .. "|cff888888" .. L["Tip: Right-click a candidate row for quick blacklist/invite actions."] .. "|r"
   )
