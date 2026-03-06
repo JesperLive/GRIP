@@ -871,5 +871,5 @@ L["Type /grip help for commands."] = true
 L["Guild link could not resolve after 2 min. Open Guild & Communities to prime cache, or check /grip link"] = true
 
 -- =========================================================================
--- @localization(locale="enUS", format="lua_additive_table", same-key-is-true=true, namespace="")@
+-- @localization(locale="enUS", format="lua_additive_table", same-key-is-true=true)@
 -- =========================================================================
