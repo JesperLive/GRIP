@@ -450,7 +450,7 @@ local function EnsurePotentialTable(home)
         if e.class then details[#details+1] = tostring(e.class) end
         if e.race then details[#details+1] = tostring(e.race) end
         if #details > 0 then
-          GameTooltip:AddLine(table.concat(details, "  \xC2\xB7  "), 0.8, 0.8, 0.6)
+          GameTooltip:AddLine(table.concat(details, "  ·  "), 0.8, 0.8, 0.6)
         end
         if e.zone or e.area then
           GameTooltip:AddLine((L["Zone: %s"]):format(e.zone or e.area or "Unknown"), 0.8, 0.8, 0.6)
@@ -576,7 +576,7 @@ local function EnsurePotentialTable(home)
     -- FE3: M+ score
     if cw.rio and cw.rio > 0 then
       local score = e.rioScore
-      row.rioText:SetText(score and tostring(score) or "\xE2\x80\x94")
+      row.rioText:SetText(score and tostring(score) or "—")
     end
 
     SetStatusIcon(row.wIcon, e.whisperAttempted, e.whisperSuccess, false)
@@ -831,7 +831,7 @@ function GRIP:UI_CreateHome(parent)
   home.status:SetPoint("BOTTOMRIGHT", home.statusPanel, "BOTTOMRIGHT", -8, 4)
   home.status:SetJustifyH("LEFT")
   home.status:SetJustifyV("TOP")
-  home.status:SetText("\xE2\x80\xA6")
+  home.status:SetText("…")
 
   -- Separator between status panel and buttons
   home.statusSep = home:CreateTexture(nil, "ARTWORK")
@@ -993,7 +993,7 @@ function GRIP:UI_CreateHome(parent)
   home.hint = home:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   home.hint:SetPoint("TOPLEFT", home.ghostStrip, "BOTTOMLEFT", 0, -4)
   home.hint:SetPoint("RIGHT", home, "RIGHT", -4, 0)
-  home.hint:SetText(L["Tip: /grip help  \xC2\xB7  None selected in filters = allow all"])
+  home.hint:SetText(L["Tip: /grip help  \194\183  None selected in filters = allow all"])
 
   -- Separator between hint line and table
   home.hintSep = home:CreateTexture(nil, "ARTWORK")
@@ -1084,7 +1084,7 @@ function GRIP:UI_UpdateHome()
     else
       home._initHint = home:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
       home._initHint:SetPoint("TOPLEFT", home.status, "BOTTOMLEFT", 0, -2)
-      home._initHint:SetText(L["Initializing\xe2\x80\xa6 (database not ready yet)"])
+      home._initHint:SetText(L["Initializing… (database not ready yet)"])
       home._initHint:Show()
     end
 
@@ -1098,7 +1098,7 @@ function GRIP:UI_UpdateHome()
     if home.ghostStrip then home.ghostStrip:Hide() end
 
     if home.potEmpty then
-      home.potEmpty:SetText(L["Initializing\xe2\x80\xa6"])
+      home.potEmpty:SetText(L["Initializing…"])
       home.potEmpty:Show()
     end
     if home.potEmptyIcon then home.potEmptyIcon:Hide() end
@@ -1142,7 +1142,7 @@ function GRIP:UI_UpdateHome()
   local wq = #state.whisperQueue
   local pq = #state.postQueue
   local whisperOn = state.whisperTicker and L["ON"] or L["OFF"]
-  local whoPending = state.pendingWho and L[" (waiting\xe2\x80\xa6)"] or ""
+  local whoPending = state.pendingWho and L[" (waiting…)"] or ""
 
   local sent, cap = GRIP:GetWhisperCapStatus()
 
@@ -1174,12 +1174,12 @@ function GRIP:UI_UpdateHome()
   elseif pot == 0 and whoTotal == 0 then
     hintText = L["Click Scan or press your Scan keybind to find unguilded players"]
   elseif wq > 0 and not state.whisperTicker then
-    hintText = (L["Whisper queue has %d candidates \xe2\x80\x94 click Whisper+Invite to start"]):format(wq)
+    hintText = (L["Whisper queue has %d candidates — click Whisper+Invite to start"]):format(wq)
   elseif blTemp > 20 then
     local days = tonumber(GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.config.blacklistDays) or 14
     hintText = (L["%d temp-blacklisted players will expire in ~%d days"]):format(blTemp, days)
   else
-    hintText = L["Tip: /grip help  \xC2\xB7  Right-click rows for options"]
+    hintText = L["Tip: /grip help  ·  Right-click rows for options"]
   end
   if hintText then
     home.hint:SetText(hintText)

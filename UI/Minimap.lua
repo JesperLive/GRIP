@@ -2,6 +2,7 @@
 -- Minimap ring button with drag-to-reposition and click shortcuts.
 
 local ADDON_NAME, GRIP = ...
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
@@ -68,7 +69,7 @@ local function ShowPage(page)
   if not f then return end
 
   if (not f:IsShown()) and InCombatLockdown and InCombatLockdown() then
-    GRIP:Print("Cannot open GRIP window in combat.")
+    GRIP:Print(L["Cannot open GRIP window in combat."])
     return
   end
 
@@ -90,7 +91,7 @@ local function ToggleHome()
   end
 
   if InCombatLockdown and InCombatLockdown() then
-    GRIP:Print("Cannot open GRIP window in combat.")
+    GRIP:Print(L["Cannot open GRIP window in combat."])
     return
   end
 
@@ -259,12 +260,12 @@ function GRIP:CreateMinimapButton()
 
   btn:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:AddLine("GRIP", 1, 1, 1)
-    GameTooltip:AddLine("Left-click: Toggle window (Home)", 0.8, 0.8, 0.8)
-    GameTooltip:AddLine("Middle-click: Settings", 0.8, 0.8, 0.8)
-    GameTooltip:AddLine("Right-click: Ads", 0.8, 0.8, 0.8)
-    GameTooltip:AddLine("Drag: Move button", 0.8, 0.8, 0.8)
-    GameTooltip:AddLine("/grip minimap off  (hide)", 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["GRIP"], 1, 1, 1)
+    GameTooltip:AddLine(L["Left-click: Toggle window (Home)"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Middle-click: Settings"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Right-click: Ads"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Drag: Move button"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["/grip minimap off  (hide)"], 0.8, 0.8, 0.8)
     GameTooltip:Show()
   end)
   btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -352,7 +353,7 @@ function GRIP:ToggleMinimapButton(force)
   else
     self:UpdateMinimapButton()
   end
-  self:Print("Minimap button: " .. (GRIPDB_CHAR.minimap.hide and "OFF" or "ON"))
+  self:Print(L["Minimap button: "] .. (GRIPDB_CHAR.minimap.hide and L["OFF"] or L["ON"]))
 end
 
 -- Compartment right-click context menu (MenuUtil pattern, same as UI_Home_Menu.lua)
@@ -363,29 +364,29 @@ function GRIP:ShowCompartmentMenu()
   end
 
   MenuUtil.CreateContextMenu(UIParent, function(owner, rootDescription)
-    rootDescription:CreateTitle("GRIP v" .. (GRIP.VERSION or "?"))
+    rootDescription:CreateTitle((L["GRIP v%s"]):format(GRIP.VERSION or "?"))
 
     local ghostLocked = GRIP.Ghost and GRIP.Ghost.IsSessionLocked
       and GRIP.Ghost:IsSessionLocked()
 
-    rootDescription:CreateButton("Toggle UI", function()
+    rootDescription:CreateButton(L["Toggle UI"], function()
       GRIP:ToggleUI()
     end)
 
-    rootDescription:CreateButton("Status", function()
+    rootDescription:CreateButton(L["Status"], function()
       if GRIP.HandleSlash then
         GRIP:HandleSlash("status")
       end
     end)
 
-    local buildBtn = rootDescription:CreateButton("Build Scan Queue", function()
+    local buildBtn = rootDescription:CreateButton(L["Build Scan Queue"], function()
       if ghostLocked then
-        GRIP:Print("Locked during Ghost session.")
+        GRIP:Print(L["Locked during Ghost session."])
         return
       end
       if GRIP.BuildWhoQueue then
         GRIP:BuildWhoQueue()
-        GRIP:Print("Who queue rebuilt.")
+        GRIP:Print(L["Who queue rebuilt."])
       end
     end)
     if ghostLocked then buildBtn:SetEnabled(false) end
@@ -397,17 +398,17 @@ function GRIP:ShowCompartmentMenu()
       local sessionActive = gm and gm.IsSessionActive
         and gm:IsSessionActive()
       local label = sessionActive
-        and "Stop Ghost Session"
-        or "Start Ghost Session"
+        and L["Stop Ghost Session"]
+        or L["Start Ghost Session"]
       rootDescription:CreateButton(label, function()
         if not gm then return end
         if gm:IsSessionActive() then
           gm:StopSession("manual")
-          GRIP:Print("Ghost Mode session stopped.")
+          GRIP:Print(L["Ghost Mode session stopped."])
         else
           local ok = gm:StartSession()
           if ok then
-            GRIP:Print("Ghost Mode session started.")
+            GRIP:Print(L["Ghost Mode session started."])
           end
         end
       end)
@@ -419,10 +420,10 @@ function GRIP:ShowCompartmentMenu()
     local whisperActive = (GRIP.state and GRIP.state.whisperTicker)
       and true or false
     local whisperBtn = rootDescription:CreateButton(
-      whisperActive and "Stop Whispers" or "Start Whispers",
+      whisperActive and L["Stop Whispers"] or L["Start Whispers"],
       function()
         if ghostLocked then
-          GRIP:Print("Locked during Ghost session.")
+          GRIP:Print(L["Locked during Ghost session."])
           return
         end
         if whisperActive and GRIP.StopWhispers then
@@ -452,9 +453,9 @@ end
 function GRIP_OnCompartmentEnter(addonName, menuButtonFrame)
   local anchor = menuButtonFrame or UIParent
   GameTooltip:SetOwner(anchor, "ANCHOR_LEFT")
-  GameTooltip:AddLine("GRIP", 1, 1, 1)
-  GameTooltip:AddLine("Left-click: Toggle window", 0.8, 0.8, 0.8)
-  GameTooltip:AddLine("Right-click: Quick actions", 0.8, 0.8, 0.8)
+  GameTooltip:AddLine(L["GRIP"], 1, 1, 1)
+  GameTooltip:AddLine(L["Left-click: Toggle window"], 0.8, 0.8, 0.8)
+  GameTooltip:AddLine(L["Right-click: Quick actions"], 0.8, 0.8, 0.8)
   GameTooltip:Show()
 end
 

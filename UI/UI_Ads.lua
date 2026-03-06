@@ -154,12 +154,12 @@ local function LockUI(a, why)
     if why and why ~= "" then
       a._initHint:SetText(tostring(why))
     else
-      a._initHint:SetText(L["Initializing\xe2\x80\xa6 (database not ready yet)"])
+      a._initHint:SetText(L["Initializing… (database not ready yet)"])
     end
   elseif a.content then
     a._initHint = a.content:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     a._initHint:SetPoint("TOPLEFT", a.title, "BOTTOMLEFT", 0, -4)
-    a._initHint:SetText((why and why ~= "") and tostring(why) or L["Initializing\xe2\x80\xa6 (database not ready yet)"])
+    a._initHint:SetText((why and why ~= "") and tostring(why) or L["Initializing… (database not ready yet)"])
     a._initHint:Show()
   end
 
@@ -644,7 +644,7 @@ function GRIP:UI_UpdateAds()
 
   local cfg = GRIP:GetCfg()
   if not cfg then
-    LockUI(a, L["Initializing\xe2\x80\xa6 (database not ready yet)"])
+    LockUI(a, L["Initializing… (database not ready yet)"])
     return
   end
 

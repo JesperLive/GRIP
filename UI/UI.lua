@@ -2,6 +2,7 @@
 -- Main frame, tabs, page routing, resize handling, UpdateUI coalescing.
 
 local ADDON_NAME, GRIP = ...
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
 local type, tostring = type, tostring
@@ -42,14 +43,14 @@ end
 local function SafeCreatePage(methodName, parent)
   if not GRIP or type(GRIP[methodName]) ~= "function" then
     if GRIP and GRIP.Print then
-      GRIP:Print(("UI page missing: %s (file not loaded?)"):format(tostring(methodName)))
+      GRIP:Print((L["UI page missing: %s (file not loaded?)"]):format(tostring(methodName)))
     end
     local stub = CreateFrame("Frame", nil, parent)
     stub:SetAllPoints(true)
     local t = stub:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     t:SetPoint("TOPLEFT", stub, "TOPLEFT", 4, -4)
     t:SetJustifyH("LEFT")
-    t:SetText(("Page unavailable (%s)"):format(tostring(methodName)))
+    t:SetText((L["Page unavailable (%s)"]):format(tostring(methodName)))
     return stub
   end
 
@@ -62,7 +63,7 @@ local function SafeCreatePage(methodName, parent)
   end
 
   if GRIP and GRIP.Print then
-    GRIP:Print(("Failed to create UI page: %s"):format(tostring(methodName)))
+    GRIP:Print((L["Failed to create UI page: %s"]):format(tostring(methodName)))
   end
 
   local stub = CreateFrame("Frame", nil, parent)
@@ -70,7 +71,7 @@ local function SafeCreatePage(methodName, parent)
   local t = stub:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   t:SetPoint("TOPLEFT", stub, "TOPLEFT", 4, -4)
   t:SetJustifyH("LEFT")
-  t:SetText(("Page failed to load (%s)"):format(tostring(methodName)))
+  t:SetText((L["Page failed to load (%s)"]):format(tostring(methodName)))
   return stub
 end
 
@@ -449,18 +450,18 @@ function GRIP:CreateUI()
 
   f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   f.title:SetPoint("LEFT", f.TitleBg, "LEFT", 8, 0)
-  f.title:SetText("GRIP")
+  f.title:SetText(L["GRIP"])
 
-  f.btnHome = W.CreateUIButton(f, "Home", 70, 20, function() GRIP:ShowPage("home") end)
+  f.btnHome = W.CreateUIButton(f, L["Home"], 70, 20, function() GRIP:ShowPage("home") end)
   f.btnHome:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -30)
 
-  f.btnSettings = W.CreateUIButton(f, "Settings", 80, 20, function() GRIP:ShowPage("settings") end)
+  f.btnSettings = W.CreateUIButton(f, L["Settings"], 80, 20, function() GRIP:ShowPage("settings") end)
   f.btnSettings:SetPoint("LEFT", f.btnHome, "RIGHT", 6, 0)
 
-  f.btnAds = W.CreateUIButton(f, "Ads", 70, 20, function() GRIP:ShowPage("ads") end)
+  f.btnAds = W.CreateUIButton(f, L["Ads"], 70, 20, function() GRIP:ShowPage("ads") end)
   f.btnAds:SetPoint("LEFT", f.btnSettings, "RIGHT", 6, 0)
 
-  f.btnStats = W.CreateUIButton(f, "Stats", 70, 20, function() GRIP:ShowPage("stats") end)
+  f.btnStats = W.CreateUIButton(f, L["Stats"], 70, 20, function() GRIP:ShowPage("stats") end)
   f.btnStats:SetPoint("LEFT", f.btnAds, "RIGHT", 6, 0)
 
   -- Active tab underline (gold accent)
@@ -507,7 +508,7 @@ function GRIP:CreateUI()
 
       local label = uc:CreateFontString(nil, "OVERLAY", "GameFontNormal")
       label:SetPoint("TOPLEFT", 12, -28)
-      label:SetText("Press Ctrl+C to copy:")
+      label:SetText(L["Press Ctrl+C to copy:"])
 
       local eb = CreateFrame("EditBox", nil, uc, "InputBoxTemplate")
       eb:SetSize(306, 22)
@@ -529,15 +530,15 @@ function GRIP:CreateUI()
   discordBtn:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -26, 6)
   local discordText = discordBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   discordText:SetPoint("RIGHT")
-  discordText:SetText("|cff7289daDiscord Support|r")
+  discordText:SetText("|cff7289da" .. L["Discord Support"] .. "|r")
   discordBtn:SetScript("OnEnter", function(self)
-    discordText:SetText("|cffFFFFFFDiscord Support|r")
+    discordText:SetText("|cffFFFFFF" .. L["Discord Support"] .. "|r")
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText("Click to copy Discord invite link")
+    GameTooltip:SetText(L["Click to copy Discord invite link"])
     GameTooltip:Show()
   end)
   discordBtn:SetScript("OnLeave", function()
-    discordText:SetText("|cff7289daDiscord Support|r")
+    discordText:SetText("|cff7289da" .. L["Discord Support"] .. "|r")
     GameTooltip:Hide()
   end)
   discordBtn:SetScript("OnClick", function()
@@ -664,7 +665,7 @@ function GRIP:ResetUI()
     ThrottledLayout(f)
     self:UpdateUI(true)
   end
-  self:Print("UI position and size reset to defaults.")
+  self:Print(L["UI position and size reset to defaults."])
 end
 
 -- Coalesced UpdateUI:

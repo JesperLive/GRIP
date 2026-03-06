@@ -379,6 +379,18 @@ L["Stats"] = true
 L["Press Ctrl+C to copy:"] = true
 L["Discord Support"] = true
 
+-- Error/fallback messages
+L["UI page missing: %s (file not loaded?)"] = true
+L["Page unavailable (%s)"] = true
+L["Failed to create UI page: %s"] = true
+L["Page failed to load (%s)"] = true
+
+-- Discord link tooltip
+L["Click to copy Discord invite link"] = true
+
+-- Reset
+L["UI position and size reset to defaults."] = true
+
 -- =========================================================================
 -- UI/UI_Home.lua — Home page
 -- =========================================================================
@@ -462,9 +474,9 @@ L["Send next Trade/General channel post.\nRequires keybind or button click.\nQue
 
 -- Dynamic hints
 L["Click Scan or press your Scan keybind to find unguilded players"] = true
-L["Whisper queue has %d candidates \xe2\x80\x94 click Whisper+Invite to start"] = true
+L["Whisper queue has %d candidates — click Whisper+Invite to start"] = true
 L["%d temp-blacklisted players will expire in ~%d days"] = true
-L["Tip: /grip help  \xC2\xB7  Right-click rows for options"] = true
+L["Tip: /grip help  ·  Right-click rows for options"] = true
 
 -- Panel title with counts
 L["Blacklist (perm %d; temp %d)"] = true
@@ -473,11 +485,11 @@ L["Blacklist (perm %d; temp %d)"] = true
 L["Scan (%.0fs)"] = true
 
 -- Init state
-L["Initializing\xe2\x80\xa6"] = true
-L["Initializing\xe2\x80\xa6 (database not ready yet)"] = true
+L["Initializing…"] = true
+-- Note: L["Initializing… (database not ready yet)"] already defined in UI_Home section above
 
 -- Status bar
-L[" (waiting\xe2\x80\xa6)"] = true
+L[" (waiting…)"] = true
 L["Potential: |cffffffff%d|r   |   BL: |cff888888perm %d|r  %stemp %d|r\nWho: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"] = true
 
 -- Onboarding
@@ -816,8 +828,9 @@ L["Invite blocked (%s): %s"] = true
 -- UI/UI_Widgets.lua — Reusable widgets
 -- =========================================================================
 
--- " min" suffix is in slider display, not typically localized
--- "All"/"None" already defined above
+-- "All"/"None" already defined above (UI/UI_Settings.lua section)
+-- Slider value display
+L["%d min"] = true
 
 -- =========================================================================
 -- UI/Minimap.lua — Minimap button + compartment
@@ -842,6 +855,8 @@ L["Locked during Ghost session."] = true
 L["Who queue rebuilt."] = true
 L["Stop Ghost Session"] = true
 L["Start Ghost Session"] = true
+L["Ghost Mode session started."] = true
+-- Note: "Ghost Mode session stopped." already defined in Slash section
 L["Stop Whispers"] = true
 L["Start Whispers"] = true
 

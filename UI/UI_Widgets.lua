@@ -2,6 +2,7 @@
 -- Reusable constructors: checkboxes, multiline edits, checklists, scroll pages.
 
 local ADDON_NAME, GRIP = ...
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
 local type, tostring = type, tostring
@@ -487,10 +488,10 @@ function W.CreateGroupedChecklist(parent, titleText, w, h)
         btns = {}
         btns.all = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
         btns.all:SetSize(32, 18)
-        btns.all:SetText("All")
+        btns.all:SetText(L["All"])
         btns.none = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
         btns.none:SetSize(38, 18)
-        btns.none:SetText("None")
+        btns.none:SetText(L["None"])
         self._groupBtns[hdrIdx] = btns
       end
 
@@ -589,12 +590,12 @@ function W.CreateSlider(parent, label, minVal, maxVal, step, default, width, onC
   -- Value readout to the right
   local val = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   val:SetPoint("LEFT", slider, "RIGHT", 8, 0)
-  val:SetText(floor(default or minVal) .. " min")
+  val:SetText((L["%d min"]):format(floor(default or minVal)))
   slider._gripValue = val
 
   slider:SetScript("OnValueChanged", function(self, v)
     v = floor(v + 0.5)
-    val:SetText(v .. " min")
+    val:SetText((L["%d min"]):format(v))
     if onChanged then onChanged(v) end
   end)
 
