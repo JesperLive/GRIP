@@ -2,9 +2,10 @@
 
 **Target:** Retail / Midnight (12.0.1+)
 **Interface:** 120001
-**Version:** 1.3.0
+**Version:** 1.3.1
 
 [![Discord](https://img.shields.io/badge/Discord-Tempting%20Us-7289da?logo=discord&logoColor=white)](https://discord.gg/temptingus)
+[![Sponsor](https://img.shields.io/badge/Sponsor-♥-ea4aaa)](https://paypal.me/jesperlive)
 
 ---
 
