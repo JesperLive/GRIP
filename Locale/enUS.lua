@@ -494,6 +494,11 @@ L["Got it!"] = true
 -- =========================================================================
 -- UI/UI_Settings.lua — Settings page
 -- =========================================================================
+-- Reused from other sections (not redeclared):
+--   "Settings"                                (UI/UI.lua — tab label)
+--   "ON", "OFF"                               (Common toggle values)
+--   "Scan levels set: %d-%d step %d"          (Core/Slash.lua)
+--   "Initializing… (database not ready yet)"  (UI/UI_Home.lua — shared empty state)
 
 -- Level controls
 L["Scan Levels (min / max / step)"] = true
@@ -504,18 +509,16 @@ L["Apply + Rebuild"] = true
 L["Levels must be numbers."] = true
 L["Settings unavailable yet (DB not initialized)."] = true
 
--- Zone-only
+-- Zone-only checkbox + Print
 L["Include current zone in /who query"] = true
+L["scanZoneOnly: "] = true
 
--- Apply + Rebuild tooltip
-L["Apply Level Range"] = true
-L["Save the min/max/step values and rebuild the /who queue."] = true
-
--- Zone Only tooltip
+-- Tooltips: zone only, apply
 L["Zone Only"] = true
-L["When enabled, appends your current zone name to /who queries.\nNarrows results to players near you."] = true
+L["When checked, appends your current zone name to every\n/who query. Narrows results to your zone only."] = true
+L["Applies level range + step and rebuilds the /who scan queue."] = true
 
--- Filter info
+-- Filter help
 L["Filters are allowlists. If nothing is checked in a category, that category allows ALL."] = true
 
 -- Checklist section titles
@@ -531,23 +534,22 @@ L["Clear Selections"] = true
 
 -- Filter button tooltips
 L["Select All Zones"] = true
-L["Enable all zones in the filter list."] = true
+L["Select all zones in every expansion group."] = true
 L["Deselect All Zones"] = true
-L["Disable all zones — an empty zone list allows ALL zones."] = true
+L["Deselect all zones (allows all zones when empty)."] = true
 L["Current Zone"] = true
-L["Enable only your current zone in the filter."] = true
+L["Add your current zone to the selection."] = true
 L["Could not determine current zone."] = true
 L["Zone \"%s\" not found in zone lists."] = true
 L["Select All Races"] = true
-L["Enable all races in the filter."] = true
+L["Select all races."] = true
 L["Deselect All Races"] = true
-L["Disable all races — an empty race list allows ALL races."] = true
+L["Deselect all races (allows all races when empty)."] = true
 L["Select All Classes"] = true
-L["Enable all classes in the filter."] = true
+L["Select all classes."] = true
 L["Deselect All Classes"] = true
-L["Disable all classes — an empty class list allows ALL classes."] = true
-L["Clear Filter Selections"] = true
-L["Clear all zone, race, and class filter selections.\nEmpty filters = allow all."] = true
+L["Deselect all classes (allows all classes when empty)."] = true
+L["Deselect all zones, races, and classes.\nEmpty filters = allow all."] = true
 L["Cleared filter selections."] = true
 
 -- Whisper template section
@@ -557,38 +559,36 @@ L["Next"] = true
 L["+ Add"] = true
 L["- Remove"] = true
 L["Message %d/%d"] = true
+L["Max %d templates."] = true
+L["Must have at least 1 template."] = true
 
 -- Template nav tooltips
 L["Previous Template"] = true
-L["Show the previous whisper template."] = true
+L["Navigate between whisper templates."] = true
 L["Next Template"] = true
-L["Show the next whisper template."] = true
 L["Add Template"] = true
 L["Add a new blank whisper template (max 10)."] = true
 L["Remove Template"] = true
-L["Remove the currently displayed template."] = true
+L["Remove the current template (min 1)."] = true
 
 -- Token insert buttons
 L["Insert {guildlink}"] = true
 L["Insert {guild}"] = true
 L["Insert {player}"] = true
-L["Insert a clickable Guild Finder link token.\nRequires an active listing in the Guild Finder."] = true
-L["Insert the guild name token."] = true
-L["Insert the target player's name token."] = true
+L["Inserts a clickable Guild Finder link at cursor.\nBudgets ~120 bytes for the link payload."] = true
+L["Inserts your guild name at cursor."] = true
+L["Inserts the target player's name at cursor."] = true
 L["No room to insert {guildlink} (max 255 after expansion)."] = true
 L["No room to insert {guild} (max 255 after expansion)."] = true
 L["No room to insert {player} (max 255 after expansion)."] = true
 
 -- Save/Preview
 L["Save All"] = true
-L["Save all whisper templates."] = true
-L["Save All Templates"] = true
-L["Save all whisper templates to SavedVariables.\nTemplates are also auto-saved when switching tabs."] = true
+L["Save all whisper templates to SavedVariables."] = true
 L["Saved %d whisper template(s)."] = true
 L["Template %d is too long after token expansion (max 255)."] = true
 L["Preview"] = true
-L["Preview the current template with tokens expanded.\nShows what the whisper will look like in-game."] = true
-L["Preview Template"] = true
+L["Expands tokens and prints the result to chat.\nUses your name as the {player} stand-in."] = true
 L["Template is too long after token expansion (max 255)."] = true
 L["Preview: "] = true
 
@@ -599,73 +599,90 @@ L["Random"] = true
 L["Send templates in order (1, 2, 3, …, repeat)."] = true
 L["Pick a random template for each whisper."] = true
 
--- Checkboxes
+-- Whisper/Invite checkboxes
 L["Hide outgoing whisper echoes"] = true
-L["Suppress Whisper Echo"] = true
-L["Hide your own outgoing whisper text from the chat window.\nThe whisper is still sent — only the echo is hidden."] = true
+L["Hide Whisper Echoes"] = true
+L["Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment."] = true
 
 L["Invite first (safer)"] = true
 L["Invite First"] = true
-L["Send the guild invite BEFORE the whisper.\nSafer: the player sees the invite popup even if they ignore whispers."] = true
+L["Send guild invite before whisper. Only whispers players\nwho successfully receive the invite.\nReduces risk of reports from players who block invites."] = true
 
 -- Sound section
 L["Sound Feedback"] = true
 L["Enable sound feedback"] = true
-L["Master Sound Toggle"] = true
-L["Enable or disable all GRIP sound notifications."] = true
+L["Master toggle for all GRIP sound notifications."] = true
 L["Whisper queue complete"] = true
-L["Play a sound when the whisper queue finishes."] = true
+L["Whisper Complete"] = true
+L["Play a sound when the whisper queue is fully drained."] = true
 L["Invite accepted"] = true
-L["Play a sound when a player accepts your guild invite."] = true
+L["Invite Accepted"] = true
+L["Play a sound when a guild invite is accepted."] = true
 L["Scan results found"] = true
-L["Play a sound when a /who scan finds new candidates."] = true
+L["Scan Results"] = true
+L["Play a sound when a /who scan returns results."] = true
 L["Daily cap warning"] = true
+L["Cap Warning"] = true
 L["Play a sound when approaching the daily whisper cap."] = true
 
 -- Opt-out section
 L["Opt-Out Detection Languages"] = true
 L["English"] = true
 L["English (Required)"] = true
-L["English opt-out detection is always active and cannot be disabled."] = true
+L["English opt-out phrases are always active and cannot be disabled."] = true
 L["English is always enabled for opt-out detection."] = true
 
 L["Français (French)"] = true
 L["French Opt-Out Phrases"] = true
-L["Enable detection of French opt-out phrases (e.g., \"non merci\", \"pas intéressé\")."] = true
+L["Enable French opt-out phrase detection for EU-FR realms.\nPhrases: non merci, pas intéressé, déjà dans une guilde, etc."] = true
 
 L["Deutsch (German)"] = true
 L["German Opt-Out Phrases"] = true
-L["Enable detection of German opt-out phrases (e.g., \"nein danke\", \"kein Interesse\")."] = true
+L["Enable German opt-out phrase detection for EU-DE realms.\nPhrases: nein danke, nicht interessiert, hab schon ne gilde, etc."] = true
 
 L["Español (Spanish)"] = true
 L["Spanish Opt-Out Phrases"] = true
-L["Enable detection of Spanish opt-out phrases (e.g., \"no gracias\", \"no me interesa\")."] = true
+L["Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc."] = true
 
 L["Aggressive language detection"] = true
 L["Aggressive Language Detection"] = true
-L["Detect aggressive opt-out phrases (profanity, hostile responses).\nBlacklists the player immediately when detected."] = true
+L["Enable detection of explicit/hostile rejection phrases as opt-outs.\n" ..
+  "Phrases: fuck off, piss off, go away, bugger off, screw off, sod off.\n" ..
+  "These are unambiguous rejections with near-zero false positive risk.\n" ..
+  "Default: off."] = true
 
 -- Raider.IO section
 L["Raider.IO Integration"] = true
 L["Requires the Raider.IO addon to be installed."] = true
+L["Raider.IO addon detected."] = true
+L["Raider.IO addon not installed. Controls are disabled."] = true
 L["Minimum M+ Score (0 = disabled):"] = true
 L["Show M+ column in Potential list"] = true
 L["M+ Column"] = true
-L["Show each candidate's Mythic+ score in the Potential list.\nRequires the Raider.IO addon."] = true
+L["Show the M+ score column in the Home page Potential list.\nOnly visible when Raider.IO addon is installed."] = true
 
 -- Officer Sync section
 L["Officer Sync"] = true
 L["Enable officer sync"] = true
-L["Share permanent blacklist entries with other officers running GRIP.\nUses guild addon channel — no external services."] = true
+L["Syncs blacklist and whisper templates between guild officers running GRIP.\n" ..
+  "Uses guild chat channel (invisible to players).\n" ..
+  "Blacklist entries are only added, never removed (set-union merge).\n" ..
+  "Templates use last-writer-wins with clock tolerance."] = true
 L["Sync whisper templates"] = true
 L["Template Sync"] = true
-L["Sync whisper templates with other officers.\nUses last-write-wins: the most recently edited set is shared."] = true
+L["When enabled, whisper templates are synced from other officers.\n" ..
+  "Uses last-writer-wins: the most recently edited set replaces yours.\n" ..
+  "Disable to keep your own templates independent."] = true
 L["Last sync: never"] = true
+L["Last sync: just now"] = true
+L["Last sync: %d min ago"] = true
+L["Last sync: %d hr ago"] = true
 
 -- Ghost Mode section
 L["Ghost Mode (Experimental)"] = true
 L["Enable Ghost Mode"] = true
-L["Queue hardware-gated actions (invites, posts, /who) into a\nsingle overlay. Any keypress or click drains the queue one action at a time."] = true
+L["Ghost Mode"] = true
+L["Enables the Ghost overlay that captures hardware events\nto automatically drain whisper/invite/post queues."] = true
 L["Ghost Session Max (minutes)"] = true
 L["Ghost Cooldown (minutes)"] = true
 

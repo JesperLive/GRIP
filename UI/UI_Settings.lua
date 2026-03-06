@@ -2,6 +2,7 @@
 -- Level range, filter checklists, whisper editor with byte-budget enforcement.
 
 local ADDON_NAME, GRIP = ...
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
 local type, tostring, tonumber, select = type, tostring, tonumber, select
@@ -263,7 +264,7 @@ local function UpdateWhisperNavText(s)
   local total = s._whisperDrafts and #s._whisperDrafts or 0
   local idx = s._whisperIdx or 1
   if s.whisperNav then
-    s.whisperNav:SetText(("Message %d/%d"):format(idx, total))
+    s.whisperNav:SetText((L["Message %d/%d"]):format(idx, total))
   end
   W.SetEnabledSafe(s.whisperPrev, idx > 1)
   W.SetEnabledSafe(s.whisperNext, idx < total)
@@ -466,41 +467,41 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.title = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.title:SetPoint("TOPLEFT", s, "TOPLEFT", 4, -2)
-  settings.title:SetText("Settings")
+  settings.title:SetText(L["Settings"])
 
   settings.levelLabel = s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   settings.levelLabel:SetPoint("TOPLEFT", s, "TOPLEFT", 4, -24)
-  settings.levelLabel:SetText("Scan Levels (min / max / step)")
+  settings.levelLabel:SetText(L["Scan Levels (min / max / step)"])
 
-  settings.minLbl, settings.minEdit = W.CreateLabeledEdit(s, "Min", 60)
+  settings.minLbl, settings.minEdit = W.CreateLabeledEdit(s, L["Min"], 60)
   settings.minLbl:SetPoint("TOPLEFT", s, "TOPLEFT", 4, -44)
   settings.minEdit:SetPoint("LEFT", settings.minLbl, "RIGHT", 8, 0)
 
-  settings.maxLbl, settings.maxEdit = W.CreateLabeledEdit(s, "Max", 60)
+  settings.maxLbl, settings.maxEdit = W.CreateLabeledEdit(s, L["Max"], 60)
   settings.maxLbl:SetPoint("LEFT", settings.minEdit, "RIGHT", 16, 0)
   settings.maxEdit:SetPoint("LEFT", settings.maxLbl, "RIGHT", 8, 0)
 
-  settings.stepLbl, settings.stepEdit = W.CreateLabeledEdit(s, "Step", 60)
+  settings.stepLbl, settings.stepEdit = W.CreateLabeledEdit(s, L["Step"], 60)
   settings.stepLbl:SetPoint("LEFT", settings.maxEdit, "RIGHT", 16, 0)
   settings.stepEdit:SetPoint("LEFT", settings.stepLbl, "RIGHT", 8, 0)
 
-  settings.zoneOnly = W.CreateCheckbox(s, "Include current zone in /who query", function(btn)
+  settings.zoneOnly = W.CreateCheckbox(s, L["Include current zone in /who query"], function(btn)
     if not HasDB() then
-      GRIP:Print("Settings unavailable yet (DB not initialized).")
+      GRIP:Print(L["Settings unavailable yet (DB not initialized)."])
       btn:SetChecked(false)
       return
     end
 
     GRIPDB_CHAR.config.scanZoneOnly = btn:GetChecked() and true or false
-    GRIP:Print("scanZoneOnly: " .. (GRIPDB_CHAR.config.scanZoneOnly and "ON" or "OFF"))
+    GRIP:Print(L["scanZoneOnly: "] .. (GRIPDB_CHAR.config.scanZoneOnly and L["ON"] or L["OFF"]))
     GRIP:BuildWhoQueue()
     GRIP:UpdateUI()
   end)
   settings.zoneOnly:SetPoint("TOPLEFT", settings.minLbl, "BOTTOMLEFT", 0, -10)
 
-  settings.applyLevels = W.CreateUIButton(s, "Apply + Rebuild", 120, 22, function()
+  settings.applyLevels = W.CreateUIButton(s, L["Apply + Rebuild"], 120, 22, function()
     if not HasDB() then
-      GRIP:Print("Settings unavailable yet (DB not initialized).")
+      GRIP:Print(L["Settings unavailable yet (DB not initialized)."])
       return
     end
 
@@ -512,7 +513,7 @@ function GRIP:UI_CreateSettings(parent)
     local b1 = tonumber(settings.maxEdit:GetText())
     local c1 = tonumber(settings.stepEdit:GetText())
     if not (a1 and b1 and c1) then
-      GRIP:Print("Levels must be numbers.")
+      GRIP:Print(L["Levels must be numbers."])
       return
     end
 
@@ -523,13 +524,13 @@ function GRIP:UI_CreateSettings(parent)
     W.ClearDirty(settings.minEdit, settings.maxEdit, settings.stepEdit)
 
     GRIP:BuildWhoQueue()
-    GRIP:Print(("Scan levels set: %d-%d step %d"):format(GRIPDB_CHAR.config.scanMinLevel, GRIPDB_CHAR.config.scanMaxLevel, GRIPDB_CHAR.config.scanStep))
+    GRIP:Print((L["Scan levels set: %d-%d step %d"]):format(GRIPDB_CHAR.config.scanMinLevel, GRIPDB_CHAR.config.scanMaxLevel, GRIPDB_CHAR.config.scanStep))
     GRIP:UpdateUI()
   end)
   settings.applyLevels:SetPoint("LEFT", settings.stepEdit, "RIGHT", 14, 0)
 
-  GRIP:AttachTooltip(settings.zoneOnly, "Zone Only", "When checked, appends your current zone name to every\n/who query. Narrows results to your zone only.")
-  GRIP:AttachTooltip(settings.applyLevels, "Apply + Rebuild", "Applies level range + step and rebuilds the /who scan queue.")
+  GRIP:AttachTooltip(settings.zoneOnly, L["Zone Only"], L["When checked, appends your current zone name to every\n/who query. Narrows results to your zone only."])
+  GRIP:AttachTooltip(settings.applyLevels, L["Apply + Rebuild"], L["Applies level range + step and rebuilds the /who scan queue."])
 
   -- Separator: level/zone controls → filter checklists
   settings.sep1 = s:CreateTexture(nil, "ARTWORK")
@@ -540,19 +541,19 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.filtersHelp = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   settings.filtersHelp:SetPoint("TOPLEFT", settings.sep1, "BOTTOMLEFT", 0, -6)
-  settings.filtersHelp:SetText("Filters are allowlists. If nothing is checked in a category, that category allows ALL.")
+  settings.filtersHelp:SetText(L["Filters are allowlists. If nothing is checked in a category, that category allows ALL."])
 
-  settings.zoneList = W.CreateGroupedChecklist(s, "Zones", 250, 200)
+  settings.zoneList = W.CreateGroupedChecklist(s, L["Zones"], 250, 200)
   settings.zoneList:SetPoint("TOPLEFT", settings.filtersHelp, "BOTTOMLEFT", 0, -8)
 
-  settings.raceList = W.CreateChecklist(s, "Races", 250, 140)
+  settings.raceList = W.CreateChecklist(s, L["Races"], 250, 140)
   settings.raceList:SetPoint("TOPLEFT", settings.zoneList, "TOPRIGHT", 12, 0)
 
-  settings.classList = W.CreateChecklist(s, "Classes", 250, 140)
+  settings.classList = W.CreateChecklist(s, L["Classes"], 250, 140)
   settings.classList:SetPoint("TOPLEFT", settings.zoneList, "BOTTOMLEFT", 0, -12)
 
-  settings.zoneAll = W.CreateUIButton(s, "All", 44, 18, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.zoneAll = W.CreateUIButton(s, L["All"], 44, 18, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     wipe(GRIPDB_CHAR.filters.zones)
     local groups = GRIP:GetZonesGroupedForUI()
     for _, g in ipairs(groups) do
@@ -563,20 +564,20 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:UpdateUI()
   end)
   settings.zoneAll:SetPoint("TOPRIGHT", settings.zoneList, "TOPRIGHT", -52, -4)
-  GRIP:AttachTooltip(settings.zoneAll, "Select All Zones", "Select all zones in every expansion group.")
+  GRIP:AttachTooltip(settings.zoneAll, L["Select All Zones"], L["Select all zones in every expansion group."])
 
-  settings.zoneNone = W.CreateUIButton(s, "None", 44, 18, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.zoneNone = W.CreateUIButton(s, L["None"], 44, 18, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     wipe(GRIPDB_CHAR.filters.zones); GRIP:UpdateUI()
   end)
   settings.zoneNone:SetPoint("LEFT", settings.zoneAll, "RIGHT", 4, 0)
-  GRIP:AttachTooltip(settings.zoneNone, "Deselect All Zones", "Deselect all zones (allows all zones when empty).")
+  GRIP:AttachTooltip(settings.zoneNone, L["Deselect All Zones"], L["Deselect all zones (allows all zones when empty)."])
 
-  settings.zoneCurrent = W.CreateUIButton(s, "Current", 56, 18, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.zoneCurrent = W.CreateUIButton(s, L["Current"], 56, 18, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     local zoneName = GetRealZoneText and GetRealZoneText() or ""
     if zoneName == "" then
-      GRIP:Print("Could not determine current zone.")
+      GRIP:Print(L["Could not determine current zone."])
       return
     end
     -- Find this zone in any expansion group and select it
@@ -597,51 +598,51 @@ function GRIP:UI_CreateSettings(parent)
     if found then
       GRIP:Debug("Zone filter: added current zone", zoneName)
     else
-      GRIP:Print(("Zone \"%s\" not found in zone lists."):format(zoneName))
+      GRIP:Print((L["Zone \"%s\" not found in zone lists."]):format(zoneName))
     end
     GRIP:UpdateUI()
   end)
   settings.zoneCurrent:SetPoint("TOPRIGHT", settings.zoneAll, "TOPLEFT", -4, 0)
-  GRIP:AttachTooltip(settings.zoneCurrent, "Current Zone", "Add your current zone to the selection.")
+  GRIP:AttachTooltip(settings.zoneCurrent, L["Current Zone"], L["Add your current zone to the selection."])
 
-  settings.raceAll = W.CreateUIButton(s, "All", 44, 18, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.raceAll = W.CreateUIButton(s, L["All"], 44, 18, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     SetAll(GRIPDB_CHAR.lists.races, GRIPDB_CHAR.filters.races); GRIP:UpdateUI()
   end)
   settings.raceAll:SetPoint("TOPRIGHT", settings.raceList, "TOPRIGHT", -52, -4)
-  GRIP:AttachTooltip(settings.raceAll, "Select All Races", "Select all races.")
+  GRIP:AttachTooltip(settings.raceAll, L["Select All Races"], L["Select all races."])
 
-  settings.raceNone = W.CreateUIButton(s, "None", 44, 18, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.raceNone = W.CreateUIButton(s, L["None"], 44, 18, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     wipe(GRIPDB_CHAR.filters.races); GRIP:UpdateUI()
   end)
   settings.raceNone:SetPoint("LEFT", settings.raceAll, "RIGHT", 4, 0)
-  GRIP:AttachTooltip(settings.raceNone, "Deselect All Races", "Deselect all races (allows all races when empty).")
+  GRIP:AttachTooltip(settings.raceNone, L["Deselect All Races"], L["Deselect all races (allows all races when empty)."])
 
-  settings.classAll = W.CreateUIButton(s, "All", 44, 18, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.classAll = W.CreateUIButton(s, L["All"], 44, 18, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     SetAll(GRIPDB_CHAR.lists.classes, GRIPDB_CHAR.filters.classes); GRIP:UpdateUI()
   end)
   settings.classAll:SetPoint("TOPRIGHT", settings.classList, "TOPRIGHT", -52, -4)
-  GRIP:AttachTooltip(settings.classAll, "Select All Classes", "Select all classes.")
+  GRIP:AttachTooltip(settings.classAll, L["Select All Classes"], L["Select all classes."])
 
-  settings.classNone = W.CreateUIButton(s, "None", 44, 18, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.classNone = W.CreateUIButton(s, L["None"], 44, 18, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     wipe(GRIPDB_CHAR.filters.classes); GRIP:UpdateUI()
   end)
   settings.classNone:SetPoint("LEFT", settings.classAll, "RIGHT", 4, 0)
-  GRIP:AttachTooltip(settings.classNone, "Deselect All Classes", "Deselect all classes (allows all classes when empty).")
+  GRIP:AttachTooltip(settings.classNone, L["Deselect All Classes"], L["Deselect all classes (allows all classes when empty)."])
 
-  settings.clearFilters = W.CreateUIButton(s, "Clear Selections", 120, 22, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.clearFilters = W.CreateUIButton(s, L["Clear Selections"], 120, 22, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     wipe(GRIPDB_CHAR.filters.zones)
     wipe(GRIPDB_CHAR.filters.races)
     wipe(GRIPDB_CHAR.filters.classes)
-    GRIP:Print("Cleared filter selections.")
+    GRIP:Print(L["Cleared filter selections."])
     GRIP:UpdateUI()
   end)
   settings.clearFilters:SetPoint("TOPLEFT", settings.classList, "TOPRIGHT", 12, -2)
-  GRIP:AttachTooltip(settings.clearFilters, "Clear Selections", "Deselect all zones, races, and classes.\nEmpty filters = allow all.")
+  GRIP:AttachTooltip(settings.clearFilters, L["Clear Selections"], L["Deselect all zones, races, and classes.\nEmpty filters = allow all."])
   do local fs = settings.clearFilters:GetFontString(); if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end end
 
   -- Separator: filter checklists → whisper templates
@@ -653,34 +654,34 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.whisperHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.whisperHdr:SetPoint("TOPLEFT", settings.sep2, "BOTTOMLEFT", 0, -6)
-  settings.whisperHdr:SetText("Whisper Templates (supports {player} {guild} {guildlink})")
+  settings.whisperHdr:SetText(L["Whisper Templates (supports {player} {guild} {guildlink})"])
 
   -- Template navigation bar
-  settings.whisperPrev = W.CreateUIButton(s, "Prev", 40, 20, function()
+  settings.whisperPrev = W.CreateUIButton(s, L["Prev"], 40, 20, function()
     if not HasDB() then return end
     SaveCurrentDraft(settings)
     ShowWhisperTemplate(settings, (settings._whisperIdx or 1) - 1)
   end)
   settings.whisperPrev:SetPoint("TOPLEFT", settings.whisperHdr, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(settings.whisperPrev, "Previous Template", "Navigate between whisper templates.")
+  GRIP:AttachTooltip(settings.whisperPrev, L["Previous Template"], L["Navigate between whisper templates."])
 
   settings.whisperNav = s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   settings.whisperNav:SetPoint("LEFT", settings.whisperPrev, "RIGHT", 6, 0)
-  settings.whisperNav:SetText("Message 1/1")
+  settings.whisperNav:SetText((L["Message %d/%d"]):format(1, 1))
 
-  settings.whisperNext = W.CreateUIButton(s, "Next", 40, 20, function()
+  settings.whisperNext = W.CreateUIButton(s, L["Next"], 40, 20, function()
     if not HasDB() then return end
     SaveCurrentDraft(settings)
     ShowWhisperTemplate(settings, (settings._whisperIdx or 1) + 1)
   end)
   settings.whisperNext:SetPoint("LEFT", settings.whisperNav, "RIGHT", 6, 0)
-  GRIP:AttachTooltip(settings.whisperNext, "Next Template", "Navigate between whisper templates.")
+  GRIP:AttachTooltip(settings.whisperNext, L["Next Template"], L["Navigate between whisper templates."])
 
-  settings.whisperAdd = W.CreateUIButton(s, "+ Add", 50, 20, function()
+  settings.whisperAdd = W.CreateUIButton(s, L["+ Add"], 50, 20, function()
     if not HasDB() then return end
     settings._whisperDrafts = settings._whisperDrafts or { "" }
     if #settings._whisperDrafts >= MAX_WHISPER_TEMPLATES then
-      GRIP:Print(("Max %d templates."):format(MAX_WHISPER_TEMPLATES))
+      GRIP:Print((L["Max %d templates."]):format(MAX_WHISPER_TEMPLATES))
       return
     end
     SaveCurrentDraft(settings)
@@ -689,13 +690,13 @@ function GRIP:UI_CreateSettings(parent)
     settings.whisperEdit:SetFocus()
   end)
   settings.whisperAdd:SetPoint("LEFT", settings.whisperNext, "RIGHT", 12, 0)
-  GRIP:AttachTooltip(settings.whisperAdd, "Add Template", "Add a new blank whisper template (max 10).")
+  GRIP:AttachTooltip(settings.whisperAdd, L["Add Template"], L["Add a new blank whisper template (max 10)."])
 
-  settings.whisperRemove = W.CreateUIButton(s, "- Remove", 64, 20, function()
+  settings.whisperRemove = W.CreateUIButton(s, L["- Remove"], 64, 20, function()
     if not HasDB() then return end
     settings._whisperDrafts = settings._whisperDrafts or { "" }
     if #settings._whisperDrafts <= 1 then
-      GRIP:Print("Must have at least 1 template.")
+      GRIP:Print(L["Must have at least 1 template."])
       return
     end
     local idx = settings._whisperIdx or 1
@@ -704,7 +705,7 @@ function GRIP:UI_CreateSettings(parent)
     ShowWhisperTemplate(settings, idx)
   end)
   settings.whisperRemove:SetPoint("LEFT", settings.whisperAdd, "RIGHT", 4, 0)
-  GRIP:AttachTooltip(settings.whisperRemove, "Remove Template", "Remove the current template (min 1).")
+  GRIP:AttachTooltip(settings.whisperRemove, L["Remove Template"], L["Remove the current template (min 1)."])
   do local fs = settings.whisperRemove:GetFontString(); if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end end
 
   -- Edit box (anchored to navigation bar; layout hook re-anchors + sizes it)
@@ -737,32 +738,32 @@ function GRIP:UI_CreateSettings(parent)
     end)
   end
 
-  settings.whisperAppendLink = W.CreateUIButton(s, "Insert {guildlink}", 140, 20, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.whisperAppendLink = W.CreateUIButton(s, L["Insert {guildlink}"], 140, 20, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     local ok = TryInsertTokenAtCursorWithBudget(settings, settings.whisperEdit, "{guildlink}")
-    if not ok then GRIP:Print("No room to insert {guildlink} (max 255 after expansion).") end
+    if not ok then GRIP:Print(L["No room to insert {guildlink} (max 255 after expansion)."]) end
   end)
   settings.whisperAppendLink:SetPoint("TOPLEFT", settings.whisperSF, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(settings.whisperAppendLink, "Insert {guildlink}", "Inserts a clickable Guild Finder link at cursor.\nBudgets ~120 bytes for the link payload.")
+  GRIP:AttachTooltip(settings.whisperAppendLink, L["Insert {guildlink}"], L["Inserts a clickable Guild Finder link at cursor.\nBudgets ~120 bytes for the link payload."])
 
-  settings.whisperInsertGuild = W.CreateUIButton(s, "Insert {guild}", 110, 20, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.whisperInsertGuild = W.CreateUIButton(s, L["Insert {guild}"], 110, 20, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     local ok = TryInsertTokenAtCursorWithBudget(settings, settings.whisperEdit, "{guild}")
-    if not ok then GRIP:Print("No room to insert {guild} (max 255 after expansion).") end
+    if not ok then GRIP:Print(L["No room to insert {guild} (max 255 after expansion)."]) end
   end)
   settings.whisperInsertGuild:SetPoint("LEFT", settings.whisperAppendLink, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(settings.whisperInsertGuild, "Insert {guild}", "Inserts your guild name at cursor.")
+  GRIP:AttachTooltip(settings.whisperInsertGuild, L["Insert {guild}"], L["Inserts your guild name at cursor."])
 
-  settings.whisperInsertPlayer = W.CreateUIButton(s, "Insert {player}", 120, 20, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.whisperInsertPlayer = W.CreateUIButton(s, L["Insert {player}"], 120, 20, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     local ok = TryInsertTokenAtCursorWithBudget(settings, settings.whisperEdit, "{player}")
-    if not ok then GRIP:Print("No room to insert {player} (max 255 after expansion).") end
+    if not ok then GRIP:Print(L["No room to insert {player} (max 255 after expansion)."]) end
   end)
   settings.whisperInsertPlayer:SetPoint("LEFT", settings.whisperInsertGuild, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(settings.whisperInsertPlayer, "Insert {player}", "Inserts the target player's name at cursor.")
+  GRIP:AttachTooltip(settings.whisperInsertPlayer, L["Insert {player}"], L["Inserts the target player's name at cursor."])
 
-  settings.whisperSave = W.CreateUIButton(s, "Save All", 70, 20, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.whisperSave = W.CreateUIButton(s, L["Save All"], 70, 20, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
     settings.whisperEdit:ClearFocus()
     SaveCurrentDraft(settings)
 
@@ -770,7 +771,7 @@ function GRIP:UI_CreateSettings(parent)
     local drafts = settings._whisperDrafts or {}
     for i = 1, #drafts do
       if EstimateWhisperRenderedBytes(drafts[i]) > MAX_WHISPER_BYTES then
-        GRIP:Print(("Template %d is too long after token expansion (max 255)."):format(i))
+        GRIP:Print((L["Template %d is too long after token expansion (max 255)."]):format(i))
         ShowWhisperTemplate(settings, i)
         return
       end
@@ -783,66 +784,66 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.whisperMessage = GRIPDB_CHAR.config.whisperMessages[1] or ""
     GRIPDB_CHAR.config.templatesEditedAt = time()
     W.ClearDirty(settings.whisperEdit)
-    GRIP:Print(("Saved %d whisper template(s)."):format(#drafts))
+    GRIP:Print((L["Saved %d whisper template(s)."]):format(#drafts))
     GRIP:UpdateUI()
   end)
   settings.whisperSave:SetPoint("TOPLEFT", settings.whisperAppendLink, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(settings.whisperSave, "Save All", "Save all whisper templates to SavedVariables.")
+  GRIP:AttachTooltip(settings.whisperSave, L["Save All"], L["Save all whisper templates to SavedVariables."])
 
-  settings.whisperPreview = W.CreateUIButton(s, "Preview", 80, 20, function()
-    if not HasDB() then GRIP:Print("Settings unavailable yet (DB not initialized).") return end
+  settings.whisperPreview = W.CreateUIButton(s, L["Preview"], 80, 20, function()
+    if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
 
     UpdateWhisperBudgetUI(settings)
     local bytes = EstimateWhisperRenderedBytes(settings.whisperEdit:GetText() or "")
     if bytes > MAX_WHISPER_BYTES then
-      GRIP:Print("Template is too long after token expansion (max 255).")
+      GRIP:Print(L["Template is too long after token expansion (max 255)."])
       return
     end
 
     local msg = GRIP:ApplyTemplate(settings.whisperEdit:GetText() or "", UnitName("player") or "")
-    GRIP:Print("Preview: " .. msg)
+    GRIP:Print(L["Preview: "] .. msg)
   end)
   settings.whisperPreview:SetPoint("LEFT", settings.whisperSave, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(settings.whisperPreview, "Preview", "Expands tokens and prints the result to chat.\nUses your name as the {player} stand-in.")
+  GRIP:AttachTooltip(settings.whisperPreview, L["Preview"], L["Expands tokens and prints the result to chat.\nUses your name as the {player} stand-in."])
 
   -- Rotation mode selector
   settings.whisperRotLbl = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   settings.whisperRotLbl:SetPoint("LEFT", settings.whisperPreview, "RIGHT", 16, 0)
-  settings.whisperRotLbl:SetText("Rotation:")
+  settings.whisperRotLbl:SetText(L["Rotation:"])
 
-  settings.whisperRotSeq = W.CreateUIButton(s, "Sequential", 80, 20, function()
+  settings.whisperRotSeq = W.CreateUIButton(s, L["Sequential"], 80, 20, function()
     if not HasDB() then return end
     GRIPDB_CHAR.config.whisperRotation = "sequential"
     UpdateRotationHighlight(settings)
   end)
   settings.whisperRotSeq:SetPoint("LEFT", settings.whisperRotLbl, "RIGHT", 4, 0)
-  GRIP:AttachTooltip(settings.whisperRotSeq, "Sequential", "Send templates in order (1, 2, 3, \xe2\x80\xa6, repeat).")
+  GRIP:AttachTooltip(settings.whisperRotSeq, L["Sequential"], L["Send templates in order (1, 2, 3, …, repeat)."])
 
-  settings.whisperRotRand = W.CreateUIButton(s, "Random", 60, 20, function()
+  settings.whisperRotRand = W.CreateUIButton(s, L["Random"], 60, 20, function()
     if not HasDB() then return end
     GRIPDB_CHAR.config.whisperRotation = "random"
     UpdateRotationHighlight(settings)
   end)
   settings.whisperRotRand:SetPoint("LEFT", settings.whisperRotSeq, "RIGHT", 4, 0)
-  GRIP:AttachTooltip(settings.whisperRotRand, "Random", "Pick a random template for each whisper.")
+  GRIP:AttachTooltip(settings.whisperRotRand, L["Random"], L["Pick a random template for each whisper."])
 
   -- Hide outgoing whisper echoes checkbox
-  settings.hideWhisperEcho = W.CreateCheckbox(s, "Hide outgoing whisper echoes", function(btn)
+  settings.hideWhisperEcho = W.CreateCheckbox(s, L["Hide outgoing whisper echoes"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     local v = btn:GetChecked() and true or false
     GRIPDB_CHAR.config.suppressWhisperEcho = v
     GRIPDB_CHAR.config.hideOutgoingWhispers = v
   end)
   settings.hideWhisperEcho:SetPoint("TOPLEFT", settings.whisperSave, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(settings.hideWhisperEcho, "Hide Whisper Echoes", "Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment.")
+  GRIP:AttachTooltip(settings.hideWhisperEcho, L["Hide Whisper Echoes"], L["Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment."])
 
   -- NH-11: Invite-first mode checkbox
-  settings.inviteFirst = W.CreateCheckbox(s, "Invite first (safer)", function(btn)
+  settings.inviteFirst = W.CreateCheckbox(s, L["Invite first (safer)"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.inviteFirst = btn:GetChecked() and true or false
   end)
   settings.inviteFirst:SetPoint("TOPLEFT", settings.hideWhisperEcho, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.inviteFirst, "Invite First", "Send guild invite before whisper. Only whispers players\nwho successfully receive the invite.\nReduces risk of reports from players who block invites.")
+  GRIP:AttachTooltip(settings.inviteFirst, L["Invite First"], L["Send guild invite before whisper. Only whispers players\nwho successfully receive the invite.\nReduces risk of reports from players who block invites."])
 
   -- Separator: whisper templates → sound feedback
   settings.sep3 = s:CreateTexture(nil, "ARTWORK")
@@ -854,43 +855,43 @@ function GRIP:UI_CreateSettings(parent)
   -- Sound Feedback section
   settings.soundHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.soundHdr:SetPoint("TOPLEFT", settings.sep3, "BOTTOMLEFT", 0, -8)
-  settings.soundHdr:SetText("Sound Feedback")
+  settings.soundHdr:SetText(L["Sound Feedback"])
 
-  settings.soundEnabled = W.CreateCheckbox(s, "Enable sound feedback", function(btn)
+  settings.soundEnabled = W.CreateCheckbox(s, L["Enable sound feedback"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.soundEnabled = btn:GetChecked() and true or false
     GRIP:UpdateUI()
   end)
   settings.soundEnabled:SetPoint("TOPLEFT", settings.soundHdr, "BOTTOMLEFT", 0, -4)
-  GRIP:AttachTooltip(settings.soundEnabled, "Sound Feedback", "Master toggle for all GRIP sound notifications.")
+  GRIP:AttachTooltip(settings.soundEnabled, L["Sound Feedback"], L["Master toggle for all GRIP sound notifications."])
 
-  settings.soundWhisperDone = W.CreateCheckbox(s, "Whisper queue complete", function(btn)
+  settings.soundWhisperDone = W.CreateCheckbox(s, L["Whisper queue complete"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.soundWhisperDone = btn:GetChecked() and true or false
   end)
   settings.soundWhisperDone:SetPoint("TOPLEFT", settings.soundEnabled, "BOTTOMLEFT", 16, -2)
-  GRIP:AttachTooltip(settings.soundWhisperDone, "Whisper Complete", "Play a sound when the whisper queue is fully drained.")
+  GRIP:AttachTooltip(settings.soundWhisperDone, L["Whisper Complete"], L["Play a sound when the whisper queue is fully drained."])
 
-  settings.soundInviteAccepted = W.CreateCheckbox(s, "Invite accepted", function(btn)
+  settings.soundInviteAccepted = W.CreateCheckbox(s, L["Invite accepted"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.soundInviteAccepted = btn:GetChecked() and true or false
   end)
   settings.soundInviteAccepted:SetPoint("TOPLEFT", settings.soundWhisperDone, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.soundInviteAccepted, "Invite Accepted", "Play a sound when a guild invite is accepted.")
+  GRIP:AttachTooltip(settings.soundInviteAccepted, L["Invite Accepted"], L["Play a sound when a guild invite is accepted."])
 
-  settings.soundScanComplete = W.CreateCheckbox(s, "Scan results found", function(btn)
+  settings.soundScanComplete = W.CreateCheckbox(s, L["Scan results found"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.soundScanComplete = btn:GetChecked() and true or false
   end)
   settings.soundScanComplete:SetPoint("TOPLEFT", settings.soundInviteAccepted, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.soundScanComplete, "Scan Results", "Play a sound when a /who scan returns results.")
+  GRIP:AttachTooltip(settings.soundScanComplete, L["Scan Results"], L["Play a sound when a /who scan returns results."])
 
-  settings.soundCapWarning = W.CreateCheckbox(s, "Daily cap warning", function(btn)
+  settings.soundCapWarning = W.CreateCheckbox(s, L["Daily cap warning"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.soundCapWarning = btn:GetChecked() and true or false
   end)
   settings.soundCapWarning:SetPoint("TOPLEFT", settings.soundScanComplete, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.soundCapWarning, "Cap Warning", "Play a sound when approaching the daily whisper cap.")
+  GRIP:AttachTooltip(settings.soundCapWarning, L["Cap Warning"], L["Play a sound when approaching the daily whisper cap."])
 
   -- Separator: sound feedback → opt-out languages
   settings.sep5 = s:CreateTexture(nil, "ARTWORK")
@@ -902,48 +903,48 @@ function GRIP:UI_CreateSettings(parent)
   -- Opt-Out Detection Languages section
   settings.optOutHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.optOutHdr:SetPoint("TOPLEFT", settings.sep5, "BOTTOMLEFT", 0, -8)
-  settings.optOutHdr:SetText("Opt-Out Detection Languages")
+  settings.optOutHdr:SetText(L["Opt-Out Detection Languages"])
 
-  settings.optOutEN = W.CreateCheckbox(s, "English", function(btn)
+  settings.optOutEN = W.CreateCheckbox(s, L["English"], function(btn)
     btn:SetChecked(true)
-    GRIP:Print("English is always enabled for opt-out detection.")
+    GRIP:Print(L["English is always enabled for opt-out detection."])
   end)
   settings.optOutEN:SetPoint("TOPLEFT", settings.optOutHdr, "BOTTOMLEFT", 0, -4)
-  GRIP:AttachTooltip(settings.optOutEN, "English (Required)", "English opt-out phrases are always active and cannot be disabled.")
+  GRIP:AttachTooltip(settings.optOutEN, L["English (Required)"], L["English opt-out phrases are always active and cannot be disabled."])
 
-  settings.optOutFR = W.CreateCheckbox(s, "Français (French)", function(btn)
+  settings.optOutFR = W.CreateCheckbox(s, L["Français (French)"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     ToggleOptOutLanguage("fr", btn:GetChecked() and true or false)
   end)
   settings.optOutFR:SetPoint("TOPLEFT", settings.optOutEN, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.optOutFR, "French Opt-Out Phrases", "Enable French opt-out phrase detection for EU-FR realms.\nPhrases: non merci, pas intéressé, déjà dans une guilde, etc.")
+  GRIP:AttachTooltip(settings.optOutFR, L["French Opt-Out Phrases"], L["Enable French opt-out phrase detection for EU-FR realms.\nPhrases: non merci, pas intéressé, déjà dans une guilde, etc."])
 
-  settings.optOutDE = W.CreateCheckbox(s, "Deutsch (German)", function(btn)
+  settings.optOutDE = W.CreateCheckbox(s, L["Deutsch (German)"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     ToggleOptOutLanguage("de", btn:GetChecked() and true or false)
   end)
   settings.optOutDE:SetPoint("TOPLEFT", settings.optOutFR, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.optOutDE, "German Opt-Out Phrases", "Enable German opt-out phrase detection for EU-DE realms.\nPhrases: nein danke, nicht interessiert, hab schon ne gilde, etc.")
+  GRIP:AttachTooltip(settings.optOutDE, L["German Opt-Out Phrases"], L["Enable German opt-out phrase detection for EU-DE realms.\nPhrases: nein danke, nicht interessiert, hab schon ne gilde, etc."])
 
-  settings.optOutES = W.CreateCheckbox(s, "Español (Spanish)", function(btn)
+  settings.optOutES = W.CreateCheckbox(s, L["Español (Spanish)"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     ToggleOptOutLanguage("es", btn:GetChecked() and true or false)
   end)
   settings.optOutES:SetPoint("TOPLEFT", settings.optOutDE, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.optOutES, "Spanish Opt-Out Phrases", "Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc.")
+  GRIP:AttachTooltip(settings.optOutES, L["Spanish Opt-Out Phrases"], L["Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc."])
 
-  settings.optOutAggressive = W.CreateCheckbox(s, "Aggressive language detection", function(btn)
+  settings.optOutAggressive = W.CreateCheckbox(s, L["Aggressive language detection"], function(btn)
     if not _G.GRIPDB_CHAR then return end
     GRIPDB_CHAR.config.optOutAggressiveEnabled = btn:GetChecked() and true or false
     GRIP:RebuildOptOutPhrases()
   end)
   settings.optOutAggressive:SetPoint("TOPLEFT", settings.optOutES, "BOTTOMLEFT", 0, -8)
   GRIP:AttachTooltip(settings.optOutAggressive,
-    "Aggressive Language Detection",
-    "Enable detection of explicit/hostile rejection phrases as opt-outs.\n" ..
+    L["Aggressive Language Detection"],
+    L["Enable detection of explicit/hostile rejection phrases as opt-outs.\n" ..
     "Phrases: fuck off, piss off, go away, bugger off, screw off, sod off.\n" ..
     "These are unambiguous rejections with near-zero false positive risk.\n" ..
-    "Default: off.")
+    "Default: off."])
 
   -- Separator: opt-out languages → Raider.IO
   settings.sepRio = s:CreateTexture(nil, "ARTWORK")
@@ -955,17 +956,17 @@ function GRIP:UI_CreateSettings(parent)
   -- Raider.IO Integration section (FE3)
   settings.rioHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.rioHdr:SetPoint("TOPLEFT", settings.sepRio, "BOTTOMLEFT", 0, -8)
-  settings.rioHdr:SetText("Raider.IO Integration")
+  settings.rioHdr:SetText(L["Raider.IO Integration"])
 
   settings.rioNote = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   settings.rioNote:SetPoint("TOPLEFT", settings.rioHdr, "BOTTOMLEFT", 0, -4)
   settings.rioNote:SetJustifyH("LEFT")
   if settings.rioNote.SetWordWrap then settings.rioNote:SetWordWrap(true) end
-  settings.rioNote:SetText("Requires the Raider.IO addon to be installed.")
+  settings.rioNote:SetText(L["Requires the Raider.IO addon to be installed."])
 
   settings.rioMinScoreLabel = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   settings.rioMinScoreLabel:SetPoint("TOPLEFT", settings.rioNote, "BOTTOMLEFT", 0, -8)
-  settings.rioMinScoreLabel:SetText("Minimum M+ Score (0 = disabled):")
+  settings.rioMinScoreLabel:SetText(L["Minimum M+ Score (0 = disabled):"])
 
   settings.rioMinScoreEB = CreateFrame("EditBox", nil, s, "InputBoxTemplate")
   settings.rioMinScoreEB:SetSize(60, 20)
@@ -986,13 +987,13 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.rioMinScore = n
   end)
 
-  settings.rioShowColumn = W.CreateCheckbox(s, "Show M+ column in Potential list", function(btn)
+  settings.rioShowColumn = W.CreateCheckbox(s, L["Show M+ column in Potential list"], function(btn)
     if not HasDB() then btn:SetChecked(true) return end
     GRIPDB_CHAR.config.rioShowColumn = btn:GetChecked() and true or false
     GRIP:UpdateUI()
   end)
   settings.rioShowColumn:SetPoint("TOPLEFT", settings.rioMinScoreLabel, "BOTTOMLEFT", 0, -8)
-  GRIP:AttachTooltip(settings.rioShowColumn, "M+ Column", "Show the M+ score column in the Home page Potential list.\nOnly visible when Raider.IO addon is installed.")
+  GRIP:AttachTooltip(settings.rioShowColumn, L["M+ Column"], L["Show the M+ score column in the Home page Potential list.\nOnly visible when Raider.IO addon is installed."])
 
   -- Separator: Raider.IO → sync
   settings.sep4 = s:CreateTexture(nil, "ARTWORK")
@@ -1004,9 +1005,9 @@ function GRIP:UI_CreateSettings(parent)
   -- Officer Sync section (FE4-FULL v2)
   settings.syncHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.syncHdr:SetPoint("TOPLEFT", settings.sep4, "BOTTOMLEFT", 0, -8)
-  settings.syncHdr:SetText("Officer Sync")
+  settings.syncHdr:SetText(L["Officer Sync"])
 
-  settings.syncEnabled = W.CreateCheckbox(s, "Enable officer sync", function(btn)
+  settings.syncEnabled = W.CreateCheckbox(s, L["Enable officer sync"], function(btn)
     if not _G.GRIPDB then btn:SetChecked(false) return end
     GRIPDB.syncEnabled = btn:GetChecked() and true or false
     if GRIPDB.syncEnabled and GRIP.InitSync then
@@ -1018,26 +1019,26 @@ function GRIP:UI_CreateSettings(parent)
     end
   end)
   settings.syncEnabled:SetPoint("TOPLEFT", settings.syncHdr, "BOTTOMLEFT", 0, -4)
-  GRIP:AttachTooltip(settings.syncEnabled, "Officer Sync",
-    "Syncs blacklist and whisper templates between guild officers running GRIP.\n"
+  GRIP:AttachTooltip(settings.syncEnabled, L["Officer Sync"],
+    L["Syncs blacklist and whisper templates between guild officers running GRIP.\n"
     .. "Uses guild chat channel (invisible to players).\n"
     .. "Blacklist entries are only added, never removed (set-union merge).\n"
-    .. "Templates use last-writer-wins with clock tolerance.")
+    .. "Templates use last-writer-wins with clock tolerance."])
 
-  settings.syncTemplates = W.CreateCheckbox(s, "Sync whisper templates", function(btn)
+  settings.syncTemplates = W.CreateCheckbox(s, L["Sync whisper templates"], function(btn)
     if not HasDB() then btn:SetChecked(true) return end
     GRIPDB_CHAR.config.syncTemplates = btn:GetChecked() and true or false
   end)
   settings.syncTemplates:SetPoint("TOPLEFT", settings.syncEnabled, "BOTTOMLEFT", 20, -2)
-  GRIP:AttachTooltip(settings.syncTemplates, "Template Sync",
-    "When enabled, whisper templates are synced from other officers.\n"
+  GRIP:AttachTooltip(settings.syncTemplates, L["Template Sync"],
+    L["When enabled, whisper templates are synced from other officers.\n"
     .. "Uses last-writer-wins: the most recently edited set replaces yours.\n"
-    .. "Disable to keep your own templates independent.")
+    .. "Disable to keep your own templates independent."])
 
   settings.syncStatus = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   settings.syncStatus:SetPoint("TOPLEFT", settings.syncTemplates, "BOTTOMLEFT", -20, -4)
   settings.syncStatus:SetTextColor(0.5, 0.5, 0.5)
-  settings.syncStatus:SetText("Last sync: never")
+  settings.syncStatus:SetText(L["Last sync: never"])
 
   -- Separator: sync → ghost mode
   settings.sep5 = s:CreateTexture(nil, "ARTWORK")
@@ -1049,23 +1050,23 @@ function GRIP:UI_CreateSettings(parent)
   -- Ghost Mode section
   settings.ghostHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.ghostHdr:SetPoint("TOPLEFT", settings.sep5, "BOTTOMLEFT", 0, -8)
-  settings.ghostHdr:SetText("Ghost Mode (Experimental)")
+  settings.ghostHdr:SetText(L["Ghost Mode (Experimental)"])
 
-  settings.ghostEnabled = W.CreateCheckbox(s, "Enable Ghost Mode", function(btn)
+  settings.ghostEnabled = W.CreateCheckbox(s, L["Enable Ghost Mode"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.ghostModeEnabled = btn:GetChecked() and true or false
     GRIP:UpdateUI()
   end)
   settings.ghostEnabled:SetPoint("TOPLEFT", settings.ghostHdr, "BOTTOMLEFT", 0, -4)
-  GRIP:AttachTooltip(settings.ghostEnabled, "Ghost Mode", "Enables the Ghost overlay that captures hardware events\nto automatically drain whisper/invite/post queues.")
+  GRIP:AttachTooltip(settings.ghostEnabled, L["Ghost Mode"], L["Enables the Ghost overlay that captures hardware events\nto automatically drain whisper/invite/post queues."])
 
-  settings.ghostSessionSlider = W.CreateSlider(s, "Ghost Session Max (minutes)", 5, 120, 5, 60, 160, function(v)
+  settings.ghostSessionSlider = W.CreateSlider(s, L["Ghost Session Max (minutes)"], 5, 120, 5, 60, 160, function(v)
     if not HasDB() then return end
     GRIPDB_CHAR.config.ghostSessionMaxMinutes = v
   end)
   settings.ghostSessionSlider:SetPoint("TOPLEFT", settings.ghostEnabled, "BOTTOMLEFT", 16, -22)
 
-  settings.ghostCooldownSlider = W.CreateSlider(s, "Ghost Cooldown (minutes)", 1, 60, 1, 10, 160, function(v)
+  settings.ghostCooldownSlider = W.CreateSlider(s, L["Ghost Cooldown (minutes)"], 1, 60, 1, 10, 160, function(v)
     if not HasDB() then return end
     GRIPDB_CHAR.config.ghostCooldownMinutes = v
   end)
@@ -1096,7 +1097,7 @@ function GRIP:UI_UpdateSettings()
       local parent = s.content or s
       s._initHint = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
       s._initHint:SetPoint("TOPLEFT", s.title, "BOTTOMLEFT", 0, -4)
-      s._initHint:SetText("Initializing… (database not ready yet)")
+      s._initHint:SetText(L["Initializing… (database not ready yet)"])
       s._initHint:Show()
     end
 
@@ -1251,10 +1252,10 @@ function GRIP:UI_UpdateSettings()
   local rioEnabled = rioAvailable and not ghostLocked
   if s.rioNote then
     if rioAvailable then
-      s.rioNote:SetText("Raider.IO addon detected.")
+      s.rioNote:SetText(L["Raider.IO addon detected."])
       s.rioNote:SetTextColor(0.4, 0.8, 0.4)
     else
-      s.rioNote:SetText("Raider.IO addon not installed. Controls are disabled.")
+      s.rioNote:SetText(L["Raider.IO addon not installed. Controls are disabled."])
       s.rioNote:SetTextColor(0.5, 0.5, 0.5)
     end
   end
@@ -1297,14 +1298,14 @@ function GRIP:UI_UpdateSettings()
     if lastSync > 0 then
       local ago = time() - lastSync
       if ago < 60 then
-        s.syncStatus:SetText("Last sync: just now")
+        s.syncStatus:SetText(L["Last sync: just now"])
       elseif ago < 3600 then
-        s.syncStatus:SetText(("Last sync: %d min ago"):format(floor(ago / 60)))
+        s.syncStatus:SetText((L["Last sync: %d min ago"]):format(floor(ago / 60)))
       else
-        s.syncStatus:SetText(("Last sync: %d hr ago"):format(floor(ago / 3600)))
+        s.syncStatus:SetText((L["Last sync: %d hr ago"]):format(floor(ago / 3600)))
       end
     else
-      s.syncStatus:SetText("Last sync: never")
+      s.syncStatus:SetText(L["Last sync: never"])
     end
   end
 
