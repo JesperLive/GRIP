@@ -169,10 +169,10 @@ L["Permanent blacklist cleared: %d"] = true
 L["Whisper templates (%d), rotation: %s"] = true
 L["  [%d] %s"] = true
 L["Usage: /grip templates add <message text>"] = true
-L["Max %d templates."] = true
+L["Max %d templates."] = true  -- (shared with UI/UI_Settings.lua)
 L["Added template #%d."] = true
 L["Usage: /grip templates remove <1-%d>"] = true
-L["Must have at least 1 template."] = true
+L["Must have at least 1 template."] = true  -- (shared with UI/UI_Settings.lua)
 L["Removed template #%d. (%d remaining)"] = true
 L["Whisper rotation: sequential"] = true
 L["Whisper rotation: random"] = true
@@ -297,69 +297,67 @@ L["ON (experimental)"] = true
 -- Recruit/Who.lua — /who scanning
 -- =========================================================================
 
-L["Building /who queue…"] = true
-L["/who queue ready: %d queries."] = true
-L["/who queue is empty. Run /grip build first."] = true
-L["Sending /who: %s (%d/%d)"] = true
-L["/who results: %d matches (total: %d)."] = true
-L["Potential added: %d new. Total potential: %d."] = true
-L["All candidates already seen or blacklisted."] = true
-L["No results for this bracket."] = true
-L["Bracket %s saturated (%d/%d) — expanding by class."] = true
-L["/who complete. Scanned %d/%d brackets."] = true
-L["No /who queue. Run /grip build first."] = true
-L["Cannot scan during combat."] = true
-L["/who queue exhausted. Rebuilding…"] = true
+L["Cannot build /who queue: GRIPDB not initialized yet."] = true
+L["Built /who queue: %d queries (%d-%d, step %d)%s"] = true
+L["Cannot send /who: GRIPDB not initialized yet."] = true
+L["Addon disabled in config."] = true
+L["SendWho API unavailable on this client."] = true
+L["Waiting for WHO_LIST_UPDATE\226\128\166"] = true
+L["Who queue wrapped. Starting over."] = true
+L["Please wait %.1fs before sending the next /who."] = true
+L["Queued /who (Ghost): %s (%d/%d)"] = true
+L["No WHO_LIST_UPDATE received (server throttle?). Try again in a few seconds."] = true
+L["Sent /who: %s (%d/%d)"] = true
+L["Who results APIs unavailable on this client."] = true
+L["WHO results processed: %d results, %d unguilded added."] = true
 
 -- =========================================================================
 -- Recruit/Whisper.lua — Whisper queue
 -- =========================================================================
 
-L["Whisper queue started."] = true
+L["Opt-out detected from %s: \"%s\" \226\128\148 permanently blacklisted."] = true
+L["Cannot start whispers: GRIPDB not initialized yet."] = true
+L["Whispers are disabled in config."] = true
+L["Daily whisper cap reached (%d). Resets tomorrow."] = true
+L["No candidates in Potential list need whispers."] = true
+L["Starting whisper queue: %d targets (%.1fs delay)."] = true
 L["Whisper queue stopped."] = true
-L["Whisper queue paused (combat)."] = true
-L["Whisper queue resumed (combat ended)."] = true
-L["Whisper queue complete. %d sent, %d failed."] = true
-L["Whispered %s (template #%d)."] = true
-L["Daily whisper cap reached (%d/%d). Queue stopped."] = true
-L["Approaching daily cap: %d/%d whispers sent."] = true
-L["No candidates to whisper."] = true
-L["Whispers disabled in config."] = true
-L["Opt-out detected from %s: \"%s\""] = true
+L["Daily whisper cap reached (%d). Queue stopped. Resets tomorrow."] = true
+L["Approaching daily whisper limit: %d/%d"] = true
 
 -- =========================================================================
 -- Recruit/Invite.lua — Invite pipeline
 -- =========================================================================
 
-L["Invited %s to guild."] = true
-L["Invite skipped (blacklisted): %s"] = true
-L["Invite failed (no API): %s"] = true
-L["Invite failed: %s"] = true
-L["Cannot invite during combat."] = true
-L["No candidates to invite."] = true
-L["Invites disabled in config."] = true
-L["%s accepted guild invite!"] = true
-L["%s declined guild invite."] = true
-L["%s already in a guild."] = true
-L["%s: no response (%d/%d). Temp blacklisted %dd."] = true
-L["%s: no response (%d/%d). Permanent blacklisted."] = true
+L["Please wait %.1fs before the next action."] = true
+L["Cannot invite: GRIPDB not initialized yet."] = true
+L["Guild invites are disabled in config."] = true
+L["Cannot send guild invite while in combat."] = true
+L["Cannot invite: chat messaging lockdown is active."] = true
+L["You are not in a guild."] = true
+L["You don't have permission to invite to the guild."] = true
+L["No candidates in Potential list need invites."] = true
+L["Queued invite (Ghost): %s"] = true
+L["Whispered+Invited (attempt): %s"] = true
+L["Invited (attempt): %s"] = true
 
 -- =========================================================================
 -- Recruit/Post.lua — Post scheduler
 -- =========================================================================
 
-L["Post queued: %s to %s"] = true
-L["Post sent: %s"] = true
-L["Post failed: %s"] = true
-L["No post channel found for: %s"] = true
-L["Post queue is empty."] = true
-L["Post queue full (%d/%d)."] = true
-L["Post scheduler started (%d min interval)."] = true
+L["Posted (ghost) to %s"] = true
+L["Post scheduler enabled: every %d min (queues messages; click Post Next to send)."] = true
 L["Post scheduler stopped."] = true
-L["Posts disabled in config."] = true
-L["Cannot post during combat."] = true
-L["Post cooldown: %d sec remaining."] = true
-L["Channel %s not joined."] = true
+L["Cannot post: GRIPDB not initialized yet."] = true
+L["Cannot post to public channels while in combat."] = true
+L["Cannot post: chat messaging lockdown is active (in encounter/M+/PvP)."] = true
+L["Post queue is empty."] = true
+L["Please wait %.1fs before posting again."] = true
+L["Unknown channel token: "] = true
+L["Channel not found for '%s'. Are you joined to that channel?"] = true
+L["Post message is blank; skipping."] = true
+L["Post skipped: target is blacklisted."] = true
+L["Posted to %s: %s"] = true
 
 -- =========================================================================
 -- Sync/ImportExport.lua
@@ -571,8 +569,8 @@ L["Next"] = true
 L["+ Add"] = true
 L["- Remove"] = true
 L["Message %d/%d"] = true
-L["Max %d templates."] = true
-L["Must have at least 1 template."] = true
+-- "Max %d templates." defined in Core/Slash.lua section
+-- "Must have at least 1 template." defined in Core/Slash.lua section
 
 -- Template nav tooltips
 L["Previous Template"] = true
@@ -588,7 +586,7 @@ L["Insert {guildlink}"] = true
 L["Insert {guild}"] = true
 L["Insert {player}"] = true
 L["Inserts a clickable Guild Finder link at cursor.\nBudgets ~120 bytes for the link payload."] = true
-L["Inserts your guild name at cursor."] = true
+L["Inserts your guild name at cursor."] = true  -- (shared with UI/UI_Ads.lua)
 L["Inserts the target player's name at cursor."] = true
 L["No room to insert {guildlink} (max 255 after expansion)."] = true
 L["No room to insert {guild} (max 255 after expansion)."] = true
@@ -721,7 +719,7 @@ L["General message (supports {guild} {guildlink})"] = true
 L["Trade message (supports {guild} {guildlink})"] = true
 
 -- Token button tooltips (Ads-specific; titles shared with Settings)
-L["Inserts your guild name at cursor."] = true
+-- "Inserts your guild name at cursor." defined in UI/UI_Settings.lua section
 L["Inserts a clickable Guild Finder link at cursor."] = true
 L["Expands tokens and prints the message to chat."] = true
 
@@ -870,6 +868,7 @@ L["Right-click: Quick actions"] = true
 
 L["Loaded: %s (v%s)"] = true
 L["Type /grip help for commands."] = true
+L["Guild link could not resolve after 2 min. Open Guild & Communities to prime cache, or check /grip link"] = true
 
 -- =========================================================================
 -- @localization(locale="enUS", format="lua_additive_table", same-key-is-true=true, namespace="")@

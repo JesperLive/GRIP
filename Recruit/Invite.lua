@@ -16,6 +16,8 @@ local InCombatLockdown = InCombatLockdown
 local IsInGuild, CanGuildInvite = IsInGuild, CanGuildInvite
 local C_Timer = C_Timer
 
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
+
 local state = GRIP.state
 
 local ACTION_COOLDOWN = 1.0
@@ -62,7 +64,7 @@ local function CooldownReady()
   local untilT = tonumber(state.actionCooldownUntil) or 0
   if now < untilT then
     local left = untilT - now
-    GRIP:Print(("Please wait %.1fs before the next action."):format(left))
+    GRIP:Print((L["Please wait %.1fs before the next action."]):format(left))
     return false
   end
   return true
@@ -164,7 +166,7 @@ function GRIP:InviteNext()
   local cfg = GRIP:GetCfg()
   local pot = GRIP:GetPotential()
   if not cfg or not pot then
-    self:Print("Cannot invite: GRIPDB not initialized yet.")
+    self:Print(L["Cannot invite: GRIPDB not initialized yet."])
     return
   end
 
@@ -175,35 +177,35 @@ function GRIP:InviteNext()
   PurgeBlacklistedPending(pot, cfg)
 
   if not cfg.inviteEnabled then
-    self:Print("Guild invites are disabled in config.")
+    self:Print(L["Guild invites are disabled in config."])
     return
   end
 
   if InCombatLockdown and InCombatLockdown() then
-    self:Print("Cannot send guild invite while in combat.")
+    self:Print(L["Cannot send guild invite while in combat."])
     return
   end
 
   -- NH-6: Skip during chat messaging lockdown (encounter/M+/PvP)
   if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
      and C_ChatInfo.InChatMessagingLockdown() then
-    self:Print("Cannot invite: chat messaging lockdown is active.")
+    self:Print(L["Cannot invite: chat messaging lockdown is active."])
     return
   end
 
   if not IsInGuild or not IsInGuild() then
-    self:Print("You are not in a guild.")
+    self:Print(L["You are not in a guild."])
     return
   end
 
   if CanGuildInvite and not CanGuildInvite() then
-    self:Print("You don't have permission to invite to the guild.")
+    self:Print(L["You don't have permission to invite to the guild."])
     return
   end
 
   local name = PickNextInviteTarget()
   if not name then
-    self:Print("No candidates in Potential list need invites.")
+    self:Print(L["No candidates in Potential list need invites."])
     return
   end
 
@@ -290,7 +292,7 @@ function GRIP:InviteNext()
       GRIP:RecordStat("invites")
       GRIP:Debug("GuildInvite (ghost) ->", inviteName)
     end, { target = inviteName })
-    self:Print(("Queued invite (Ghost): %s"):format(name))
+    self:Print((L["Queued invite (Ghost): %s"]):format(name))
     if didUIChange then self:UpdateUI() end
     return
   end
@@ -330,9 +332,9 @@ function GRIP:InviteNext()
   end)
 
   if cfg.whisperEnabled and not cfg.inviteFirst then
-    self:Print(("Whispered+Invited (attempt): %s"):format(name))
+    self:Print((L["Whispered+Invited (attempt): %s"]):format(name))
   else
-    self:Print(("Invited (attempt): %s"):format(name))
+    self:Print((L["Invited (attempt): %s"]):format(name))
   end
 
   if didUIChange then

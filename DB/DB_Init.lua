@@ -60,7 +60,7 @@ local DEFAULT_DB_CHAR = {
 
     -- Whisper settings
     whisperEnabled = true,
-    whisperMessage = "Hey {player}! We're recruiting for {guild}. Interested? \xF0\x9F\x99\x82 {guildlink}",
+    whisperMessage = "Hey {player}! We're recruiting for {guild}. Interested? \240\159\153\130 {guildlink}",
     whisperMessages = {},
     whisperRotation = "sequential",
     whisperDelay = 3.0,
@@ -80,8 +80,8 @@ local DEFAULT_DB_CHAR = {
     -- Trade/General posts (queued; click to send)
     postEnabled = true,
     postIntervalMinutes = 20,
-    postMessageGeneral = "{guild} recruiting! Friendly, active, and helpful. Whisper me for info \xF0\x9F\x99\x82 {guildlink}",
-    postMessageTrade = "{guild} recruiting! PvE/PvP/social \xe2\x80\x93 whisper for details \xF0\x9F\x99\x82 {guildlink}",
+    postMessageGeneral = "{guild} recruiting! Friendly, active, and helpful. Whisper me for info \240\159\153\130 {guildlink}",
+    postMessageTrade = "{guild} recruiting! PvE/PvP/social \226\128\147 whisper for details \240\159\153\130 {guildlink}",
     postQueueMax = 20,
 
     -- Daily whisper cap (0 = unlimited)

@@ -19,6 +19,8 @@ local GetRealZoneText = GetRealZoneText
 local C_FriendList = C_FriendList
 local C_Timer = C_Timer
 
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
+
 local state = GRIP.state
 
 local MIN_WHO_INTERVAL = 15
@@ -295,7 +297,7 @@ function GRIP:BuildWhoQueue()
 
   local cfg = GRIP:GetCfg()
   if not cfg then
-    self:Print("Cannot build /who queue: GRIPDB not initialized yet.")
+    self:Print(L["Cannot build /who queue: GRIPDB not initialized yet."])
     return
   end
 
@@ -318,7 +320,7 @@ function GRIP:BuildWhoQueue()
     l = h + 1
   end
 
-  self:Print(("Built /who queue: %d queries (%d-%d, step %d)%s"):format(
+  self:Print((L["Built /who queue: %d queries (%d-%d, step %d)%s"]):format(
     #state.whoQueue, minL, maxL, step, cfg.scanZoneOnly and " + zone" or ""
   ))
   self:Debug("WhoQueue built:", "#=", #state.whoQueue, "min=", minL, "max=", maxL, "step=", step, "zoneOnly=", tostring(cfg.scanZoneOnly))
@@ -328,17 +330,17 @@ end
 function GRIP:SendNextWho()
   local cfg = GRIP:GetCfg()
   if not cfg then
-    self:Print("Cannot send /who: GRIPDB not initialized yet.")
+    self:Print(L["Cannot send /who: GRIPDB not initialized yet."])
     return false
   end
 
   if not cfg.enabled then
-    self:Print("Addon disabled in config.")
+    self:Print(L["Addon disabled in config."])
     return false
   end
 
   if not (C_FriendList and C_FriendList.SendWho) then
-    self:Print("SendWho API unavailable on this client.")
+    self:Print(L["SendWho API unavailable on this client."])
     return false
   end
 
@@ -348,14 +350,14 @@ function GRIP:SendNextWho()
 
   if state.pendingWho then
     if ThrottlePrint("who_waiting", 2.0) then
-      self:Print("Waiting for WHO_LIST_UPDATE…")
+      self:Print(L["Waiting for WHO_LIST_UPDATE\226\128\166"])
     end
     return false
   end
 
   if state.whoIndex > #state.whoQueue then
     state.whoIndex = 1
-    self:Print("Who queue wrapped. Starting over.")
+    self:Print(L["Who queue wrapped. Starting over."])
   end
 
   local now = GetTime()
@@ -367,7 +369,7 @@ function GRIP:SendNextWho()
   local elapsed = (now - (state.lastWhoSentAt or 0))
   if elapsed < minInterval then
     if ThrottlePrint("who_interval", 1.5) then
-      self:Print(("Please wait %.1fs before sending the next /who."):format(minInterval - elapsed))
+      self:Print((L["Please wait %.1fs before sending the next /who."]):format(minInterval - elapsed))
     end
     return false
   end
@@ -409,7 +411,7 @@ function GRIP:SendNextWho()
         end
       end)
     end, { filter = filter })
-    self:Print(("Queued /who (Ghost): %s (%d/%d)"):format(
+    self:Print((L["Queued /who (Ghost): %s (%d/%d)"]):format(
       filter, state.whoIndex - 1, #state.whoQueue))
     self:UpdateUI()
     return true
@@ -439,18 +441,18 @@ function GRIP:SendNextWho()
       self:Debug("WHO timeout:", state.pendingWho.filter)
       state.pendingWho = nil
       self:UpdateUI()
-      self:Print("No WHO_LIST_UPDATE received (server throttle?). Try again in a few seconds.")
+      self:Print(L["No WHO_LIST_UPDATE received (server throttle?). Try again in a few seconds."])
     end
   end)
 
-  self:Print(("Sent /who: %s (%d/%d)"):format(filter, state.whoIndex - 1, #state.whoQueue))
+  self:Print((L["Sent /who: %s (%d/%d)"]):format(filter, state.whoIndex - 1, #state.whoQueue))
   self:UpdateUI()
   return true
 end
 
 function GRIP:ProcessWhoResults(pending)
   if not (C_FriendList and C_FriendList.GetNumWhoResults and C_FriendList.GetWhoInfo) then
-    self:Print("Who results APIs unavailable on this client.")
+    self:Print(L["Who results APIs unavailable on this client."])
     return
   end
 
@@ -506,7 +508,7 @@ function GRIP:ProcessWhoResults(pending)
     self:Debug("WHO ingestion skipped blacklisted:", skippedBlacklisted)
   end
 
-  self:Print(("WHO results processed: %d results, %d unguilded added."):format(numWhos, added))
+  self:Print((L["WHO results processed: %d results, %d unguilded added."]):format(numWhos, added))
 
   if added > 0 then
     local cfg = GRIP:GetCfg()

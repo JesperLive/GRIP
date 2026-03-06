@@ -16,6 +16,8 @@ local C_Club = C_Club
 local C_ClubFinder = C_ClubFinder
 local C_Calendar = C_Calendar
 
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
+
 local state = GRIP.state
 
 -- Some GlobalStrings contain grammar tokens like |3-6(%s) which do NOT appear in the final CHAT_MSG_SYSTEM text.
@@ -323,7 +325,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
           ticker:Cancel()
           GRIP.state._gripGuildLinkTicker = nil
           if not resolved and GRIP:IsDebugEnabled(1) then
-            GRIP:Info("Guild link could not resolve after 2 min. Open Guild & Communities to prime cache, or check /grip link")
+            GRIP:Info(L["Guild link could not resolve after 2 min. Open Guild & Communities to prime cache, or check /grip link"])
           end
         end
       end)

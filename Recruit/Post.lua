@@ -15,6 +15,8 @@ local GetChannelList = GetChannelList
 local InCombatLockdown = InCombatLockdown
 local C_Timer = C_Timer
 
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
+
 local state = GRIP.state
 
 -- Constants
@@ -210,7 +212,7 @@ function GRIP:AutoDrainPostQueueGhost()
         GRIP:SendChatMessageCompat(postMsg, "CHANNEL", nil, postChannelId)
         GRIP:RecordCampaignAction("post")
         GRIP:RecordStat("posts")
-        GRIP:Print(("Posted (ghost) to %s"):format(postChannelName))
+        GRIP:Print((L["Posted (ghost) to %s"]):format(postChannelName))
         GRIP:Debug("Post (ghost-auto) ->", postChannelName, postMsg)
       end, { channel = task.channelToken })
       queued = queued + 1
@@ -237,7 +239,7 @@ function GRIP:StartPostScheduler()
   local interval = self:Clamp(tonumber(cfg.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
   local nextAt = GetTime() + interval
 
-  self:Print(("Post scheduler enabled: every %d min (queues messages; click Post Next to send)."):format(interval / 60))
+  self:Print((L["Post scheduler enabled: every %d min (queues messages; click Post Next to send)."]):format(interval / 60))
 
   state.postTicker = C_Timer.NewTicker(1, function()
     local cfg2 = GRIP:GetCfg()
@@ -262,26 +264,26 @@ function GRIP:StopPostScheduler()
   if state.postTicker then
     state.postTicker:Cancel()
     state.postTicker = nil
-    self:Print("Post scheduler stopped.")
+    self:Print(L["Post scheduler stopped."])
   end
 end
 
 function GRIP:PostNext()
   local cfg = GRIP:GetCfg()
   if not cfg then
-    self:Print("Cannot post: GRIPDB not initialized yet.")
+    self:Print(L["Cannot post: GRIPDB not initialized yet."])
     return
   end
 
   if InCombatLockdown and InCombatLockdown() then
-    self:Print("Cannot post to public channels while in combat.")
+    self:Print(L["Cannot post to public channels while in combat."])
     return
   end
 
   -- NH-6: Skip sends during chat messaging lockdown (encounter/M+/PvP)
   if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
      and C_ChatInfo.InChatMessagingLockdown() then
-    self:Print("Cannot post: chat messaging lockdown is active (in encounter/M+/PvP).")
+    self:Print(L["Cannot post: chat messaging lockdown is active (in encounter/M+/PvP)."])
     return
   end
 
@@ -306,7 +308,7 @@ function GRIP:PostNext()
   end
 
   if #state.postQueue == 0 then
-    self:Print("Post queue is empty.")
+    self:Print(L["Post queue is empty."])
     if didChange then self:UpdateUI() end
     return
   end
@@ -317,7 +319,7 @@ function GRIP:PostNext()
   if minInterval > MIN_POST_INTERVAL_CAP then minInterval = MIN_POST_INTERVAL_CAP end
 
   if (now - (state.lastPostSentAt or 0)) < minInterval then
-    self:Print(("Please wait %.1fs before posting again."):format(
+    self:Print((L["Please wait %.1fs before posting again."]):format(
       minInterval - (now - (state.lastPostSentAt or 0))
     ))
     return
@@ -325,7 +327,7 @@ function GRIP:PostNext()
 
   local task = table.remove(state.postQueue, 1)
   if not task then
-    self:Print("Post queue is empty.")
+    self:Print(L["Post queue is empty."])
     if didChange then self:UpdateUI() end
     return
   end
@@ -339,26 +341,26 @@ function GRIP:PostNext()
   elseif token == "trade" then
     channelId, channelName = GetChannelIdByToken("trade")
   else
-    self:Print("Unknown channel token: " .. tostring(task.channelToken))
+    self:Print(L["Unknown channel token: "] .. tostring(task.channelToken))
     if didChange then self:UpdateUI() end
     return
   end
 
   if not channelId then
-    self:Print(("Channel not found for '%s'. Are you joined to that channel?"):format(task.channelToken))
+    self:Print((L["Channel not found for '%s'. Are you joined to that channel?"]):format(task.channelToken))
     if didChange then self:UpdateUI() end
     return
   end
 
   if GRIP:IsBlank(task.msg) then
-    self:Print("Post message is blank; skipping.")
+    self:Print(L["Post message is blank; skipping."])
     if didChange then self:UpdateUI() end
     return
   end
 
   -- LAST-LINE DEFENSE: if the message targets a blocked player, never execute the protected call.
   if PostBlacklistGate(task.msg, GateCtx("pre-exec", { channel = task.channelToken, channelId = channelId })) then
-    self:Print("Post skipped: target is blacklisted.")
+    self:Print(L["Post skipped: target is blacklisted."])
     if didChange then self:UpdateUI() end
     return
   end
@@ -388,7 +390,7 @@ function GRIP:PostNext()
   self:RecordCampaignAction("post")
   self:RecordStat("posts")
 
-  self:Print(("Posted to %s: %s"):format(channelName or task.channelToken, task.msg))
+  self:Print((L["Posted to %s: %s"]):format(channelName or task.channelToken, task.msg))
 
   if didChange then
     self:UpdateUI()

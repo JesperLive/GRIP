@@ -17,6 +17,8 @@ local InCombatLockdown = InCombatLockdown
 local C_DateAndTime = C_DateAndTime
 local C_Timer = C_Timer
 
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
+
 local state = GRIP.state
 
 local function GetTodayDateString()
@@ -265,7 +267,7 @@ function GRIP:OnWhisperReceived(senderName, messageText)
   if not IsOptOutMessage(messageText) then return end
 
   -- Opt-out detected: clean up all pending state
-  self:Info(("Opt-out detected from %s: \"%s\" — permanently blacklisted."):format(
+  self:Info((L["Opt-out detected from %s: \"%s\" \226\128\148 permanently blacklisted."]):format(
     full, tostring(messageText):sub(1, 60)))
 
   if state.pendingWhisper then state.pendingWhisper[full] = nil end
@@ -304,7 +306,7 @@ function GRIP:StartWhispers()
   local cfg = GRIP:GetCfg()
   local pot = GRIP:GetPotential()
   if not cfg or not pot then
-    self:Print("Cannot start whispers: GRIPDB not initialized yet.")
+    self:Print(L["Cannot start whispers: GRIPDB not initialized yet."])
     return
   end
 
@@ -315,12 +317,12 @@ function GRIP:StartWhispers()
   end
 
   if not cfg.whisperEnabled then
-    self:Print("Whispers are disabled in config.")
+    self:Print(L["Whispers are disabled in config."])
     return
   end
 
   if IsDailyCapReached(cfg) then
-    self:Print(("Daily whisper cap reached (%d). Resets tomorrow."):format(cfg.whisperDailyCap))
+    self:Print((L["Daily whisper cap reached (%d). Resets tomorrow."]):format(cfg.whisperDailyCap))
     return
   end
 
@@ -333,12 +335,12 @@ function GRIP:StartWhispers()
   PurgeBlacklistedFromPendingAndQueue(pot, cfg)
 
   if #state.whisperQueue == 0 then
-    self:Print("No candidates in Potential list need whispers.")
+    self:Print(L["No candidates in Potential list need whispers."])
     return
   end
 
   local delay = self:Clamp(tonumber(cfg.whisperDelay) or 2.5, 0.8, 10)
-  self:Print(("Starting whisper queue: %d targets (%.1fs delay)."):format(#state.whisperQueue, delay))
+  self:Print((L["Starting whisper queue: %d targets (%.1fs delay)."]):format(#state.whisperQueue, delay))
 
   state.whisperTicker = C_Timer.NewTicker(delay, function()
     GRIP:WhisperTick()
@@ -352,7 +354,7 @@ function GRIP:StopWhispers()
   if state.whisperTicker then
     state.whisperTicker:Cancel()
     state.whisperTicker = nil
-    self:Print("Whisper queue stopped.")
+    self:Print(L["Whisper queue stopped."])
     local cfg = GRIP:GetCfg()
     if cfg and cfg.soundWhisperDone ~= false then
       self:PlayAlertSound(SOUNDKIT and SOUNDKIT.IG_QUEST_LIST_COMPLETE or 878)
@@ -454,7 +456,7 @@ function GRIP:WhisperTick()
     if not _G.GRIPDB_CHAR or type(GRIPDB_CHAR.counters) ~= "table" then return end
     ResetIfNewDay(GRIPDB_CHAR.counters)
     if GRIPDB_CHAR.counters.whispersSent >= cfg.whisperDailyCap then
-      self:Print(("Daily whisper cap reached (%d). Queue stopped. Resets tomorrow."):format(cfg.whisperDailyCap))
+      self:Print((L["Daily whisper cap reached (%d). Queue stopped. Resets tomorrow."]):format(cfg.whisperDailyCap))
       if cfg.soundCapWarning ~= false then
         self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
       end
@@ -465,7 +467,7 @@ function GRIP:WhisperTick()
     -- Soft warning at ~80% of cap
     local ratio = GRIPDB_CHAR.counters.whispersSent / cfg.whisperDailyCap
     if ratio >= 0.8 and ratio < 0.85 then
-      self:Print(("Approaching daily whisper limit: %d/%d"):format(GRIPDB_CHAR.counters.whispersSent, cfg.whisperDailyCap))
+      self:Print((L["Approaching daily whisper limit: %d/%d"]):format(GRIPDB_CHAR.counters.whispersSent, cfg.whisperDailyCap))
       if cfg.soundCapWarning ~= false then
         self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
       end
