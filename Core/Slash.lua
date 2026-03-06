@@ -337,7 +337,7 @@ function GRIP:HandleSlash(msg)
     if sub == "on" then
       if not _G.GRIPDB then self:Print("GRIPDB not initialized.") return end
       GRIPDB.syncEnabled = true
-      self:Print("Officer blacklist sync: ON")
+      self:Print("Officer sync: ON")
       if self.InitSync then pcall(function() self:InitSync() end) end
       return
     end
@@ -345,7 +345,7 @@ function GRIP:HandleSlash(msg)
     if sub == "off" then
       if not _G.GRIPDB then self:Print("GRIPDB not initialized.") return end
       GRIPDB.syncEnabled = false
-      self:Print("Officer blacklist sync: OFF")
+      self:Print("Officer sync: OFF")
       return
     end
 
@@ -360,11 +360,16 @@ function GRIP:HandleSlash(msg)
 
     -- Default: status
     local info = self.GetSyncStatus and self:GetSyncStatus() or {}
-    self:Print(("Sync: %s (libs=%s, guild=%s, hash=%s)"):format(
+    local cfg = GRIPDB_CHAR.config
+    self:Print(("Sync: %s (libs=%s, guild=%s)"):format(
       info.enabled and "ON" or "OFF",
       info.libsLoaded and "ok" or "missing",
-      info.inGuild and "yes" or "no",
-      info.hash or "?"
+      info.inGuild and "yes" or "no"
+    ))
+    self:Print(("  Blacklist hash: %s"):format(info.blHash or "?"))
+    self:Print(("  Templates: %s (hash: %s)"):format(
+      cfg.syncTemplates ~= false and "ON" or "OFF",
+      info.tplHash or "?"
     ))
     if info.lastSyncAt and info.lastSyncAt > 0 then
       local ago = math.floor(time() - info.lastSyncAt)
@@ -480,6 +485,7 @@ function GRIP:HandleSlash(msg)
         return
       end
       cfg.whisperMessages[#cfg.whisperMessages + 1] = subrest
+      cfg.templatesEditedAt = time()
       self:Print(("Added template #%d."):format(#cfg.whisperMessages))
       return
     end
@@ -497,6 +503,7 @@ function GRIP:HandleSlash(msg)
       end
       table.remove(cfg.whisperMessages, n)
       cfg.whisperMessage = cfg.whisperMessages[1] or ""
+      cfg.templatesEditedAt = time()
       self:Print(("Removed template #%d. (%d remaining)"):format(n, #cfg.whisperMessages))
       return
     end

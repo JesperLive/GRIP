@@ -109,6 +109,11 @@ local DEFAULT_DB_CHAR = {
     rioMinScore = 0,          -- min M+ score filter (0 = disabled)
     rioShowColumn = true,     -- show M+ column in potential list
 
+    -- Officer sync — per-collection toggles (FE4-FULL)
+    syncTemplates = true,       -- opt-in for template sync (default: on)
+    templatesSyncedAt = 0,      -- epoch: last received template sync
+    templatesEditedAt = 0,      -- epoch: last local template edit
+
     -- Ghost Mode
     ghostModeEnabled = false,
     ghostModeMinInterval = 0.5,
@@ -527,6 +532,11 @@ function GRIP:EnsureDB()
 
   if type(cfg.rioMinScore) ~= "number" then cfg.rioMinScore = DEFAULT_DB_CHAR.config.rioMinScore end
   if type(cfg.rioShowColumn) ~= "boolean" then cfg.rioShowColumn = DEFAULT_DB_CHAR.config.rioShowColumn end
+
+  -- Officer sync per-collection toggles (FE4-FULL)
+  if type(cfg.syncTemplates) ~= "boolean" then cfg.syncTemplates = true end
+  if type(cfg.templatesSyncedAt) ~= "number" then cfg.templatesSyncedAt = 0 end
+  if type(cfg.templatesEditedAt) ~= "number" then cfg.templatesEditedAt = 0 end
 
   if type(cfg.soundEnabled) ~= "boolean" then cfg.soundEnabled = DEFAULT_DB_CHAR.config.soundEnabled end
   if type(cfg.soundWhisperDone) ~= "boolean" then cfg.soundWhisperDone = DEFAULT_DB_CHAR.config.soundWhisperDone end

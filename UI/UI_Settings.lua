@@ -781,6 +781,7 @@ function GRIP:UI_CreateSettings(parent)
       GRIPDB_CHAR.config.whisperMessages[i] = drafts[i]
     end
     GRIPDB_CHAR.config.whisperMessage = GRIPDB_CHAR.config.whisperMessages[1] or ""
+    GRIPDB_CHAR.config.templatesEditedAt = time()
     W.ClearDirty(settings.whisperEdit)
     GRIP:Print(("Saved %d whisper template(s)."):format(#drafts))
     GRIP:UpdateUI()
@@ -1000,28 +1001,48 @@ function GRIP:UI_CreateSettings(parent)
   settings.sep4:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
   settings.sep4:SetColorTexture(1, 1, 1, 0.08)
 
-  -- Officer Blacklist Sync section (FE4)
+  -- Officer Sync section (FE4-FULL v2)
   settings.syncHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   settings.syncHdr:SetPoint("TOPLEFT", settings.sep4, "BOTTOMLEFT", 0, -8)
-  settings.syncHdr:SetText("Officer Blacklist Sync")
+  settings.syncHdr:SetText("Officer Sync")
 
-  settings.syncEnabled = W.CreateCheckbox(s, "Enable officer blacklist sync", function(btn)
+  settings.syncEnabled = W.CreateCheckbox(s, "Enable officer sync", function(btn)
     if not _G.GRIPDB then btn:SetChecked(false) return end
     GRIPDB.syncEnabled = btn:GetChecked() and true or false
     if GRIPDB.syncEnabled and GRIP.InitSync then
       pcall(function() GRIP:InitSync() end)
     end
+    -- Dim/enable sub-checkbox
+    if settings.syncTemplates then
+      W.SetEnabledSafe(settings.syncTemplates, GRIPDB.syncEnabled)
+    end
   end)
   settings.syncEnabled:SetPoint("TOPLEFT", settings.syncHdr, "BOTTOMLEFT", 0, -4)
-  GRIP:AttachTooltip(settings.syncEnabled, "Blacklist Sync",
-    "Syncs permanent blacklist entries between guild officers running GRIP.\n"
+  GRIP:AttachTooltip(settings.syncEnabled, "Officer Sync",
+    "Syncs blacklist and whisper templates between guild officers running GRIP.\n"
     .. "Uses guild chat channel (invisible to players).\n"
-    .. "Entries are only added, never removed (set-union merge).")
+    .. "Blacklist entries are only added, never removed (set-union merge).\n"
+    .. "Templates use last-writer-wins with clock tolerance.")
+
+  settings.syncTemplates = W.CreateCheckbox(s, "Sync whisper templates", function(btn)
+    if not HasDB() then btn:SetChecked(true) return end
+    GRIPDB_CHAR.config.syncTemplates = btn:GetChecked() and true or false
+  end)
+  settings.syncTemplates:SetPoint("TOPLEFT", settings.syncEnabled, "BOTTOMLEFT", 20, -2)
+  GRIP:AttachTooltip(settings.syncTemplates, "Template Sync",
+    "When enabled, whisper templates are synced from other officers.\n"
+    .. "Uses last-writer-wins: the most recently edited set replaces yours.\n"
+    .. "Disable to keep your own templates independent.")
+
+  settings.syncStatus = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  settings.syncStatus:SetPoint("TOPLEFT", settings.syncTemplates, "BOTTOMLEFT", -20, -4)
+  settings.syncStatus:SetTextColor(0.5, 0.5, 0.5)
+  settings.syncStatus:SetText("Last sync: never")
 
   -- Separator: sync → ghost mode
   settings.sep5 = s:CreateTexture(nil, "ARTWORK")
   settings.sep5:SetHeight(1)
-  settings.sep5:SetPoint("TOPLEFT", settings.syncEnabled, "BOTTOMLEFT", 0, -8)
+  settings.sep5:SetPoint("TOPLEFT", settings.syncStatus, "BOTTOMLEFT", 0, -8)
   settings.sep5:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
   settings.sep5:SetColorTexture(1, 1, 1, 0.08)
 
@@ -1122,6 +1143,7 @@ function GRIP:UI_UpdateSettings()
     W.SetEnabledSafe(s.optOutAggressive, false)
 
     W.SetEnabledSafe(s.syncEnabled, false)
+    W.SetEnabledSafe(s.syncTemplates, false)
 
     W.SetEnabledSafe(s.ghostEnabled, false)
     W.SetEnabledSafe(s.ghostSessionSlider, false)
@@ -1260,10 +1282,30 @@ function GRIP:UI_UpdateSettings()
     end
   end
 
-  -- Officer Blacklist Sync (FE4)
+  -- Officer Sync (FE4-FULL v2)
+  local syncOn = _G.GRIPDB and GRIPDB.syncEnabled ~= false
   W.SetEnabledSafe(s.syncEnabled, true)
   if s.syncEnabled then
-    s.syncEnabled:SetChecked(_G.GRIPDB and GRIPDB.syncEnabled ~= false)
+    s.syncEnabled:SetChecked(syncOn)
+  end
+  W.SetEnabledSafe(s.syncTemplates, syncOn)
+  if s.syncTemplates then
+    s.syncTemplates:SetChecked(GRIPDB_CHAR.config.syncTemplates ~= false)
+  end
+  if s.syncStatus then
+    local lastSync = (_G.GRIPDB and tonumber(GRIPDB.lastSyncAt)) or 0
+    if lastSync > 0 then
+      local ago = time() - lastSync
+      if ago < 60 then
+        s.syncStatus:SetText("Last sync: just now")
+      elseif ago < 3600 then
+        s.syncStatus:SetText(("Last sync: %d min ago"):format(floor(ago / 60)))
+      else
+        s.syncStatus:SetText(("Last sync: %d hr ago"):format(floor(ago / 3600)))
+      end
+    else
+      s.syncStatus:SetText("Last sync: never")
+    end
   end
 
   -- Ghost Mode

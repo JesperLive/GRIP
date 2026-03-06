@@ -1,5 +1,5 @@
 -- GRIP: Sync
--- Officer blacklist sync via AceComm-3.0 over GUILD channel (set-union merge).
+-- Officer sync via AceComm-3.0 over GUILD channel (blacklist set-union + template LWW merge).
 
 local ADDON_NAME, GRIP = ...
 
@@ -14,6 +14,7 @@ local SYNC_PREFIX       = "GRIP"
 local SYNC_COOLDOWN     = 3600    -- 1 hour between broadcasts
 local SYNC_STARTUP_DELAY = 10     -- seconds after ADDON_LOADED before first broadcast
 local SYNC_PRIORITY     = "BULK"  -- ChatThrottleLib priority (queues at ~1/sec)
+local LWW_TOLERANCE     = 300     -- 5 minutes clock skew tolerance for template LWW
 
 -- Library handles (resolved at init)
 local AceComm
@@ -21,8 +22,123 @@ local LibSerialize
 local LibDeflate
 
 -- =========================================================================
--- Hash helper — deterministic hash of the permanent blacklist
+-- Generic codec helpers (shared by blacklist + template sync, FE8 prep)
 -- =========================================================================
+
+--- Encode a Lua table for transmission over the WoW addon channel.
+-- @return encoded string, or nil on failure
+local function EncodeForAddonChannel(data)
+  if not LibSerialize or not LibDeflate then return nil end
+
+  local ok, serialized = pcall(LibSerialize.Serialize, LibSerialize, data)
+  if not ok or not serialized then
+    GRIP:Debug("Sync: serialize failed:", tostring(serialized))
+    return nil
+  end
+
+  local compressed = LibDeflate:CompressDeflate(serialized)
+  if not compressed then
+    GRIP:Debug("Sync: compress failed")
+    return nil
+  end
+
+  local encoded = LibDeflate:EncodeForWoWAddonChannel(compressed)
+  if not encoded then
+    GRIP:Debug("Sync: addon-channel encode failed")
+    return nil
+  end
+
+  return encoded
+end
+
+--- Decode an addon-channel string back into a Lua table.
+-- @return table, or nil on failure
+local function DecodeFromAddonChannel(encoded)
+  if not LibSerialize or not LibDeflate then return nil end
+  if type(encoded) ~= "string" or encoded == "" then return nil end
+
+  local compressed = LibDeflate:DecodeForWoWAddonChannel(encoded)
+  if not compressed then
+    GRIP:Debug("Sync: addon-channel decode failed")
+    return nil
+  end
+
+  local serialized = LibDeflate:DecompressDeflate(compressed)
+  if not serialized then
+    GRIP:Debug("Sync: decompress failed")
+    return nil
+  end
+
+  local ok, data = pcall(LibSerialize.Deserialize, LibSerialize, serialized)
+  if not ok or type(data) ~= "table" then
+    GRIP:Debug("Sync: deserialize failed:", tostring(data))
+    return nil
+  end
+
+  return data
+end
+
+--- Encode a Lua table for clipboard (printable string, FE8 import/export prep).
+-- @return printable string, or nil on failure
+local function EncodeForClipboard(data)
+  if not LibSerialize or not LibDeflate then return nil end
+
+  local ok, serialized = pcall(LibSerialize.Serialize, LibSerialize, data)
+  if not ok or not serialized then
+    GRIP:Debug("Sync: clipboard serialize failed:", tostring(serialized))
+    return nil
+  end
+
+  local compressed = LibDeflate:CompressDeflate(serialized)
+  if not compressed then
+    GRIP:Debug("Sync: clipboard compress failed")
+    return nil
+  end
+
+  local encoded = LibDeflate:EncodeForPrint(compressed)
+  if not encoded then
+    GRIP:Debug("Sync: clipboard encode failed")
+    return nil
+  end
+
+  return encoded
+end
+
+--- Decode a clipboard (printable) string back into a Lua table.
+-- @return table, or nil on failure
+local function DecodeFromClipboard(str)
+  if not LibSerialize or not LibDeflate then return nil end
+  if type(str) ~= "string" or str == "" then return nil end
+
+  local compressed = LibDeflate:DecodeForPrint(str)
+  if not compressed then
+    GRIP:Debug("Sync: clipboard decode failed")
+    return nil
+  end
+
+  local serialized = LibDeflate:DecompressDeflate(compressed)
+  if not serialized then
+    GRIP:Debug("Sync: clipboard decompress failed")
+    return nil
+  end
+
+  local ok, data = pcall(LibSerialize.Deserialize, LibSerialize, serialized)
+  if not ok or type(data) ~= "table" then
+    GRIP:Debug("Sync: clipboard deserialize failed:", tostring(data))
+    return nil
+  end
+
+  return data
+end
+
+-- Expose clipboard helpers on the GRIP table for FE8 import/export
+GRIP.EncodeForClipboard = EncodeForClipboard
+GRIP.DecodeFromClipboard = DecodeFromClipboard
+
+-- =========================================================================
+-- Blacklist hash, serialize, deserialize (thin wrappers over generic codec)
+-- =========================================================================
+
 local function ComputeBlacklistHash()
   if not _G.GRIPDB or type(GRIPDB.blacklistPerm) ~= "table" then return "empty" end
 
@@ -45,60 +161,13 @@ local function ComputeBlacklistHash()
   return tostring(h)
 end
 
--- =========================================================================
--- Serialize + compress the permanent blacklist
--- =========================================================================
 local function SerializeBlacklist()
-  if not LibSerialize or not LibDeflate then return nil end
   if not _G.GRIPDB or type(GRIPDB.blacklistPerm) ~= "table" then return nil end
-
-  local ok, serialized = pcall(LibSerialize.Serialize, LibSerialize, GRIPDB.blacklistPerm)
-  if not ok or not serialized then
-    GRIP:Debug("Sync: serialize failed:", tostring(serialized))
-    return nil
-  end
-
-  local compressed = LibDeflate:CompressDeflate(serialized)
-  if not compressed then
-    GRIP:Debug("Sync: compress failed")
-    return nil
-  end
-
-  local encoded = LibDeflate:EncodeForWoWAddonChannel(compressed)
-  if not encoded then
-    GRIP:Debug("Sync: encode failed")
-    return nil
-  end
-
-  return encoded
+  return EncodeForAddonChannel(GRIPDB.blacklistPerm)
 end
 
--- =========================================================================
--- Deserialize + decompress incoming blacklist data
--- =========================================================================
 local function DeserializeBlacklist(encoded)
-  if not LibSerialize or not LibDeflate then return nil end
-  if type(encoded) ~= "string" or encoded == "" then return nil end
-
-  local compressed = LibDeflate:DecodeForWoWAddonChannel(encoded)
-  if not compressed then
-    GRIP:Debug("Sync: decode failed")
-    return nil
-  end
-
-  local serialized = LibDeflate:DecompressDeflate(compressed)
-  if not serialized then
-    GRIP:Debug("Sync: decompress failed")
-    return nil
-  end
-
-  local ok, data = pcall(LibSerialize.Deserialize, LibSerialize, serialized)
-  if not ok or type(data) ~= "table" then
-    GRIP:Debug("Sync: deserialize failed:", tostring(data))
-    return nil
-  end
-
-  return data
+  return DecodeFromAddonChannel(encoded)
 end
 
 -- =========================================================================
@@ -131,6 +200,164 @@ local function MergeBlacklist(remoteData)
 end
 
 -- =========================================================================
+-- Template hash, serialize, deserialize, merge (v2)
+-- =========================================================================
+
+local function ComputeTemplateHash()
+  local cfg = _G.GRIPDB_CHAR and GRIPDB_CHAR.config
+  if not cfg or type(cfg.whisperMessages) ~= "table" then return "empty" end
+  if #cfg.whisperMessages == 0 then return "empty" end
+
+  -- djb2 hash of all template strings concatenated + rotation mode
+  local h = 5381
+  for i = 1, #cfg.whisperMessages do
+    local s = cfg.whisperMessages[i] or ""
+    for j = 1, #s do
+      h = (h * 33 + s:byte(j)) % 2^32
+    end
+  end
+  local rot = cfg.whisperRotation or "sequential"
+  for j = 1, #rot do
+    h = (h * 33 + rot:byte(j)) % 2^32
+  end
+  return tostring(h)
+end
+
+local function SerializeTemplates()
+  local cfg = _G.GRIPDB_CHAR and GRIPDB_CHAR.config
+  if not cfg or type(cfg.whisperMessages) ~= "table" then return nil end
+  local payload = {
+    updatedAt = tonumber(cfg.templatesEditedAt) or 0,
+    templates = cfg.whisperMessages,
+    rotation = cfg.whisperRotation or "sequential",
+  }
+  return EncodeForAddonChannel(payload)
+end
+
+local function MergeTemplates(remoteData, sender)
+  if type(remoteData) ~= "table" then return false end
+  if type(remoteData.templates) ~= "table" then return false end
+  if #remoteData.templates == 0 then return false end
+
+  local cfg = _G.GRIPDB_CHAR and GRIPDB_CHAR.config
+  if not cfg then return false end
+
+  -- Check per-collection opt-in
+  if cfg.syncTemplates == false then return false end
+
+  local remoteAt = tonumber(remoteData.updatedAt) or 0
+  local localAt = tonumber(cfg.templatesSyncedAt) or 0
+  local localEditAt = tonumber(cfg.templatesEditedAt) or 0
+
+  -- Use the more recent of synced-at and edited-at as our "version"
+  local localVersion = localAt > localEditAt and localAt or localEditAt
+
+  -- LWW: only accept if remote is newer (beyond tolerance)
+  if remoteAt <= (localVersion + LWW_TOLERANCE) then
+    GRIP:Debug("Sync: TPL from", sender, "not newer (remote=", remoteAt,
+      "local=", localVersion, "tolerance=", LWW_TOLERANCE, ")")
+    return false
+  end
+
+  -- Accept remote templates
+  cfg.whisperMessages = {}
+  for i = 1, #remoteData.templates do
+    cfg.whisperMessages[i] = tostring(remoteData.templates[i])
+  end
+
+  -- Cap at 10
+  while #cfg.whisperMessages > 10 do
+    table.remove(cfg.whisperMessages)
+  end
+
+  cfg.whisperRotation = (remoteData.rotation == "random") and "random" or "sequential"
+  cfg.templatesSyncedAt = remoteAt
+
+  -- Keep whisperMessage alias in sync (always = whisperMessages[1])
+  if #cfg.whisperMessages > 0 then
+    cfg.whisperMessage = cfg.whisperMessages[1]
+  end
+
+  return true
+end
+
+-- =========================================================================
+-- V2 protocol handler
+-- =========================================================================
+
+local function HandleV2(cmd, payload, sender)
+  if cmd == "HASH" then
+    -- payload = "<bl_hash>:<tpl_hash>"
+    local remoteBlHash, remoteTplHash = payload:match("^([^:]+):([^:]+)$")
+    if not remoteBlHash then return end
+
+    local localBlHash = ComputeBlacklistHash()
+    local localTplHash = ComputeTemplateHash()
+    local cfg = _G.GRIPDB_CHAR and GRIPDB_CHAR.config
+
+    local needBl = (remoteBlHash ~= localBlHash)
+    local needTpl = (remoteTplHash ~= localTplHash) and (cfg and cfg.syncTemplates ~= false)
+
+    GRIP:Debug("Sync: V2:HASH from", sender,
+      "bl:", remoteBlHash, "vs", localBlHash, needBl and "DIFF" or "same",
+      "tpl:", remoteTplHash, "vs", localTplHash, needTpl and "DIFF" or "same")
+
+    if needBl and needTpl then
+      AceComm:SendCommMessage(SYNC_PREFIX, "V2:REQ:ALL", "GUILD", nil, SYNC_PRIORITY)
+    elseif needBl then
+      AceComm:SendCommMessage(SYNC_PREFIX, "V2:REQ:BL", "GUILD", nil, SYNC_PRIORITY)
+    elseif needTpl then
+      AceComm:SendCommMessage(SYNC_PREFIX, "V2:REQ:TPL", "GUILD", nil, SYNC_PRIORITY)
+    end
+    return
+  end
+
+  if cmd == "REQ" then
+    -- payload = "BL" | "TPL" | "ALL"
+    if payload == "BL" or payload == "ALL" then
+      local encoded = SerializeBlacklist()
+      if encoded then
+        AceComm:SendCommMessage(SYNC_PREFIX, "V2:DATA:BL:" .. encoded, "GUILD", nil, SYNC_PRIORITY)
+      end
+    end
+    if payload == "TPL" or payload == "ALL" then
+      local encoded = SerializeTemplates()
+      if encoded then
+        AceComm:SendCommMessage(SYNC_PREFIX, "V2:DATA:TPL:" .. encoded, "GUILD", nil, SYNC_PRIORITY)
+      end
+    end
+    return
+  end
+
+  if cmd == "DATA" then
+    -- payload = "BL:<encoded>" or "TPL:<encoded>"
+    local collection, encoded = payload:match("^(%u+):(.*)")
+    if not collection then return end
+
+    if collection == "BL" then
+      local remoteData = DeserializeBlacklist(encoded)
+      if remoteData then
+        local added = MergeBlacklist(remoteData)
+        if added > 0 then
+          GRIP:Info("Sync: added", added, "blacklist entries from", sender)
+          GRIP:UpdateUI()
+        end
+      end
+    elseif collection == "TPL" then
+      local remoteData = DecodeFromAddonChannel(encoded)
+      if remoteData then
+        local ok = MergeTemplates(remoteData, sender)
+        if ok then
+          GRIP:Info("Sync: updated whisper templates from", sender)
+          GRIP:UpdateUI()
+        end
+      end
+    end
+    return
+  end
+end
+
+-- =========================================================================
 -- Message handler (incoming AceComm messages)
 -- =========================================================================
 local function OnCommReceived(prefix, message, distribution, sender)
@@ -148,7 +375,14 @@ local function OnCommReceived(prefix, message, distribution, sender)
 
   GRIP:Debug("Sync: received from", sender, "len=", #message)
 
-  -- Parse message type
+  -- Try v2 first
+  local v2cmd, v2payload = message:match("^V2:(%u+):(.*)")
+  if v2cmd then
+    HandleV2(v2cmd, v2payload, sender)
+    return
+  end
+
+  -- Fall through to v1 handling (backward compat)
   local msgType, payload = message:match("^(%u+):?(.*)")
   if not msgType then return end
 
@@ -195,7 +429,7 @@ local function OnCommReceived(prefix, message, distribution, sender)
 end
 
 -- =========================================================================
--- Broadcast our hash to GUILD
+-- Broadcast our hash to GUILD (v2 format)
 -- =========================================================================
 function GRIP:SyncBroadcastHash()
   if not AceComm then return end
@@ -210,10 +444,14 @@ function GRIP:SyncBroadcastHash()
     return
   end
 
-  local hash = ComputeBlacklistHash()
-  self:Debug("Sync: broadcasting HASH:", hash)
+  local blHash = ComputeBlacklistHash()
+  local tplHash = ComputeTemplateHash()
 
-  AceComm:SendCommMessage(SYNC_PREFIX, "HASH:" .. hash, "GUILD", nil, SYNC_PRIORITY)
+  -- Send v2 format
+  local msg = format("V2:HASH:%s:%s", blHash, tplHash)
+  self:Debug("Sync: broadcasting", msg)
+
+  AceComm:SendCommMessage(SYNC_PREFIX, msg, "GUILD", nil, SYNC_PRIORITY)
   GRIPDB.lastSyncAt = now
 end
 
@@ -302,16 +540,14 @@ end
 -- Status helper (for /grip sync and UI)
 -- =========================================================================
 function GRIP:GetSyncStatus()
-  local enabled = _G.GRIPDB and GRIPDB.syncEnabled ~= false
-  local libsOk = AceComm ~= nil and LibSerialize ~= nil and LibDeflate ~= nil
-  local lastSync = (_G.GRIPDB and tonumber(GRIPDB.lastSyncAt)) or 0
-  local inGuild = IsInGuild and IsInGuild() or false
-
+  local cfg = _G.GRIPDB_CHAR and GRIPDB_CHAR.config
   return {
-    enabled = enabled,
-    libsLoaded = libsOk,
-    lastSyncAt = lastSync,
-    inGuild = inGuild,
-    hash = ComputeBlacklistHash(),
+    enabled = _G.GRIPDB and GRIPDB.syncEnabled ~= false,
+    libsLoaded = AceComm ~= nil and LibSerialize ~= nil and LibDeflate ~= nil,
+    lastSyncAt = (_G.GRIPDB and tonumber(GRIPDB.lastSyncAt)) or 0,
+    inGuild = IsInGuild and IsInGuild() or false,
+    blHash = ComputeBlacklistHash(),
+    tplHash = ComputeTemplateHash(),
+    syncTemplates = cfg and cfg.syncTemplates ~= false or false,
   }
 end
