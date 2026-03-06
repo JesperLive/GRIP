@@ -745,7 +745,7 @@ L["Trade preview: %s"] = true
 L["One or both messages exceed 255 bytes after token expansion. Please shorten them first."] = true
 L["Ad messages saved."] = true
 L["Queued one General + one Trade message. Use Post Next to send."] = true
-L["Please wait %.1fs before posting again."] = true
+-- L["Please wait %.1fs before posting again."] — defined in Recruit/Post.lua section (shared)
 
 -- Post cooldown label
 L["Post (%.0fs)"] = true
