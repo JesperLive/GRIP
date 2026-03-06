@@ -10,6 +10,7 @@ local format = string.format
 local max, floor = math.max, math.floor
 
 local W = GRIP.UIW
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- =========================================================================
 -- Helpers
@@ -17,13 +18,13 @@ local W = GRIP.UIW
 
 local STAT_KEYS = { "whispers", "invites", "accepted", "declined", "optOuts", "posts", "scans" }
 local STAT_LABELS = {
-  whispers = "Whispers",
-  invites = "Invites",
-  accepted = "Accepted",
-  declined = "Declined",
-  optOuts = "Opt-Outs",
-  posts = "Posts",
-  scans = "Scans",
+  whispers = L["Whispers"],
+  invites  = L["Invites"],
+  accepted = L["Accepted"],
+  declined = L["Declined"],
+  optOuts  = L["Opt-Outs"],
+  posts    = L["Posts"],
+  scans    = L["Scans"],
 }
 
 local function EmptyRow()
@@ -70,7 +71,7 @@ local function SumDays(days, n, today)
 end
 
 local function FormatRate(accepted, whispers)
-  if not whispers or whispers == 0 then return "N/A" end
+  if not whispers or whispers == 0 then return L["N/A"] end
   return format("%.1f%%", (accepted / whispers) * 100)
 end
 
@@ -107,7 +108,7 @@ local function FindPeakHour(days, n, today)
 end
 
 local function FormatHour(h)
-  if not h then return "N/A" end
+  if not h then return L["N/A"] end
   if h == 0 then return "12am"
   elseif h < 12 then return h .. "am"
   elseif h == 12 then return "12pm"
@@ -132,7 +133,7 @@ function GRIP:CreateStatsPage(parent)
   -- Title
   local title = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   title:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X, Y_START)
-  title:SetText("Recruitment Statistics")
+  title:SetText(L["Recruitment Statistics"])
 
   local y = Y_START - 28
 
@@ -165,24 +166,24 @@ function GRIP:CreateStatsPage(parent)
     -- Accept rate row
     section.rateLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     section.rateLabel:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X + 8, y)
-    section.rateLabel:SetText("Accept Rate")
+    section.rateLabel:SetText(L["Accept Rate"])
     section.rateLabel:SetTextColor(unpack(GRIP.COLORS.GREEN))
 
     section.rateValue = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     section.rateValue:SetPoint("TOPLEFT", page, "TOPLEFT", VALUE_X, y)
-    section.rateValue:SetText("N/A")
+    section.rateValue:SetText(L["N/A"])
 
     y = y - ROW_HEIGHT
 
     -- Peak Hour row
     section.peakLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     section.peakLabel:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X + 8, y)
-    section.peakLabel:SetText("Peak Hour")
+    section.peakLabel:SetText(L["Peak Hour"])
     section.peakLabel:SetTextColor(unpack(GRIP.COLORS.LIGHT_BLUE))
 
     section.peakValue = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     section.peakValue:SetPoint("TOPLEFT", page, "TOPLEFT", VALUE_X, y)
-    section.peakValue:SetText("N/A")
+    section.peakValue:SetText(L["N/A"])
 
     y = y - ROW_HEIGHT - SECTION_GAP
 
@@ -195,18 +196,18 @@ function GRIP:CreateStatsPage(parent)
       end
       self.rateValue:SetText(FormatRate(data.accepted or 0, data.whispers or 0))
       if peakHour then
-        self.peakValue:SetText(format("%s (%d actions)", FormatHour(peakHour), peakCount))
+        self.peakValue:SetText((L["%s (%d actions)"]):format(FormatHour(peakHour), peakCount))
       else
-        self.peakValue:SetText("N/A")
+        self.peakValue:SetText(L["N/A"])
       end
     end
 
     return section
   end
 
-  page._sectionToday = CreateSection("Today")
-  page._section7d = CreateSection("Last 7 Days")
-  page._section30d = CreateSection("Last 30 Days")
+  page._sectionToday = CreateSection(L["Today"])
+  page._section7d    = CreateSection(L["Last 7 Days"])
+  page._section30d   = CreateSection(L["Last 30 Days"])
 
   -- LayoutForWidth hook (no-op for now — vertical layout fits fine)
   function page:LayoutForWidth(w) end
