@@ -180,6 +180,7 @@ function GRIP:PrintHelp()
   self:Print(L["  /grip templates list|add|remove|rotation — manage whisper templates"])
   self:Print(L["  /grip stats [7d|30d] — recruitment stats"])
   self:Print(L["  /grip stats reset — clear stats history"])
+  self:Print(L["  /grip perf — performance baseline (perf all = extra detail)"])
   self:Print(L["  /grip zones diag|reseed|deep|export — zone diagnostics"])
   self:Print(L["  /grip reset — reset UI position/size"])
   self:Print(L["  /grip tracegate on|off|toggle — execution gate diagnostics"])
@@ -750,6 +751,62 @@ function GRIP:HandleSlash(msg)
       self:Print((L["  Sync: %s"]):format(GRIPDB.syncEnabled ~= false and L["ON"] or L["OFF"]))
     end
     self:Debug("Status requested.")
+    return
+  end
+
+  if cmd == "perf" then
+    if not Enum or not Enum.AddOnProfilerMetric or not C_AddOnProfiler or not C_AddOnProfiler.GetAddOnMetric then
+      self:Print(L["C_AddOnProfiler not available (requires WoW 11.0.7+)."])
+      return
+    end
+    local E = Enum.AddOnProfilerMetric
+    local function getMetric(metric)
+      local ok, val = pcall(C_AddOnProfiler.GetAddOnMetric, ADDON_NAME, metric)
+      return (ok and val) or nil
+    end
+    local function fmtTime(val)
+      return val and ("%.3f ms"):format(val) or L["N/A"]
+    end
+    local function fmtCount(val)
+      return val and floor(val) or 0
+    end
+    self:Print(L["GRIP Performance Baseline:"])
+    self:Print((L["  Session avg: %s | Recent avg: %s"]):format(
+      fmtTime(getMetric(E.SessionAverageTime)),
+      fmtTime(getMetric(E.RecentAverageTime))))
+    self:Print((L["  Peak: %s | Last tick: %s"]):format(
+      fmtTime(getMetric(E.PeakTime)),
+      fmtTime(getMetric(E.LastTime))))
+    self:Print((L["  Ticks >1ms: %d | >5ms: %d | >50ms: %d"]):format(
+      fmtCount(getMetric(E.CountTimeOver1Ms)),
+      fmtCount(getMetric(E.CountTimeOver5Ms)),
+      fmtCount(getMetric(E.CountTimeOver50Ms))))
+    -- Extended detail with /grip perf all
+    local sub = (rest or ""):lower():gsub("^%s+",""):gsub("%s+$","")
+    if sub == "all" then
+      self:Print((L["  Ticks >10ms: %d | >100ms: %d | >500ms: %d | >1000ms: %d"]):format(
+        fmtCount(getMetric(E.CountTimeOver10Ms)),
+        fmtCount(getMetric(E.CountTimeOver100Ms)),
+        fmtCount(getMetric(E.CountTimeOver500Ms)),
+        fmtCount(getMetric(E.CountTimeOver1000Ms))))
+    end
+    -- Encounter avg (only if meaningful)
+    local encAvg = getMetric(E.EncounterAverageTime)
+    if encAvg and encAvg > 0 then
+      self:Print((L["  Encounter avg: %s"]):format(fmtTime(encAvg)))
+    end
+    -- Memory usage
+    UpdateAddOnMemoryUsage()
+    local memKB = GetAddOnMemoryUsage(ADDON_NAME)
+    local memStr
+    if memKB and memKB >= 1024 then
+      memStr = ("%.2f MB"):format(memKB / 1024)
+    elseif memKB then
+      memStr = ("%.1f KB"):format(memKB)
+    else
+      memStr = L["N/A"]
+    end
+    self:Print((L["  Memory: %s"]):format(memStr))
     return
   end
 

@@ -871,5 +871,19 @@ L["Type /grip help for commands."] = true
 L["Guild link could not resolve after 2 min. Open Guild & Communities to prime cache, or check /grip link"] = true
 
 -- =========================================================================
+-- Core/Slash.lua — Perf command
+-- =========================================================================
+
+L["GRIP Performance Baseline:"] = true
+L["  Session avg: %s | Recent avg: %s"] = true
+L["  Peak: %s | Last tick: %s"] = true
+L["  Ticks >1ms: %d | >5ms: %d | >50ms: %d"] = true
+L["  Ticks >10ms: %d | >100ms: %d | >500ms: %d | >1000ms: %d"] = true
+L["  Memory: %s"] = true
+L["  Encounter avg: %s"] = true
+L["C_AddOnProfiler not available (requires WoW 11.0.7+)."] = true
+L["  /grip perf — performance baseline (perf all = extra detail)"] = true
+
+-- =========================================================================
 -- @localization(locale="enUS", format="lua_additive_table", same-key-is-true=true)@
 -- =========================================================================
