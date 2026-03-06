@@ -49,6 +49,9 @@ local PAT_CHAT_PLAYER_AMBIG       = GRIP:GlobalStringToPattern(NormGS(_G.ERR_CHA
 local GS_CHAT_PLAYER_IGNORED      = _G.ERR_CHAT_PLAYER_IGNORED_S or _G.ERR_CHAT_PLAYER_IGNORED
 local PAT_CHAT_PLAYER_IGNORED     = GRIP:GlobalStringToPattern(NormGS(GS_CHAT_PLAYER_IGNORED))
 
+-- /who result count: "%d players total" (fires even when WHO_LIST_UPDATE does not)
+local PAT_WHO_NUM_RESULTS = _G.WHO_NUM_RESULTS and GRIP:GlobalStringToPattern(NormGS(_G.WHO_NUM_RESULTS))
+
 -- Name-less invite failure strings (if present on this client)
 local MSG_GUILD_IS_FULL           = _G.ERR_GUILD_IS_FULL
 local MSG_GUILD_INTERNAL          = _G.ERR_GUILD_INTERNAL
@@ -355,6 +358,37 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
     if GRIP:IsDebugEnabled(3) then
       GRIP:Trace("SYSTEM:", msg)
+    end
+
+    -- /who zero-result detection: WHO_NUM_RESULTS fires as CHAT_MSG_SYSTEM even when
+    -- WHO_LIST_UPDATE does not (observed for 0-result queries). Clear pendingWho and
+    -- process normally so the timeout doesn't fire a false "server throttle" message.
+    if PAT_WHO_NUM_RESULTS and state.pendingWho then
+      local countStr = msg:match(PAT_WHO_NUM_RESULTS)
+      if countStr then
+        local count = tonumber(countStr)
+        if count == 0 then
+          GRIP:Debug("WHO_NUM_RESULTS detected 0 results, clearing pendingWho")
+          local pending = state.pendingWho
+          state.pendingWho = nil
+          C_Timer.After(0, function()
+            GRIP:ProcessWhoResults(pending)
+            -- Ghost Mode auto-chain (same logic as OnWhoListUpdate)
+            if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
+              local cfg = (GRIPDB_CHAR and GRIPDB_CHAR.config) or {}
+              local interval = math.max(tonumber(cfg.minWhoInterval) or 15, 15)
+              C_Timer.After(interval, function()
+                if GRIP.Ghost and GRIP.Ghost:IsSessionActive() and not state.pendingWho then
+                  GRIP:SendNextWho()
+                end
+              end)
+            end
+          end)
+          GRIP:RecordStat("scans")
+          return
+        end
+        -- count > 0: WHO_LIST_UPDATE should follow; let it handle processing.
+      end
     end
 
     -- Whisper ignored (permanent blacklist)
