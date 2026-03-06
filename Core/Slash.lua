@@ -16,6 +16,7 @@ local C_Club = C_Club
 local C_ClubFinder = C_ClubFinder
 
 local state = GRIP.state
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- =========================================================================
 -- Import/Export popups (registered once, lazily)
@@ -26,8 +27,8 @@ local function EnsureExportPopup()
   if StaticPopupDialogs["GRIP_EXPORT"] then return end
 
   StaticPopupDialogs["GRIP_EXPORT"] = {
-    text = "Copy this GRIP export string:",
-    button1 = "Close",
+    text = L["Copy this GRIP export string:"],
+    button1 = L["Close"],
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
@@ -56,9 +57,9 @@ local function EnsureImportPopup()
   if StaticPopupDialogs["GRIP_IMPORT"] then return end
 
   StaticPopupDialogs["GRIP_IMPORT"] = {
-    text = "Paste a GRIP import string:",
-    button1 = "Import",
-    button2 = "Cancel",
+    text = L["Paste a GRIP import string:"],
+    button1 = L["Import"],
+    button2 = L["Cancel"],
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
@@ -76,39 +77,39 @@ local function EnsureImportPopup()
       local text = self.editBox and self.editBox:GetText() or ""
       text = text:gsub("^%s+", ""):gsub("%s+$", "")
       if text == "" then
-        GRIP:Print("No import string provided.")
+        GRIP:Print(L["No import string provided."])
         return
       end
 
       -- Detect type from prefix
       if text:sub(1, 9) == "!GRIP:BL:" then
         if not GRIP.ImportBlacklist then
-          GRIP:Print("Import module not loaded.")
+          GRIP:Print(L["Import module not loaded."])
           return
         end
         local result = GRIP:ImportBlacklist(text)
         if result then
-          GRIP:Print(("Imported: %d new blacklist entries (%d already existed)."):format(
+          GRIP:Print((L["Imported: %d new blacklist entries (%d already existed)."]):format(
             result.added, result.existing))
           GRIP:UpdateUI()
         else
-          GRIP:Print("Invalid blacklist import string.")
+          GRIP:Print(L["Invalid blacklist import string."])
         end
       elseif text:sub(1, 10) == "!GRIP:TPL:" then
         if not GRIP.ImportTemplates then
-          GRIP:Print("Import module not loaded.")
+          GRIP:Print(L["Import module not loaded."])
           return
         end
         local result = GRIP:ImportTemplates(text)
         if result then
-          GRIP:Print(("Imported %d whisper templates (%s rotation)."):format(
+          GRIP:Print((L["Imported %d whisper templates (%s rotation)."]):format(
             result.count, result.rotation))
           GRIP:UpdateUI()
         else
-          GRIP:Print("Invalid template import string.")
+          GRIP:Print(L["Invalid template import string."])
         end
       else
-        GRIP:Print("Invalid import string. Must start with !GRIP:BL: or !GRIP:TPL:")
+        GRIP:Print(L["Invalid import string. Must start with !GRIP:BL: or !GRIP:TPL:"])
       end
     end,
     EditBoxOnEnterPressed = function(self)
@@ -161,78 +162,60 @@ local function EnsureStateTables()
 end
 
 function GRIP:PrintHelp()
-  self:Print("Commands:")
-  self:Print("  /grip            - toggle UI")
-  self:Print("  /grip build      - rebuild /who queue")
-  self:Print("  /grip scan       - send next /who query (requires hardware event)")
-  self:Print("  /grip whisper    - start/stop whisper queue")
-  self:Print("  /grip invite     - whisper+invite next candidate (requires hardware event)")
-  self:Print("  /grip post       - send next queued post (requires hardware event)")
-  self:Print("  /grip clear      - clear Potential list")
-  self:Print("  /grip status     - print counts")
-  self:Print("  /grip link           - show current guild name + Guild Finder link resolution")
-  self:Print("  /grip templates list|add|remove|rotation  - manage whisper templates")
-  self:Print("  /grip permbl list|add|remove|clear   - manage permanent blacklist (ignore list)")
-  self:Print("  /grip ghost [start|stop|status]       - Ghost Mode session control")
-  self:Print("  /grip sync [on|off|now]              - officer blacklist sync")
-  self:Print("  /grip export bl|templates            - copy data to clipboard")
-  self:Print("  /grip import                         - paste import string")
-  self:Print("  /grip reset              - reset UI window position and size to defaults")
-  self:Print("  /grip tracegate on|off|toggle        - execution gate diagnostics (trace mode)")
-
-  self:Print("Debug:")
-  self:Print("  /grip debug on|off")
-  self:Print("  /grip debug dump [n]        - dump last n persisted lines (if capture enabled)")
-  self:Print("  /grip debug copy [n]        - open copyable debug log window (last n lines)")
-  self:Print("  /grip debug clear           - clear persisted debug log")
-  self:Print("  /grip debug capture on|off [max]  - toggle saving debug lines to SavedVariables (WTF)")
-  self:Print("  /grip debug status          - show capture settings + stored counts")
-
-  self:Print("Zones:")
-  self:Print("  /grip zones diag    - diagnostics")
-  self:Print("  /grip zones reseed  - rebuild zone list (prefers static/zonesAll)")
-  self:Print("  /grip zones deep [maxMapID] - deep scan mapIDs into ZonesAll (async)")
-  self:Print("  /grip zones deep stop - cancel a running deep scan")
-  self:Print("  /grip zones export  - write static zones Lua to SavedVariables for copy/paste")
-
-  self:Print("Stats:")
-  self:Print("  /grip stats              - show today's stats")
-  self:Print("  /grip stats 7d           - show last 7 days")
-  self:Print("  /grip stats 30d          - show last 30 days")
-  self:Print("  /grip stats reset        - clear all stats history")
-
-  self:Print("Minimap:")
-  self:Print("  /grip minimap on|off|toggle - minimap button visibility")
-
-  self:Print("Settings:")
-  self:Print("  /grip set whisper <message>")
-  self:Print("  /grip set general <message>")
-  self:Print("  /grip set trade <message>")
-  self:Print("  /grip set blacklistdays <n>")
-  self:Print("  /grip set interval <minutes>")
-  self:Print("  /grip set zoneonly on|off")
-  self:Print("  /grip set levels <min> <max> <step>")
-  self:Print("  /grip set debugwindow <ChatWindowName>   (default: Debug)")
-  self:Print("  /grip set verbosity <1|2|3>              (1=info 2=debug 3=trace)")
-  self:Print("  /grip set hidewhispers on|off            (hide outgoing whisper echoes in chat)")
-  self:Print("  /grip set dailycap <number>              (daily whisper cap; 0 = unlimited)")
-  self:Print("  /grip set optout on|off                  (auto-blacklist opt-out replies)")
-  self:Print("  /grip set aggressive on|off              (detect explicit/hostile rejections)")
-  self:Print("  /grip set sound on|off                   (master toggle for sound feedback)")
-  self:Print("  /grip set ghostmode on|off               (experimental: queue CHANNEL sends)")
-  self:Print("  /grip set invitefirst on|off             (send invite before whisper)")
-  self:Print("  /grip set cooldown <min>|on|off           (campaign cooldown break reminder)")
-  self:Print("  /grip set riominscore <number>            (Raider.IO min M+ score; 0 = off)")
-  self:Print("  /grip set riocolumn on|off                (show/hide M+ column in Potential list)")
-  self:Print("Note: {guildlink} in whisper/post messages requires an active Guild Finder listing.")
+  self:Print(L["GRIP Commands:"])
+  self:Print(L["  /grip — toggle UI"])
+  self:Print(L["  /grip build — rebuild /who queue"])
+  self:Print(L["  /grip scan — next /who (needs click/keybind)"])
+  self:Print(L["  /grip whisper — start/stop whisper queue"])
+  self:Print(L["  /grip invite — whisper+invite next (needs click/keybind)"])
+  self:Print(L["  /grip post — send next post (needs click/keybind)"])
+  self:Print(L["  /grip clear — clear Potential list"])
+  self:Print(L["  /grip status — print counts"])
+  self:Print(L["  /grip link — show guild link info"])
+  self:Print(L["  /grip permbl list|add|remove|clear — manage permanent blacklist"])
+  self:Print(L["  /grip ghost [start|stop|status] — Ghost Mode sessions"])
+  self:Print(L["  /grip sync [on|off|now] — officer sync control"])
+  self:Print(L["  /grip export bl|templates — export data to clipboard"])
+  self:Print(L["  /grip import — paste an import string"])
+  self:Print(L["  /grip templates list|add|remove|rotation — manage whisper templates"])
+  self:Print(L["  /grip stats [7d|30d] — recruitment stats"])
+  self:Print(L["  /grip stats reset — clear stats history"])
+  self:Print(L["  /grip zones diag|reseed|deep|export — zone diagnostics"])
+  self:Print(L["  /grip reset — reset UI position/size"])
+  self:Print(L["  /grip tracegate on|off|toggle — execution gate diagnostics"])
+  self:Print(L["  /grip debug on|off|dump|copy|clear|capture|status"])
+  self:Print(L["  /grip set <key> <value> — change settings"])
+  self:Print(L["  /grip minimap on|off|toggle"])
+  self:Print(L["  /grip help — this help"])
+  self:Print(L["Settings keys:"])
+  self:Print(L["  whisper <msg> — set whisper template #1"])
+  self:Print(L["  general <msg> — set General channel message"])
+  self:Print(L["  trade <msg> — set Trade channel message"])
+  self:Print(L["  blacklistdays <n> — temp blacklist duration"])
+  self:Print(L["  interval <n> — post interval (minutes)"])
+  self:Print(L["  zoneonly on|off — restrict /who to current zone"])
+  self:Print(L["  levels <min> <max> <step> — scan range"])
+  self:Print(L["  debugwindow <name> — debug output window"])
+  self:Print(L["  verbosity <1|2|3> — debug verbosity"])
+  self:Print(L["  hidewhispers on|off — suppress outgoing whisper echo"])
+  self:Print(L["  dailycap <n> — daily whisper cap (0=unlimited)"])
+  self:Print(L["  optout on|off — auto-blacklist opt-out replies"])
+  self:Print(L["  aggressive on|off — aggressive opt-out detection"])
+  self:Print(L["  sound on|off — master sound toggle"])
+  self:Print(L["  ghostmode on|off — Ghost Mode (experimental)"])
+  self:Print(L["  invitefirst on|off — invite before whisper"])
+  self:Print(L["  cooldown <n>|on|off — campaign break timer"])
+  self:Print(L["  riominscore <n> — M+ score filter (0=disabled)"])
+  self:Print(L["  riocolumn on|off — show M+ column"])
+  self:Print(L["Note: {guildlink} in whisper/post messages requires an active Guild Finder listing."])
 end
 
 local function PrintPermBLUsage()
-  GRIP:Print("Usage: /grip permbl list|add <name> [reason]|remove <name>|clear")
+  GRIP:Print(L["Usage: /grip permbl list|add <name> [reason]|remove <name>|clear"])
 end
 
 local function PrintDebugUsage()
-  GRIP:Print("Usage: /grip debug on|off | dump [n] | copy [n] | clear | capture on|off [max] | status")
+  GRIP:Print(L["Usage: /grip debug on|off | dump [n] | copy [n] | clear | capture on|off [max] | status"])
 end
 
 local function IsGhostLocked()
@@ -240,7 +223,7 @@ local function IsGhostLocked()
 end
 
 local function PrintGhostLocked()
-  GRIP:Print("Command locked during Ghost session. Use /grip ghost stop first.")
+  GRIP:Print(L["Command locked during Ghost session. Use /grip ghost stop first."])
 end
 
 local function BoolFromWord(w)
@@ -253,18 +236,18 @@ local function DumpPersisted(n)
   n = GRIP:Clamp(n, DUMP_LINES_MIN, DUMP_LINES_MAX)
 
   if not GRIP.GetPersistedDebugLines then
-    GRIP:Print("Debug dump unavailable (Debug module not wired yet).")
+    GRIP:Print(L["Debug dump unavailable (Debug module not wired yet)."])
     return
   end
 
   local lines = GRIP:GetPersistedDebugLines()
   if type(lines) ~= "table" or #lines == 0 then
-    GRIP:Print("Debug persisted log is empty (or capture is OFF).")
+    GRIP:Print(L["Debug persisted log is empty (or capture is OFF)."])
     return
   end
 
   local total = #lines
-  GRIP:Print(("Debug dump (last %d of %d):"):format(math.min(n, total), total))
+  GRIP:Print((L["Debug dump (last %d of %d):"]):format(math.min(n, total), total))
 
   local start = math.max(1, total - n + 1)
   for i = start, total do
@@ -274,11 +257,11 @@ end
 
 local function ClearPersisted()
   if not GRIP.ClearPersistedDebugLines then
-    GRIP:Print("Debug clear unavailable (Debug module not wired yet).")
+    GRIP:Print(L["Debug clear unavailable (Debug module not wired yet)."])
     return
   end
   local removed = GRIP:ClearPersistedDebugLines()
-  GRIP:Print(("Debug persisted log cleared (%d lines)."):format(tonumber(removed) or 0))
+  GRIP:Print((L["Debug persisted log cleared (%d lines)."]):format(tonumber(removed) or 0))
 end
 
 local function DebugStatus()
@@ -299,13 +282,13 @@ local function DebugStatus()
     dropped = tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
   end
 
-  GRIP:Print(("Debug capture: %s (max=%d, stored=%d, dropped=%d)"):format(on and "ON" or "OFF", max, stored, dropped))
+  GRIP:Print((L["Debug capture: %s (max=%d, stored=%d, dropped=%d)"]):format(on and L["ON"] or L["OFF"], max, stored, dropped))
 end
 
 local function TraceGateStatus()
   local cfg = GRIP:GetCfg()
   local on = (cfg and cfg.traceExecutionGate == true) and true or false
-  GRIP:Print("Gate Trace Mode: " .. (on and "ON" or "OFF") .. " (GRIPDB.config.traceExecutionGate)")
+  GRIP:Print(L["Gate Trace Mode: "] .. (on and L["ON"] or L["OFF"]) .. " (GRIPDB.config.traceExecutionGate)")
 end
 
 local function HandleTraceGate(rest)
@@ -318,7 +301,7 @@ local function HandleTraceGate(rest)
 
   local cfg = GRIP:GetCfg()
   if not cfg then
-    GRIP:Print("GRIPDB not initialized yet.")
+    GRIP:Print(L["GRIPDB not initialized yet."])
     return
   end
 
@@ -334,7 +317,7 @@ local function HandleTraceGate(rest)
     return
   end
 
-  GRIP:Print("Usage: /grip tracegate on|off|toggle")
+  GRIP:Print(L["Usage: /grip tracegate on|off|toggle"])
 end
 
 function GRIP:HandleSlash(msg)
@@ -354,7 +337,7 @@ function GRIP:HandleSlash(msg)
 
   -- Most commands require a configured DB
   if not _G.GRIPDB_CHAR or not GRIPDB_CHAR.config then
-    self:Print("GRIPDB not initialized yet.")
+    self:Print(L["GRIPDB not initialized yet."])
     return
   end
 
@@ -403,41 +386,41 @@ function GRIP:HandleSlash(msg)
     if sub == "start" then
       local ok, reason = GRIP.Ghost:StartSession()
       if ok then
-        self:Print("Ghost Mode session started. Queue actions will execute from any input.")
+        self:Print(L["Ghost Mode session started. Queue actions will execute from any input."])
       end
     elseif sub == "stop" then
       GRIP.Ghost:StopSession("manual")
-      self:Print("Ghost Mode session stopped.")
+      self:Print(L["Ghost Mode session stopped."])
     elseif sub == "status" then
       local cfg = GRIPDB_CHAR.config
       if GRIP.Ghost:IsSessionActive() then
         local elapsed = math.floor((time() - (state.ghost.sessionStartedAt or time())) / 60)
         local maxMin = cfg and cfg.ghostSessionMaxMinutes or 60
-        self:Print(("Ghost Mode: ACTIVE (%d/%d min, %d actions, %d queued)"):format(
+        self:Print((L["Ghost Mode: ACTIVE (%d/%d min, %d actions, %d queued)"]):format(
           elapsed, maxMin, state.ghost.sessionActionCount or 0, GRIP.Ghost:GetNumPending()))
       else
         local now = time()
         local cdUntil = tonumber(cfg and cfg.ghostCooldownUntil) or 0
         if now < cdUntil then
           local remaining = math.ceil((cdUntil - now) / 60)
-          self:Print(("Ghost Mode: COOLDOWN (%d min remaining)"):format(remaining))
+          self:Print((L["Ghost Mode: COOLDOWN (%d min remaining)"]):format(remaining))
         else
-          self:Print("Ghost Mode: inactive (ready)")
+          self:Print(L["Ghost Mode: inactive (ready)"])
         end
       end
     elseif sub == "" then
       -- Toggle: start if inactive, stop if active
       if GRIP.Ghost:IsSessionActive() then
         GRIP.Ghost:StopSession("manual")
-        self:Print("Ghost Mode session stopped.")
+        self:Print(L["Ghost Mode session stopped."])
       else
         local ok, reason = GRIP.Ghost:StartSession()
         if ok then
-          self:Print("Ghost Mode session started.")
+          self:Print(L["Ghost Mode session started. Queue actions will execute from any input."])
         end
       end
     else
-      self:Print("Usage: /grip ghost [start|stop|status]")
+      self:Print(L["Usage: /grip ghost [start|stop|status]"])
     end
     return
   end
@@ -446,17 +429,17 @@ function GRIP:HandleSlash(msg)
     local sub = (rest or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
 
     if sub == "on" then
-      if not _G.GRIPDB then self:Print("GRIPDB not initialized.") return end
+      if not _G.GRIPDB then self:Print(L["GRIPDB not initialized."]) return end
       GRIPDB.syncEnabled = true
-      self:Print("Officer sync: ON")
+      self:Print((L["Officer sync: %s"]):format(L["ON"]))
       if self.InitSync then pcall(function() self:InitSync() end) end
       return
     end
 
     if sub == "off" then
-      if not _G.GRIPDB then self:Print("GRIPDB not initialized.") return end
+      if not _G.GRIPDB then self:Print(L["GRIPDB not initialized."]) return end
       GRIPDB.syncEnabled = false
-      self:Print("Officer sync: OFF")
+      self:Print((L["Officer sync: %s"]):format(L["OFF"]))
       return
     end
 
@@ -464,7 +447,7 @@ function GRIP:HandleSlash(msg)
       if self.SyncForceNow then
         self:SyncForceNow()
       else
-        self:Print("Sync module not loaded.")
+        self:Print(L["Sync module not loaded."])
       end
       return
     end
@@ -472,21 +455,21 @@ function GRIP:HandleSlash(msg)
     -- Default: status
     local info = self.GetSyncStatus and self:GetSyncStatus() or {}
     local cfg = GRIPDB_CHAR.config
-    self:Print(("Sync: %s (libs=%s, guild=%s)"):format(
-      info.enabled and "ON" or "OFF",
+    self:Print((L["Sync: %s (libs=%s, guild=%s)"]):format(
+      info.enabled and L["ON"] or L["OFF"],
       info.libsLoaded and "ok" or "missing",
       info.inGuild and "yes" or "no"
     ))
-    self:Print(("  Blacklist hash: %s"):format(info.blHash or "?"))
-    self:Print(("  Templates: %s (hash: %s)"):format(
-      cfg.syncTemplates ~= false and "ON" or "OFF",
+    self:Print((L["  Blacklist hash: %s"]):format(info.blHash or "?"))
+    self:Print((L["  Templates: %s (hash: %s)"]):format(
+      cfg.syncTemplates ~= false and L["ON"] or L["OFF"],
       info.tplHash or "?"
     ))
     if info.lastSyncAt and info.lastSyncAt > 0 then
       local ago = math.floor(time() - info.lastSyncAt)
-      self:Print(("  Last broadcast: %ds ago (cooldown: %ds)"):format(ago, SYNC_COOLDOWN or 3600))
+      self:Print((L["  Last broadcast: %ds ago (cooldown: %ds)"]):format(ago, SYNC_COOLDOWN or 3600))
     else
-      self:Print("  Last broadcast: never")
+      self:Print(L["  Last broadcast: never"])
     end
     return
   end
@@ -496,12 +479,12 @@ function GRIP:HandleSlash(msg)
 
     if sub == "bl" or sub == "blacklist" then
       if not self.ExportBlacklist then
-        self:Print("Export module not loaded.")
+        self:Print(L["Export module not loaded."])
         return
       end
       local str = self:ExportBlacklist()
       if not str then
-        self:Print("Export failed (empty blacklist or codec error).")
+        self:Print(L["Export failed (empty blacklist or codec error)."])
         return
       end
       local count = self:Count(GRIPDB.blacklistPerm)
@@ -509,18 +492,18 @@ function GRIP:HandleSlash(msg)
       if StaticPopup_Show then
         StaticPopup_Show("GRIP_EXPORT", nil, nil, str)
       end
-      self:Print(("Exported %d blacklist entries — copy the string from the popup."):format(count))
+      self:Print((L["Exported %d blacklist entries — copy the string from the popup."]):format(count))
       return
     end
 
     if sub == "templates" or sub == "tpl" then
       if not self.ExportTemplates then
-        self:Print("Export module not loaded.")
+        self:Print(L["Export module not loaded."])
         return
       end
       local str = self:ExportTemplates()
       if not str then
-        self:Print("Export failed (no templates or codec error).")
+        self:Print(L["Export failed (no templates or codec error)."])
         return
       end
       local cfg = GRIPDB_CHAR.config
@@ -529,11 +512,11 @@ function GRIP:HandleSlash(msg)
       if StaticPopup_Show then
         StaticPopup_Show("GRIP_EXPORT", nil, nil, str)
       end
-      self:Print(("Exported %d whisper templates — copy the string from the popup."):format(count))
+      self:Print((L["Exported %d whisper templates — copy the string from the popup."]):format(count))
       return
     end
 
-    self:Print("Usage: /grip export bl|templates")
+    self:Print(L["Usage: /grip export bl|templates"])
     return
   end
 
@@ -542,7 +525,7 @@ function GRIP:HandleSlash(msg)
     if StaticPopup_Show then
       StaticPopup_Show("GRIP_IMPORT")
     else
-      self:Print("StaticPopup not available.")
+      self:Print(L["StaticPopup not available."])
     end
     return
   end
@@ -554,7 +537,7 @@ function GRIP:HandleSlash(msg)
     if sub == "" or sub == "list" then
       local names = self.GetPermanentBlacklistNames and self:GetPermanentBlacklistNames() or {}
       local total = #names
-      self:Print(("Permanent blacklist: %d"):format(total))
+      self:Print((L["Permanent blacklist: %d"]):format(total))
 
       local cap = PERMBL_DISPLAY_CAP
       for i = 1, math.min(total, cap) do
@@ -562,13 +545,13 @@ function GRIP:HandleSlash(msg)
         local e = _G.GRIPDB and GRIPDB.blacklistPerm and GRIPDB.blacklistPerm[n]
         local reason = (type(e) == "table" and e.reason) or (e == true and "permanent") or nil
         if reason and reason ~= "" then
-          self:Print(("  - %s (%s)"):format(n, reason))
+          self:Print((L["  - %s (%s)"]):format(n, reason))
         else
-          self:Print(("  - %s"):format(n))
+          self:Print((L["  - %s"]):format(n))
         end
       end
       if total > cap then
-        self:Print(("  ... and %d more"):format(total - cap))
+        self:Print((L["  ... and %d more"]):format(total - cap))
       end
       return
     end
@@ -583,7 +566,7 @@ function GRIP:HandleSlash(msg)
       end
       self:BlacklistPermanent(name, reason ~= "" and reason or "manual")
       self:RemovePotential(name)
-      self:Print(("Permanent blacklisted: %s"):format(name))
+      self:Print((L["Permanent blacklisted: %s"]):format(name))
       self:UpdateUI()
       return
     end
@@ -596,9 +579,9 @@ function GRIP:HandleSlash(msg)
       end
       local ok = self.UnblacklistPermanent and self:UnblacklistPermanent(name)
       if ok then
-        self:Print(("Permanent blacklist removed: %s"):format(name))
+        self:Print((L["Permanent blacklist removed: %s"]):format(name))
       else
-        self:Print(("Not in permanent blacklist: %s"):format(name))
+        self:Print((L["Not in permanent blacklist: %s"]):format(name))
       end
       self:UpdateUI()
       return
@@ -606,7 +589,7 @@ function GRIP:HandleSlash(msg)
 
     if sub == "clear" then
       local n = self.ClearPermanentBlacklist and self:ClearPermanentBlacklist() or 0
-      self:Print(("Permanent blacklist cleared: %d"):format(n))
+      self:Print((L["Permanent blacklist cleared: %d"]):format(n))
       self:UpdateUI()
       return
     end
@@ -634,26 +617,26 @@ function GRIP:HandleSlash(msg)
 
     if sub == "" or sub == "list" then
       local msgs = cfg.whisperMessages or {}
-      self:Print(("Whisper templates (%d), rotation: %s"):format(#msgs, cfg.whisperRotation or "sequential"))
+      self:Print((L["Whisper templates (%d), rotation: %s"]):format(#msgs, cfg.whisperRotation or "sequential"))
       for i = 1, #msgs do
-        self:Print(("  [%d] %s"):format(i, msgs[i] or ""))
+        self:Print((L["  [%d] %s"]):format(i, msgs[i] or ""))
       end
       return
     end
 
     if sub == "add" then
       if subrest == "" then
-        self:Print("Usage: /grip templates add <message text>")
+        self:Print(L["Usage: /grip templates add <message text>"])
         return
       end
       cfg.whisperMessages = cfg.whisperMessages or {}
       if #cfg.whisperMessages >= MAX_WHISPER_TEMPLATES then
-        self:Print(("Max %d templates."):format(MAX_WHISPER_TEMPLATES))
+        self:Print((L["Max %d templates."]):format(MAX_WHISPER_TEMPLATES))
         return
       end
       cfg.whisperMessages[#cfg.whisperMessages + 1] = subrest
       cfg.templatesEditedAt = time()
-      self:Print(("Added template #%d."):format(#cfg.whisperMessages))
+      self:Print((L["Added template #%d."]):format(#cfg.whisperMessages))
       return
     end
 
@@ -661,17 +644,17 @@ function GRIP:HandleSlash(msg)
       local n = tonumber(subrest)
       cfg.whisperMessages = cfg.whisperMessages or {}
       if not n or n < 1 or n > #cfg.whisperMessages then
-        self:Print(("Usage: /grip templates remove <1-%d>"):format(math.max(1, #cfg.whisperMessages)))
+        self:Print((L["Usage: /grip templates remove <1-%d>"]):format(math.max(1, #cfg.whisperMessages)))
         return
       end
       if #cfg.whisperMessages <= 1 then
-        self:Print("Must have at least 1 template.")
+        self:Print(L["Must have at least 1 template."])
         return
       end
       table.remove(cfg.whisperMessages, n)
       cfg.whisperMessage = cfg.whisperMessages[1] or ""
       cfg.templatesEditedAt = time()
-      self:Print(("Removed template #%d. (%d remaining)"):format(n, #cfg.whisperMessages))
+      self:Print((L["Removed template #%d. (%d remaining)"]):format(n, #cfg.whisperMessages))
       return
     end
 
@@ -679,17 +662,17 @@ function GRIP:HandleSlash(msg)
       local mode = (subrest or ""):lower()
       if mode == "sequential" or mode == "seq" then
         cfg.whisperRotation = "sequential"
-        self:Print("Whisper rotation: sequential")
+        self:Print(L["Whisper rotation: sequential"])
       elseif mode == "random" or mode == "rand" then
         cfg.whisperRotation = "random"
-        self:Print("Whisper rotation: random")
+        self:Print(L["Whisper rotation: random"])
       else
-        self:Print("Usage: /grip templates rotation sequential|random")
+        self:Print(L["Usage: /grip templates rotation sequential|random"])
       end
       return
     end
 
-    self:Print("Usage: /grip templates list|add <text>|remove <n>|rotation sequential|random")
+    self:Print(L["Usage: /grip templates list|add <text>|remove <n>|rotation sequential|random"])
     return
   end
 
@@ -702,7 +685,7 @@ function GRIP:HandleSlash(msg)
     wipe(state.pendingWhisper)
     wipe(state.pendingInvite)
 
-    self:Print("Cleared Potential list.")
+    self:Print(L["Cleared Potential list."])
     self:UpdateUI()
     return
   end
@@ -724,47 +707,47 @@ function GRIP:HandleSlash(msg)
         end
       end
     end
-    self:Print(("Potential: %d, WhoQueue: %d/%d, PostQueue: %d"):format(
+    self:Print((L["Potential: %d, WhoQueue: %d/%d, PostQueue: %d"]):format(
       potCount, (state.whoIndex - 1), #state.whoQueue, #state.postQueue))
-    self:Print(("  Blacklist: %d perm, %d temp"):format(blPerm, blTemp))
+    self:Print((L["  Blacklist: %d perm, %d temp"]):format(blPerm, blTemp))
     if optOutCount > 0 or noResponseCount > 0 then
-      self:Print(("  Perm breakdown: %d opt-out, %d no-response, %d other"):format(
+      self:Print((L["  Perm breakdown: %d opt-out, %d no-response, %d other"]):format(
         optOutCount, noResponseCount, blPerm - optOutCount - noResponseCount))
     end
     local sent, cap = self:GetWhisperCapStatus()
     if cap > 0 then
-      self:Print(("  Whispers today: %d/%d"):format(sent, cap))
+      self:Print((L["  Whispers today: %d/%d"]):format(sent, cap))
     else
-      self:Print(("  Whispers today: %d (no cap)"):format(sent))
+      self:Print((L["  Whispers today: %d (no cap)"]):format(sent))
     end
     local tplCount = type(GRIPDB_CHAR.config.whisperMessages) == "table" and #GRIPDB_CHAR.config.whisperMessages or 0
-    self:Print(("  Templates: %d (%s)"):format(tplCount, GRIPDB_CHAR.config.whisperRotation or "sequential"))
-    self:Print(("  Sound: %s"):format(GRIPDB_CHAR.config.soundEnabled and "ON" or "OFF"))
+    self:Print((L["  Templates: %d (%s)"]):format(tplCount, GRIPDB_CHAR.config.whisperRotation or "sequential"))
+    self:Print((L["  Sound: %s"]):format(GRIPDB_CHAR.config.soundEnabled and L["ON"] or L["OFF"]))
     -- Campaign cooldown status
     local cfg_s = GRIPDB_CHAR.config
     if cfg_s.campaignCooldownEnabled then
       if state.campaignActivityStart then
         local elapsed = math.floor((time() - state.campaignActivityStart) / 60)
         local threshold = cfg_s.campaignCooldownMinutes or 30
-        self:Print(("  Campaign: %d min active (%d actions), warning at %d min"):format(
+        self:Print((L["  Campaign: %d min active (%d actions), warning at %d min"]):format(
           elapsed, state.campaignActionCount or 0, threshold))
       else
-        self:Print(("  Campaign cooldown: enabled (%d min threshold)"):format(cfg_s.campaignCooldownMinutes or 30))
+        self:Print((L["  Campaign cooldown: enabled (%d min threshold)"]):format(cfg_s.campaignCooldownMinutes or 30))
       end
     else
-      self:Print("  Campaign cooldown: disabled")
+      self:Print(L["  Campaign cooldown: disabled"])
     end
     -- Ghost Mode status
     if GRIP.Ghost:IsSessionActive() then
       local elapsed = math.floor((time() - (state.ghost.sessionStartedAt or time())) / 60)
-      self:Print(("  Ghost Mode: ACTIVE (%d min, %d actions, %d queued)"):format(
+      self:Print((L["  Ghost Mode: ACTIVE (%d min, %d actions, %d queued)"]):format(
         elapsed, state.ghost.sessionActionCount or 0, GRIP.Ghost:GetNumPending()))
     elseif cfg_s.ghostModeEnabled then
-      self:Print("  Ghost Mode: enabled (no active session)")
+      self:Print(L["  Ghost Mode: enabled (no active session)"])
     end
     -- Sync status
     if _G.GRIPDB then
-      self:Print(("  Sync: %s"):format(GRIPDB.syncEnabled ~= false and "ON" or "OFF"))
+      self:Print((L["  Sync: %s"]):format(GRIPDB.syncEnabled ~= false and L["ON"] or L["OFF"]))
     end
     self:Debug("Status requested.")
     return
@@ -775,7 +758,7 @@ function GRIP:HandleSlash(msg)
     if sub == "reset" then
       if _G.GRIPDB_CHAR and GRIPDB_CHAR.stats then
         GRIPDB_CHAR.stats = { days = {}, today = nil }
-        self:Print("Stats reset.")
+        self:Print(L["Stats reset."])
         self:UpdateUI()
       end
       return
@@ -783,16 +766,16 @@ function GRIP:HandleSlash(msg)
     -- Determine time window
     local n, label
     if sub == "7d" or sub == "week" then
-      n, label = 7, "Last 7 Days"
+      n, label = 7, L["Last 7 Days"]
     elseif sub == "30d" or sub == "month" then
-      n, label = 30, "Last 30 Days"
+      n, label = 30, L["Last 30 Days"]
     else
-      n, label = 1, "Today"
+      n, label = 1, L["Today"]
     end
     self:EnsureStatsToday()
     local stats = GRIPDB_CHAR.stats
     if not stats then
-      self:Print("No stats data available.")
+      self:Print(L["No stats data available."])
       return
     end
     local data
@@ -825,31 +808,31 @@ function GRIP:HandleSlash(msg)
       end
     end
     self:Print(label .. ":")
-    self:Print(("  Whispers: %d | Invites: %d | Accepted: %d | Declined: %d"):format(
+    self:Print((L["  Whispers: %d | Invites: %d | Accepted: %d | Declined: %d"]):format(
       data.whispers or 0, data.invites or 0, data.accepted or 0, data.declined or 0))
-    self:Print(("  Opt-Outs: %d | Posts: %d | Scans: %d"):format(
+    self:Print((L["  Opt-Outs: %d | Posts: %d | Scans: %d"]):format(
       data.optOuts or 0, data.posts or 0, data.scans or 0))
     local rate = (data.whispers and data.whispers > 0)
       and ("%.1f%%"):format(((data.accepted or 0) / data.whispers) * 100)
-      or "N/A"
-    self:Print(("  Accept Rate: %s"):format(rate))
+      or L["N/A"]
+    self:Print((L["  Accept Rate: %s"]):format(rate))
     return
   end
 
   if cmd == "link" then
     local guildName = self:GetGuildName()
     if guildName == "" then
-      self:Print("Not in a guild (or guild data not loaded yet).")
+      self:Print(L["Not in a guild (or guild data not loaded yet)."])
       return
     end
-    self:Print("Guild: " .. guildName)
+    self:Print(L["Guild: "] .. guildName)
 
     local clubId
     if C_Club and C_Club.GetGuildClubId then
       local ok, cid = pcall(C_Club.GetGuildClubId)
       if ok and cid then clubId = cid end
     end
-    self:Print("ClubId: " .. (clubId and tostring(clubId) or "nil"))
+    self:Print(L["ClubId: "] .. (clubId and tostring(clubId) or "nil"))
 
     -- Path 1: C_ClubFinder API
     local p1 = "nil"
@@ -882,16 +865,16 @@ function GRIP:HandleSlash(msg)
     -- Final resolved link
     local link = self:GetGuildFinderLink() or ""
     if link ~= "" then
-      self:Print("Link: " .. link)
-      self:Print("Link bytes: " .. #link)
+      self:Print(L["Link: "] .. link)
+      self:Print(L["Link bytes: "] .. #link)
     else
-      self:Print("Link: (none)")
+      self:Print(L["Link: "] .. "(none)")
       -- Try to prime the pump
       if clubId and C_ClubFinder and C_ClubFinder.RequestPostingInformationFromClubId then
         pcall(C_ClubFinder.RequestPostingInformationFromClubId, clubId)
-        self:Print("Requested posting data. Try /grip link again in a few seconds.")
+        self:Print(L["Requested posting data. Try /grip link again in a few seconds."])
       else
-        self:Print("Open your Communities window once, then try again.")
+        self:Print(L["Open your Communities window once, then try again."])
       end
     end
     return
@@ -905,7 +888,7 @@ function GRIP:HandleSlash(msg)
       if self.PrintZoneDiag then
         self:PrintZoneDiag()
       else
-        self:Print("Zones diagnostics unavailable.")
+        self:Print(L["Zones diagnostics unavailable."])
       end
       return
     end
@@ -914,7 +897,7 @@ function GRIP:HandleSlash(msg)
       if self.ExportZonesToSavedVars then
         self:ExportZonesToSavedVars()
       else
-        self:Print("Zones export unavailable.")
+        self:Print(L["Zones export unavailable."])
       end
       return
     end
@@ -927,14 +910,14 @@ function GRIP:HandleSlash(msg)
         if self.StopDeepZoneScan then
           self:StopDeepZoneScan()
         else
-          self:Print("Zone deep scan unavailable.")
+          self:Print(L["Zone deep scan unavailable."])
         end
       else
         local maxID = tonumber(v)
         if self.StartDeepZoneScan then
           self:StartDeepZoneScan(maxID)
         else
-          self:Print("Zone deep scan unavailable.")
+          self:Print(L["Zone deep scan unavailable."])
         end
       end
       return
@@ -944,19 +927,19 @@ function GRIP:HandleSlash(msg)
       if self.ReseedZones then
         local newCount, oldCount, stats = self:ReseedZones()
         if newCount and newCount > 0 then
-          self:Print(("Zones reseeded: %d (was %d)"):format(newCount, oldCount or 0))
+          self:Print((L["Zones reseeded: %d (was %d)"]):format(newCount, oldCount or 0))
           self:Debug("Zones reseeded:", newCount, "was", oldCount or 0, "method", stats and stats.method)
           self:UpdateUI()
         else
-          self:Print("Zones reseed failed (no zones).")
+          self:Print(L["Zones reseed failed (no zones)."])
         end
       else
-        self:Print("Zones reseed unavailable.")
+        self:Print(L["Zones reseed unavailable."])
       end
       return
     end
 
-    self:Print("Usage: /grip zones diag|reseed|deep [maxMapID]|deep stop|export")
+    self:Print(L["Usage: /grip zones diag|reseed|deep [maxMapID]|deep stop|export"])
     return
   end
 
@@ -968,7 +951,7 @@ function GRIP:HandleSlash(msg)
     if sub == "on" or sub == "off" or sub == "1" or sub == "0" or sub == "true" or sub == "false" or sub == "yes" or sub == "no" then
       local val = sub
       GRIPDB_CHAR.config.debug = (val == "on" or val == "1" or val == "true" or val == "yes")
-      self:Print("Debug: " .. (GRIPDB_CHAR.config.debug and "ON" or "OFF"))
+      self:Print(L["Debug: "] .. (GRIPDB_CHAR.config.debug and L["ON"] or L["OFF"]))
 
       if GRIPDB_CHAR.config.debug then
         -- Auto-create Debug chat window if it doesn't exist
@@ -1004,7 +987,7 @@ function GRIP:HandleSlash(msg)
       if self.ShowDebugCopyFrame then
         self:ShowDebugCopyFrame(tonumber(subrest) or DUMP_LINES_MAX)
       else
-        self:Print("Debug copy frame unavailable.")
+        self:Print(L["Debug copy frame unavailable."])
       end
       return
     end
@@ -1041,7 +1024,7 @@ function GRIP:HandleSlash(msg)
         end
       end
 
-      self:Print("Debug capture: " .. (GRIPDB_CHAR.config.debugPersist and "ON" or "OFF"))
+      self:Print(L["Debug capture: "] .. (GRIPDB_CHAR.config.debugPersist and L["ON"] or L["OFF"]))
 
       if self.UpdateDebugCapture then
         self:UpdateDebugCapture()
@@ -1063,7 +1046,7 @@ function GRIP:HandleSlash(msg)
   if cmd == "set" then
     local key, val = SplitArgs(rest)
     if key == "" then
-      self:Print("Usage: /grip set <key> <value>")
+      self:Print(L["Usage: /grip set <key> <value>"])
       return
     end
 
@@ -1073,21 +1056,21 @@ function GRIP:HandleSlash(msg)
       cfg.whisperMessage = (val ~= "" and val) or cfg.whisperMessage
       cfg.whisperMessages = cfg.whisperMessages or { cfg.whisperMessage }
       cfg.whisperMessages[1] = cfg.whisperMessage
-      self:Print("Whisper message set (template #1).")
+      self:Print(L["Whisper message set (template #1)."])
       self:Debug("Set whisperMessage.")
       return
     end
 
     if key == "general" then
       cfg.postMessageGeneral = (val ~= "" and val) or cfg.postMessageGeneral
-      self:Print("General message set.")
+      self:Print(L["General message set."])
       self:Debug("Set postMessageGeneral.")
       return
     end
 
     if key == "trade" then
       cfg.postMessageTrade = (val ~= "" and val) or cfg.postMessageTrade
-      self:Print("Trade message set.")
+      self:Print(L["Trade message set."])
       self:Debug("Set postMessageTrade.")
       return
     end
@@ -1096,7 +1079,7 @@ function GRIP:HandleSlash(msg)
       local n = tonumber(val)
       if n then
         cfg.blacklistDays = self:Clamp(n, BLACKLIST_DAYS_MIN, BLACKLIST_DAYS_MAX)
-        self:Print("Blacklist days set to " .. cfg.blacklistDays)
+        self:Print(L["Blacklist days set to "] .. cfg.blacklistDays)
         self:Debug("Set blacklistDays:", cfg.blacklistDays)
       end
       return
@@ -1106,7 +1089,7 @@ function GRIP:HandleSlash(msg)
       local n = tonumber(val)
       if n then
         cfg.postIntervalMinutes = self:Clamp(n, POST_INTERVAL_MIN, POST_INTERVAL_MAX)
-        self:Print("Post interval set to " .. cfg.postIntervalMinutes .. " minutes.")
+        self:Print(L["Post interval set to "] .. cfg.postIntervalMinutes .. L[" minutes."])
         self:Debug("Set postIntervalMinutes:", cfg.postIntervalMinutes)
         self:StartPostScheduler()
       end
@@ -1116,7 +1099,7 @@ function GRIP:HandleSlash(msg)
     if key == "zoneonly" then
       val = (val or ""):lower()
       cfg.scanZoneOnly = (val == "on" or val == "1" or val == "true" or val == "yes")
-      self:Print("Zone-only scanning: " .. (cfg.scanZoneOnly and "ON" or "OFF"))
+      self:Print(L["Zone-only scanning: "] .. (cfg.scanZoneOnly and L["ON"] or L["OFF"]))
       self:Debug("Set scanZoneOnly:", tostring(cfg.scanZoneOnly))
       return
     end
@@ -1128,21 +1111,21 @@ function GRIP:HandleSlash(msg)
         cfg.scanMinLevel = self:Clamp(a, GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
         cfg.scanMaxLevel = self:Clamp(b, cfg.scanMinLevel, GRIP.MAX_SCAN_LEVEL)
         cfg.scanStep = self:Clamp(c, SCAN_STEP_MIN, SCAN_STEP_MAX)
-        self:Print(("Scan levels set: %d-%d step %d"):format(cfg.scanMinLevel, cfg.scanMaxLevel, cfg.scanStep))
+        self:Print((L["Scan levels set: %d-%d step %d"]):format(cfg.scanMinLevel, cfg.scanMaxLevel, cfg.scanStep))
         self:Debug("Set levels:", cfg.scanMinLevel, cfg.scanMaxLevel, cfg.scanStep)
       else
-        self:Print("Usage: /grip set levels <min> <max> <step>")
+        self:Print(L["Usage: /grip set levels <min> <max> <step>"])
       end
       return
     end
 
     if key == "debugwindow" then
       if val == "" then
-        self:Print("Usage: /grip set debugwindow <ChatWindowName>")
+        self:Print(L["Usage: /grip set debugwindow <ChatWindowName>"])
         return
       end
       cfg.debugWindowName = val
-      self:Print("Debug window name set to: " .. cfg.debugWindowName)
+      self:Print(L["Debug window name set to: "] .. cfg.debugWindowName)
       self:ResolveDebugFrame(true)
       self:Debug("Debug window changed to:", cfg.debugWindowName)
       return
@@ -1152,7 +1135,7 @@ function GRIP:HandleSlash(msg)
       local n = tonumber(val)
       if n then
         cfg.debugVerbosity = self:Clamp(n, VERBOSITY_MIN, VERBOSITY_MAX)
-        self:Print("Debug verbosity set to: " .. cfg.debugVerbosity)
+        self:Print(L["Debug verbosity set to: "] .. cfg.debugVerbosity)
         self:Debug("Verbosity now:", cfg.debugVerbosity)
       end
       return
@@ -1163,22 +1146,22 @@ function GRIP:HandleSlash(msg)
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       cfg.suppressWhisperEcho = v
       cfg.hideOutgoingWhispers = v
-      self:Print("Hide outgoing whispers: " .. (v and "ON" or "OFF"))
+      self:Print(L["Hide outgoing whispers: "] .. (v and L["ON"] or L["OFF"]))
       return
     end
 
     if key == "dailycap" then
       local n = tonumber(val)
       if not n or n < 0 then
-        self:Print("Usage: /grip set dailycap <number> (0 = unlimited)")
+        self:Print(L["Usage: /grip set dailycap <number> (0 = unlimited)"])
         return
       end
       n = math.floor(n)
       GRIPDB_CHAR.config.whisperDailyCap = n
       if n == 0 then
-        self:Print("Daily whisper cap disabled (unlimited).")
+        self:Print(L["Daily whisper cap disabled (unlimited)."])
       else
-        self:Print(("Daily whisper cap set to %d."):format(n))
+        self:Print((L["Daily whisper cap set to %d."]):format(n))
       end
       return
     end
@@ -1187,7 +1170,7 @@ function GRIP:HandleSlash(msg)
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       GRIPDB_CHAR.config.optOutDetection = v
-      self:Print("Opt-out detection: " .. (v and "ON" or "OFF"))
+      self:Print(L["Opt-out detection: "] .. (v and L["ON"] or L["OFF"]))
       return
     end
 
@@ -1196,7 +1179,7 @@ function GRIP:HandleSlash(msg)
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       GRIPDB_CHAR.config.optOutAggressiveEnabled = v
       if self.RebuildOptOutPhrases then self:RebuildOptOutPhrases() end
-      self:Print("Aggressive opt-out detection: " .. (v and "ON" or "OFF"))
+      self:Print(L["Aggressive opt-out detection: "] .. (v and L["ON"] or L["OFF"]))
       return
     end
 
@@ -1204,7 +1187,7 @@ function GRIP:HandleSlash(msg)
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       GRIPDB_CHAR.config.soundEnabled = v
-      self:Print("Sound feedback: " .. (v and "ON" or "OFF"))
+      self:Print(L["Sound feedback: "] .. (v and L["ON"] or L["OFF"]))
       return
     end
 
@@ -1212,7 +1195,7 @@ function GRIP:HandleSlash(msg)
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       cfg.ghostModeEnabled = v
-      self:Print("Ghost Mode: " .. (v and "ON (experimental)" or "OFF"))
+      self:Print(L["Ghost Mode: "] .. (v and L["ON (experimental)"] or L["OFF"]))
       return
     end
 
@@ -1220,22 +1203,22 @@ function GRIP:HandleSlash(msg)
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       cfg.inviteFirst = v
-      self:Print("Invite-first mode: " .. (v and "ON" or "OFF"))
+      self:Print(L["Invite-first mode: "] .. (v and L["ON"] or L["OFF"]))
       return
     end
 
     if key == "riominscore" or key == "riominimum" then
       local n = tonumber(val)
       if not n or n < 0 then
-        self:Print("Usage: /grip set riominscore <number> (0 = disabled)")
+        self:Print(L["Usage: /grip set riominscore <number> (0 = disabled)"])
         return
       end
       n = math.floor(n)
       cfg.rioMinScore = n
       if n == 0 then
-        self:Print("Raider.IO minimum score filter disabled.")
+        self:Print(L["Raider.IO minimum score filter disabled."])
       else
-        self:Print(("Raider.IO minimum M+ score set to %d."):format(n))
+        self:Print((L["Raider.IO minimum M+ score set to %d."]):format(n))
       end
       self:UpdateUI()
       return
@@ -1245,7 +1228,7 @@ function GRIP:HandleSlash(msg)
       local low = (val or ""):lower()
       local v = (low == "on" or low == "1" or low == "true" or low == "yes")
       cfg.rioShowColumn = v
-      self:Print("M+ score column: " .. (v and "ON" or "OFF"))
+      self:Print(L["M+ score column: "] .. (v and L["ON"] or L["OFF"]))
       self:UpdateUI()
       return
     end
@@ -1253,31 +1236,31 @@ function GRIP:HandleSlash(msg)
     if key == "cooldown" then
       if val == "off" then
         cfg.campaignCooldownEnabled = false
-        self:Print("Campaign cooldown disabled.")
+        self:Print(L["Campaign cooldown disabled."])
       elseif val == "on" then
         cfg.campaignCooldownEnabled = true
-        self:Print(("Campaign cooldown enabled (%d min)."):format(cfg.campaignCooldownMinutes or 30))
+        self:Print((L["Campaign cooldown enabled (%d min)."]):format(cfg.campaignCooldownMinutes or 30))
       else
         local n = tonumber(val)
         if n and n >= COOLDOWN_MIN and n <= COOLDOWN_MAX then
           cfg.campaignCooldownMinutes = n
           cfg.campaignCooldownEnabled = true
-          self:Print(("Campaign cooldown set to %d minutes."):format(n))
+          self:Print((L["Campaign cooldown set to %d minutes."]):format(n))
         elseif n and n == 0 then
           cfg.campaignCooldownEnabled = false
-          self:Print("Campaign cooldown disabled.")
+          self:Print(L["Campaign cooldown disabled."])
         else
-          self:Print(("Usage: /grip set cooldown <%d-%d|on|off>"):format(COOLDOWN_MIN, COOLDOWN_MAX))
+          self:Print((L["Usage: /grip set cooldown <%d-%d|on|off>"]):format(COOLDOWN_MIN, COOLDOWN_MAX))
         end
       end
       return
     end
 
-    self:Print(("Unknown setting key: %s (use /grip help)"):format(key))
+    self:Print((L["Unknown setting key: %s (use /grip help)"]):format(key))
     return
   end
 
-  self:Print("Unknown command. Use /grip help")
+  self:Print(L["Unknown command. Use /grip help"])
 end
 
 function GRIP:RegisterSlashCommands()

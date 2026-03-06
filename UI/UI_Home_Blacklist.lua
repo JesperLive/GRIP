@@ -7,6 +7,7 @@ local type, pairs, pcall = type, pairs, pcall
 local tsort = table.sort
 
 local HasDB = function() return GRIP:HomeHasDB() end
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Constants
 local HEADER_H = 38
@@ -101,7 +102,7 @@ function GRIP:EnsureBlacklistShell(home)
   header.title = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   header.title:SetPoint("TOPLEFT", header, "TOPLEFT", 6, -4)
   header.title:SetJustifyH("LEFT")
-  header.title:SetText("Blacklist")
+  header.title:SetText(L["Blacklist"])
 
   -- Export button (right side of title row)
   local btnExport = CreateFrame("Button", nil, header, "BackdropTemplate")
@@ -117,15 +118,15 @@ function GRIP:EnsureBlacklistShell(home)
   btnExport:SetBackdropBorderColor(1, 1, 1, 0.15)
   btnExport.label = btnExport:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   btnExport.label:SetPoint("CENTER")
-  btnExport.label:SetText("Export")
+  btnExport.label:SetText(L["Export"])
   btnExport:SetScript("OnClick", function()
     if not GRIP.ExportBlacklist then
-      GRIP:Print("Export module not loaded.")
+      GRIP:Print(L["Export module not loaded."])
       return
     end
     local str = GRIP:ExportBlacklist()
     if not str then
-      GRIP:Print("Export failed (empty blacklist or codec error).")
+      GRIP:Print(L["Export failed (empty blacklist or codec error)."])
       return
     end
     if StaticPopupDialogs and not StaticPopupDialogs["GRIP_EXPORT"] then
@@ -137,12 +138,12 @@ function GRIP:EnsureBlacklistShell(home)
       StaticPopup_Show("GRIP_EXPORT", nil, nil, str)
     end
     local count = GRIP.Count and GRIP:Count(GRIPDB.blacklistPerm) or 0
-    GRIP:Print(("Exported %d blacklist entries."):format(count))
+    GRIP:Print((L["Exported %d blacklist entries."]):format(count))
   end)
   btnExport:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:AddLine("Export permanent blacklist")
-    GameTooltip:AddLine("Copies a shareable string to a popup for Ctrl+C.", 0.8, 0.8, 0.8, true)
+    GameTooltip:AddLine(L["Export permanent blacklist"])
+    GameTooltip:AddLine(L["Copies a shareable string to a popup for Ctrl+C."], 0.8, 0.8, 0.8, true)
     GameTooltip:Show()
   end)
   btnExport:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -161,7 +162,7 @@ function GRIP:EnsureBlacklistShell(home)
   btnImport:SetBackdropBorderColor(1, 1, 1, 0.15)
   btnImport.label = btnImport:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   btnImport.label:SetPoint("CENTER")
-  btnImport.label:SetText("Import")
+  btnImport.label:SetText(L["Import"])
   btnImport:SetScript("OnClick", function()
     if StaticPopupDialogs and not StaticPopupDialogs["GRIP_IMPORT"] then
       GRIP:HandleSlash("import")
@@ -173,8 +174,8 @@ function GRIP:EnsureBlacklistShell(home)
   end)
   btnImport:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:AddLine("Import blacklist or templates")
-    GameTooltip:AddLine("Paste a GRIP export string to import data.", 0.8, 0.8, 0.8, true)
+    GameTooltip:AddLine(L["Import blacklist or templates"])
+    GameTooltip:AddLine(L["Paste a GRIP export string to import data."], 0.8, 0.8, 0.8, true)
     GameTooltip:Show()
   end)
   btnImport:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -202,8 +203,8 @@ function GRIP:EnsureBlacklistShell(home)
     if fs.SetWordWrap then fs:SetWordWrap(false) end
     return fs
   end
-  bl.hName = H("Name")
-  bl.hReason = H("Reason")
+  bl.hName = H(L["Name"])
+  bl.hReason = H(L["Reason"])
 
   -- Body background (subtle)
   bl.bg = bl:CreateTexture(nil, "BACKGROUND")
@@ -267,14 +268,14 @@ function GRIP:EnsureBlacklistShell(home)
         GameTooltip:AddLine(n, 1, 1, 1)
         if type(e) == "table" then
           if e.reason and e.reason ~= "" then
-            GameTooltip:AddLine("Reason: " .. e.reason, 0.8, 0.8, 0.6, true)
+            GameTooltip:AddLine(L["Reason: "] .. e.reason, 0.8, 0.8, 0.6, true)
           end
           if e.at and type(e.at) == "number" and e.at > 0 then
-            GameTooltip:AddLine("Added: " .. date("%Y-%m-%d", e.at), 0.6, 0.6, 0.6)
+            GameTooltip:AddLine(L["Added: "] .. date("%Y-%m-%d", e.at), 0.6, 0.6, 0.6)
           end
         end
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("Click to remove from blacklist", 0.5, 0.5, 0.5)
+        GameTooltip:AddLine(L["Click to remove from blacklist"], 0.5, 0.5, 0.5)
         GameTooltip:Show()
       end)
       row:SetScript("OnLeave", function(self)
@@ -301,7 +302,7 @@ function GRIP:EnsureBlacklistShell(home)
 
     local reason = GetBlacklistReason(elementData.entry)
     if reason == "" then
-      row.reason:SetText("Click to remove")
+      row.reason:SetText(L["Click to remove"])
     else
       row.reason:SetText(reason)
     end
@@ -322,7 +323,7 @@ function GRIP:EnsureBlacklistShell(home)
   bl.empty:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", -6, -10)
   bl.empty:SetJustifyH("LEFT")
   bl.empty:SetJustifyV("TOP")
-  bl.empty:SetText("Permanent blacklist is empty.\nTip: right-click a Potential entry to add it.")
+  bl.empty:SetText(L["Permanent blacklist is empty.\nTip: right-click a Potential entry to add it."])
   bl.empty:Hide()
 end
 
@@ -379,9 +380,9 @@ function GRIP:UpdateBlacklistRows(home)
   if total == 0 then
     if bl.empty then
       if tempCount > 0 then
-        bl.empty:SetText(("No permanent blacklist entries.\nTemp blacklist active: %d.\nTip: right-click a Potential entry to add a permanent entry."):format(tempCount))
+        bl.empty:SetText((L["No permanent blacklist entries.\nTemp blacklist active: %d.\nTip: right-click a Potential entry to add a permanent entry."]):format(tempCount))
       else
-        bl.empty:SetText("Permanent blacklist is empty.\nTip: right-click a Potential entry to add it.")
+        bl.empty:SetText(L["Permanent blacklist is empty.\nTip: right-click a Potential entry to add it."])
       end
       bl.empty:Show()
     end

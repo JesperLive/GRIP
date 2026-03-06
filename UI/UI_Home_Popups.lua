@@ -7,6 +7,7 @@ local type, tostring, pairs, ipairs, pcall, wipe = type, tostring, pairs, ipairs
 local time = time
 
 local state = GRIP.state
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- ----------------------------
 -- Shared DB guard (promoted)
@@ -171,9 +172,9 @@ local function EnsureUnblacklistPopup()
   if StaticPopupDialogs["GRIP_UNBLACKLIST_CONFIRM"] then return end
 
   StaticPopupDialogs["GRIP_UNBLACKLIST_CONFIRM"] = {
-    text = "Remove %s from permanent blacklist?",
-    button1 = "Remove",
-    button2 = "Cancel",
+    text = L["Remove %s from permanent blacklist?"],
+    button1 = L["Remove"],
+    button2 = L["Cancel"],
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
@@ -193,7 +194,7 @@ local function EnsureUnblacklistPopup()
       end
 
       if removed then
-        GRIP:Print(("Removed %s from permanent blacklist."):format(n))
+        GRIP:Print((L["Removed %s from permanent blacklist."]):format(n))
       end
 
       GRIP:UpdateUI()
@@ -214,7 +215,7 @@ function GRIP:ConfirmUnblacklist(name)
     if GRIPDB.blacklistPerm then
       GRIPDB.blacklistPerm[name] = nil
     end
-    GRIP:Print(("Removed %s from permanent blacklist."):format(name))
+    GRIP:Print((L["Removed %s from permanent blacklist."]):format(name))
     GRIP:UpdateUI()
   end
 end
@@ -228,9 +229,9 @@ local function EnsureBlacklistAddPopup()
   if StaticPopupDialogs["GRIP_BLACKLIST_ADD"] then return end
 
   StaticPopupDialogs["GRIP_BLACKLIST_ADD"] = {
-    text = "Add %s to permanent blacklist?\n(Optional reason)",
-    button1 = "Blacklist",
-    button2 = "Cancel",
+    text = L["Add %s to permanent blacklist?\n(Optional reason)"],
+    button1 = L["Blacklist"],
+    button2 = L["Cancel"],
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
@@ -269,7 +270,7 @@ local function EnsureBlacklistAddPopup()
       -- Remove from potential and any action queues/pending
       GRIP:ClearNameFromQueues(n)
 
-      GRIP:Print(reason ~= "" and ("Blacklisted %s: %s"):format(n, reason) or ("Blacklisted %s."):format(n))
+      GRIP:Print(reason ~= "" and (L["Blacklisted %s: %s"]):format(n, reason) or (L["Blacklisted %s."]):format(n))
       GRIP:UpdateUI()
     end,
     EditBoxOnEnterPressed = function(self)
@@ -301,7 +302,7 @@ function GRIP:PromptBlacklistAdd(name)
     end
     if GRIPDB.blacklist then GRIPDB.blacklist[name] = nil end
     GRIP:ClearNameFromQueues(name)
-    GRIP:Print(("Blacklisted %s."):format(name))
+    GRIP:Print((L["Blacklisted %s."]):format(name))
     GRIP:UpdateUI()
   end
 end
@@ -315,9 +316,9 @@ local function EnsureClearConfirmPopup()
   if StaticPopupDialogs["GRIP_CLEAR_POTENTIAL_CONFIRM"] then return end
 
   StaticPopupDialogs["GRIP_CLEAR_POTENTIAL_CONFIRM"] = {
-    text = "Clear all %s candidates from the Potential list?",
-    button1 = "Clear",
-    button2 = "Cancel",
+    text = L["Clear all %s candidates from the Potential list?"],
+    button1 = L["Clear"],
+    button2 = L["Cancel"],
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
@@ -331,7 +332,7 @@ local function EnsureClearConfirmPopup()
         if type(st.pendingWhisper) == "table" then wipe(st.pendingWhisper) end
         if type(st.pendingInvite) == "table" then wipe(st.pendingInvite) end
       end
-      GRIP:Print("Cleared Potential list.")
+      GRIP:Print(L["Cleared Potential list."])
       GRIP:UpdateUI()
     end,
   }

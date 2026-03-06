@@ -21,6 +21,9 @@ externals:
   Libs/AceComm-3.0:
     url: https://repos.curseforge.com/wow/ace3/trunk/AceComm-3.0
     tag: latest
+  Libs/AceLocale-3.0:
+    url: https://repos.curseforge.com/wow/ace3/trunk/AceLocale-3.0
+    tag: latest
   Libs/LibSerialize:
     url: https://github.com/rossnichols/LibSerialize
     tag: latest

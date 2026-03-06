@@ -2,7 +2,7 @@
 ## Title: GRIP – Guild Recruitment Automation
 ## Notes: /who scan for unguilded players, whisper/invite queues, and Trade/General post queue (queued; click/keybind to send).
 ## Author: Sataana
-## Version: 1.3.0
+## Version: 1.5.0-alpha
 ## SavedVariables: GRIPDB
 ## SavedVariablesPerCharacter: GRIPDB_CHAR
 ## IconTexture: Interface\Icons\INV_Misc_GroupLooking
@@ -20,6 +20,13 @@ Libs/ChatThrottleLib/ChatThrottleLib.lua
 Libs/AceComm-3.0/AceComm-3.0.lua
 Libs/LibSerialize/lib.xml
 Libs/LibDeflate/lib.xml
+Libs/AceLocale-3.0/AceLocale-3.0.xml
+
+# -- Locales (after AceLocale, before Core)
+Locale/enUS.lua
+Locale/deDE.lua
+Locale/frFR.lua
+Locale/esES.lua
 
 # -- Core bootstrap (must load first)
 Core/Core.lua

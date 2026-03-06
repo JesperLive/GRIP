@@ -9,6 +9,7 @@ local type, pcall = type, pcall
 local InCombatLockdown = InCombatLockdown
 
 local HasDB = function() return GRIP:HomeHasDB() end
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 function GRIP:ShowRowMenu(home, anchor, name)
   if type(name) ~= "string" or name == "" then return end
@@ -20,7 +21,7 @@ function GRIP:ShowRowMenu(home, anchor, name)
     -- Blacklist action (perm)
     local alreadyBL = GRIP:IsCurrentlyBlacklisted(name)
     local blBtn = rootDescription:CreateButton(
-      alreadyBL and "Blacklist\226\128\166 (already blacklisted)" or "Blacklist\226\128\166",
+      alreadyBL and L["Blacklist… (already blacklisted)"] or L["Blacklist…"],
       function()
         if not HasDB() then return end
         GRIP:PromptBlacklistAdd(name)
@@ -32,11 +33,11 @@ function GRIP:ShowRowMenu(home, anchor, name)
     local inCombat = (InCombatLockdown and InCombatLockdown()) and true or false
     local canInvite = (not inCombat) and (C_GuildInfo and C_GuildInfo.Invite or GuildInvite) ~= nil
     local invBtn = rootDescription:CreateButton(
-      inCombat and "Invite to Guild (disabled in combat)" or "Invite to Guild",
+      inCombat and L["Invite to Guild (disabled in combat)"] or L["Invite to Guild"],
       function()
         if not HasDB() then return end
         if InCombatLockdown and InCombatLockdown() then
-          GRIP:Print("Cannot invite in combat.")
+          GRIP:Print(L["Cannot invite in combat."])
           return
         end
         if (C_GuildInfo and C_GuildInfo.Invite) or GuildInvite then
@@ -45,7 +46,7 @@ function GRIP:ShowRowMenu(home, anchor, name)
             okGate, why = GRIP:BL_ExecutionGate(name, { op = "ui_menu_invite", src = "home" })
           end
           if not okGate then
-            GRIP:Print(("Invite blocked (%s): %s"):format(tostring(why or "blocked"), name))
+            GRIP:Print((L["Invite blocked (%s): %s"]):format(tostring(why or "blocked"), name))
             return
           end
           GRIP:Debug("UI: Menu invite " .. name)
