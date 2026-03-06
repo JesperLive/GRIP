@@ -2,8 +2,9 @@
 CLAUDE.md
 Claude/
 
-# ── Docs folder (internal quick-start, changelog — local only) ──
-Docs/
+# ── Docs folder (local only, except CHANGELOG used by BigWigsMods packager) ──
+Docs/*
+!Docs/CHANGELOG.md
 
 # ── Sync tool databases ─────────────────────────────────────
 *.ffs_db
