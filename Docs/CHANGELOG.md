@@ -8,7 +8,7 @@ Dates are in **YYYY-MM-DD**.
 
 ---
 
-## [1.5.3] - 2026-03-07
+## [1.5.4] - 2026-03-07
 
 ### Added
 - `/grip perf` slash command — C_AddOnProfiler performance baseline metrics
