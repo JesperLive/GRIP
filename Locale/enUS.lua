@@ -15,8 +15,8 @@ L["Invite Next Candidate"] = true
 L["Send Next Post"] = true
 
 -- Campaign cooldown
-L["Campaign break: you've been recruiting for %d min (%d actions). Consider a short break!"] = true
-L["Campaign auto-paused after %d min (%d actions). Take a %d-min break. Whisper ticker stopped."] = true
+L["Whisper queue auto-paused after %d minutes of continuous recruiting. Take a break, then /grip whisper to resume."] = true
+L["You've been recruiting for %d minutes (%d actions). Consider taking a 5-minute break to reduce Silence risk."] = true
 L["Campaign cooldown reset after %d min idle."] = true
 
 -- =========================================================================

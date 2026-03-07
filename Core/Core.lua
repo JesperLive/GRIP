@@ -3,7 +3,7 @@
 
 local ADDON_NAME, GRIP = ...
 GRIP.ADDON_NAME = ADDON_NAME
-GRIP.VERSION = "1.3.0"
+GRIP.VERSION = "1.5.3"
 
 -- Optional global for debugging in /run
 _G.GRIP = GRIP
@@ -19,6 +19,8 @@ local pairs, pcall, wipe = pairs, pcall, wipe
 local concat = table.concat
 local floor, max = math.floor, math.max
 local time, date = time, date
+
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Local constants
 local DEBUG_LOG_MIN       = 50
@@ -207,7 +209,7 @@ function GRIP:RecordCampaignAction(actionType)
   -- Hard pause at 2x threshold
   if cfg.campaignHardPauseEnabled and elapsed >= (threshold * 2) and not st.campaignHardPaused then
     st.campaignHardPaused = true
-    self:Print(("Whisper queue auto-paused after %d minutes of continuous recruiting. Take a break, then /grip whisper to resume."):format(math.floor(elapsed / 60)))
+    self:Print((L["Whisper queue auto-paused after %d minutes of continuous recruiting. Take a break, then /grip whisper to resume."]):format(math.floor(elapsed / 60)))
     if cfg.soundCapWarning ~= false then
       self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or SOUNDKIT_FALLBACK)
     end
@@ -223,7 +225,7 @@ function GRIP:RecordCampaignAction(actionType)
   -- Soft warning at 1x threshold
   if elapsed >= threshold and not st.campaignSoftWarned then
     st.campaignSoftWarned = true
-    self:Print(("You've been recruiting for %d minutes (%d actions). Consider taking a 5-minute break to reduce Silence risk."):format(math.floor(elapsed / 60), st.campaignActionCount))
+    self:Print((L["You've been recruiting for %d minutes (%d actions). Consider taking a 5-minute break to reduce Silence risk."]):format(math.floor(elapsed / 60), st.campaignActionCount))
     if cfg.soundCapWarning ~= false then
       self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or SOUNDKIT_FALLBACK)
     end
