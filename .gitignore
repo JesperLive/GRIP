@@ -2,8 +2,6 @@
 CLAUDE.md
 Claude/
 
-# ── Docs folder (local only) ──────────────────────────────────────────────────
-Docs/
 
 # ── Sync tool databases ─────────────────────────────────────
 *.ffs_db
