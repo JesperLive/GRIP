@@ -8,6 +8,38 @@ Dates are in **YYYY-MM-DD**.
 
 ---
 
+## [1.5.3] - 2026-03-07
+
+### Added
+- `/grip perf` slash command — C_AddOnProfiler performance baseline metrics
+  (session/recent averages, peak tick, memory usage, tick distribution)
+
+### Changed
+- Simplified .gitignore for Libs/ tracking — untracked redundant bundled
+  AceLocale-3.0 files (packager fetches from external)
+
+---
+
+## [1.5.2] - 2026-03-06
+
+### Fixed
+- `/who` returning 0 results no longer triggers false "server throttle" warning —
+  Events.lua now detects the WHO_NUM_RESULTS system message and clears pending state
+- BigWigsMods packager changelog integration — added manual-changelog directive to
+  .pkgmeta pointing at Docs/CHANGELOG.md
+- Locale @localization@ keyword fix — removed empty namespace param that caused
+  CurseForge API error 1006
+
+---
+
+## [1.5.1] - 2026-03-06
+
+### Fixed
+- Locale export fix — removed empty `namespace=""` from @localization@ keywords in
+  all locale files (enUS/deDE/frFR/esES) to fix CurseForge API rejection
+
+---
+
 ## [1.5.0] - 2026-03-06
 
 ### Added
