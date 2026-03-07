@@ -14,6 +14,9 @@ Docs/*
 Thumbs.db
 Desktop.ini
 
+# ── External libraries (fetched by .pkgmeta at release / fetch-libs.ps1 for local dev) ─
+Libs/
+
 # ── BigWigs Packager output ────────────────────────────────
 .release/
 
