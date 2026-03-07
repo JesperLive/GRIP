@@ -14,6 +14,16 @@ Dates are in **YYYY-MM-DD**.
 - `/grip perf` slash command — C_AddOnProfiler performance baseline metrics
   (session/recent averages, peak tick, memory usage, tick distribution)
 
+### Fixed
+- GRIP.VERSION and README now correctly show 1.5.3 (were stuck at 1.3.0/1.3.1)
+- Whisper opt-out detection: fixed scope bug where `senderShort` was nil during
+  pendingInvite lookup (variable was defined in a different block)
+- Ghost Mode nil-guards added to Invite.lua and Post.lua — prevents errors if
+  Ghost table isn't loaded
+- Campaign cooldown messages and ghost-post string now routed through AceLocale
+  L[] for localization consistency
+- Replaced orphaned L[] keys in enUS.lua with actual strings used by Core.lua
+
 ### Changed
 - Simplified .gitignore for Libs/ tracking — untracked redundant bundled
   AceLocale-3.0 files (packager fetches from external)
