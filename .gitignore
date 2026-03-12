@@ -1,6 +1,7 @@
 # ── Development / AI research (local only) ──────────────────
 CLAUDE.md
 Claude/
+.claude/
 
 
 # ── Sync tool databases ─────────────────────────────────────
