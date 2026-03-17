@@ -3,6 +3,7 @@ CLAUDE.md
 Claude/
 .claude/
 .mcp.json
+lane_sync.json
 
 
 # ── Sync tool databases ─────────────────────────────────────
