@@ -1,11 +1,12 @@
 # GRIP – Guild Recruitment Automation
 
-**Target:** Retail / Midnight (12.0.1+)
-**Interface:** 120001
-**Version:** 1.5.4
+**Retail / Midnight 12.0.1+** · **v1.5.4** · **Localized (EN/DE/FR/ES)**
 
-[![Discord](https://img.shields.io/badge/Discord-Tempting%20Us-7289da?logo=discord&logoColor=white)](https://discord.gg/temptingus)
-[![Sponsor](https://img.shields.io/badge/Sponsor-♥-ea4aaa)](https://paypal.me/jesperlive)
+[![Discord](https://img.shields.io/badge/Discord-Tempting%20Us-7289da?logo=discord&logoColor=white)](https://discord.gg/temptingus) [![Sponsor](https://img.shields.io/badge/Sponsor-♥-ea4aaa)](https://paypal.me/jesperlive)
+
+---
+
+Stop manually `/who`-ing and whispering one player at a time. GRIP handles the entire recruitment pipeline — scanning, whispering, inviting, and posting — so you can focus on running your guild.
 
 ---
 
@@ -21,40 +22,56 @@
 
 ---
 
-## Features
+## What GRIP Does
 
-- `/who` scanning for unguilded characters with auto-expanding saturated brackets
-- Whisper queue with rate limiting, multiple templates, and sequential/random rotation
-- Guild invites (hardware-event gated, one per click/keybind)
-- Trade/General post scheduling (hardware-event gated)
-- Temp + permanent blacklisting with configurable duration
-- Account-wide blacklist shared across all characters
-- Raider.IO integration — optionally filter candidates by M+ score when the Raider.IO addon is installed (fail-open: works fine without it)
-- Officer blacklist sync — guild officers running GRIP automatically share permanent blacklist entries via addon communication (set-union merge, never removes entries)
-- Daily whisper cap (default 500/day) with 80% warning
-- Opt-out response detection (auto-blacklists "no thanks" etc.) with optional aggressive tier for profanity-based rejections
-- Sound feedback for key events (queue done, invite accepted, cap warning)
-- Expansion-grouped zone filter with dynamic discovery and seasonal detection
-- Campaign cooldown — session fatigue protection with soft warning + hard auto-pause
-- Minimap button + addon compartment support with right-click dropdown
-- Ghost Mode (experimental) — full pipeline automation via invisible overlay frame with combat pause, session limits, and persistent cooldown
-- Invite-first mode — send guild invite before whispering to reduce Silence risk
-- Multilingual opt-out detection (EN/FR/DE/ES) with word-boundary-aware matching
-- Recruitment statistics — 30-day rolling daily stats, hourly bucketing, accept rate, and peak hour analysis
-- First-run onboarding guide for new users
+**Scan** → `/who` for unguilded players, auto-expanding saturated brackets by class
+
+**Whisper** → Queue personalized messages with multiple templates and sequential/random rotation
+
+**Invite** → One guild invite per click/keybind (Blizzard-compliant hardware-event gating)
+
+**Post** → Schedule Trade and General channel recruitment ads on a timer
+
+**Ghost Mode** → Full pipeline automation via invisible overlay — scan, whisper, invite, and post all drain through a single hardware-event queue
 
 ---
 
-## Blizzard Restrictions (Important)
+## Built for Safety
 
-Some actions require a **hardware event** (mouse click or key press).
-GRIP **cannot fully automate** the following:
+Guild leaders fear the Silence penalty. GRIP is designed around that reality.
 
-- `/who` queries — `C_FriendList.SendWho()` (hardware event)
-- Guild invites — `C_GuildInfo.Invite()` (hardware event)
-- Channel posts — `C_ChatInfo.SendChatMessage(..., "CHANNEL")` (hardware event)
+- **Daily whisper cap** with 80% warning — hard stop before you hit risky territory
+- **Opt-out detection** — "no thanks", "stop", profanity in EN/FR/DE/ES auto-blacklists the player
+- **Invite-first mode** — only whisper players who successfully received your guild invite
+- **Account-wide blacklist** — temp (auto-expiring) and permanent tiers, shared across all alts
+- **Officer sync** — guild officers running GRIP share blacklists and templates automatically via addon comms
+- **No-response escalation** — repeated ignores escalate from temp to permanent blacklist
+- **Campaign cooldown** — built-in break timer with soft warning and hard auto-pause
+- **Execution gate** — every whisper, invite, and post is checked against the blacklist at send time
 
-GRIP queues and organizes these actions and provides buttons/keybinds so you can trigger them safely and compliantly.
+---
+
+## Smart Filtering
+
+- **Zone filter** — expansion-grouped, dynamically populated from C_Map with seasonal zone detection
+- **Race & class filters** — target exactly who you want
+- **Raider.IO integration** — filter by M+ score when the [Raider.IO](https://www.curseforge.com/wow/addons/raiderio) addon is installed (optional, works fine without it)
+
+---
+
+## Tracking & Stats
+
+- **30-day rolling stats** — whispers, invites, accepts, declines, opt-outs, posts, scans
+- **Accept rate** and **peak hour analysis** — know when recruitment works best
+- **Performance profiling** — `/grip perf` for baseline metrics
+
+---
+
+## Sharing & Sync
+
+- **Officer blacklist sync** — set-union merge over GUILD addon channel (add-only, never removes)
+- **Template sync** — share whisper templates with last-writer-wins resolution
+- **Clipboard import/export** — encoded strings for cross-guild sharing
 
 ---
 
@@ -66,40 +83,17 @@ GRIP queues and organizes these actions and provides buttons/keybinds so you can
 
 1. Download the latest release from [GitHub Releases](https://github.com/JesperLive/GRIP/releases).
 2. Extract the `GRIP` folder into:
-
    `World of Warcraft/_retail_/Interface/AddOns/GRIP/`
-
 3. Restart WoW or run `/reload`.
 
 ---
 
 ## Quick Start
 
-1. Type `/grip` to open the UI
-   (or click the **minimap button**).
-
-### Home
-- **Scan** — Sends the next `/who` query (locks for configured minimum interval)
-- **Whisper+Invite** — Starts whisper queue and sends **one invite**
-- **Post Next** — Sends the next queued recruitment ad
-- Daily cap status is shown on the Home page
-
-### Settings
-- Adjust level range for `/who` scans
-- Configure zone/race/class filters (zones grouped by expansion)
-- Edit whisper templates (multiple templates with rotation)
-- Toggle sound feedback for individual events
-- Raider.IO minimum score filter (when RIO addon installed)
-- Ghost Mode enable + session/cooldown sliders
-
-### Ads
-- Configure General and Trade messages
-- Set post interval (scheduler queues messages only)
-- Use **Post Next** to actually send
-
-### Stats
-- Today / 7-day / 30-day recruitment summaries
-- Accept rate and peak activity hours
+1. `/grip` to open the UI (or click the **minimap button**)
+2. Set your level range and filters in **Settings**
+3. Write your whisper templates (supports `{player}`, `{guild}`, `{guildlink}`)
+4. Hit **Scan** → **Whisper+Invite** → **Post Next**
 
 ---
 
@@ -109,7 +103,6 @@ GRIP queues and organizes these actions and provides buttons/keybinds so you can
 - **Middle-click** — Open Settings
 - **Right-click** — Open Ads
 - **Drag** — Move around minimap
-- Hide/show: `/grip minimap on|off|toggle`
 
 ---
 
@@ -130,96 +123,34 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 
 ```
 /grip                — toggle UI
-/grip help           — show help
 /grip build          — rebuild /who queue
-/grip scan           — send next /who (hardware event)
+/grip scan           — send next /who
 /grip whisper        — start/stop whisper queue
-/grip invite         — whisper+invite next candidate (hardware event)
-/grip post           — send next queued post (hardware event)
-/grip clear          — clear Potential list
-/grip status         — print counts
-/grip stats [7d|30d]     — print recruitment stats summary
-/grip stats reset        — clear stats history
-/grip link           — show guild name + Guild Finder link resolution
-/grip reset          — reset UI window position and size
-
-/grip minimap on|off|toggle
-
-/grip permbl list|add|remove|clear
-
-/grip set levels <min> <max> [step]
-/grip set whisper <message>
-/grip set general <message>
-/grip set trade <message>
-/grip set blacklistdays <n>
-/grip set interval <minutes>
-/grip set dailycap <n>
-/grip set sound on|off
-/grip set zoneonly on|off
-/grip set hidewhispers on|off
-/grip set ghostmode on|off
-/grip set cooldown <min>|on|off
-/grip set invitefirst on|off
-/grip set aggressive on|off
-/grip set riominscore <n>
-/grip set riocolumn on|off
-
-/grip templates list
-/grip templates add <message>
-/grip templates remove <n>
-/grip templates rotation seq|random
-
+/grip invite         — whisper+invite next candidate
+/grip post           — send next queued post
+/grip status         — counts + blacklist breakdown
+/grip stats [7d|30d] — recruitment stats summary
+/grip perf [all]     — performance baseline metrics
 /grip ghost start|stop|status
-
 /grip sync on|off|now
-
-/grip debug on|off
-/grip debug dump [n]
-/grip debug clear
-/grip debug copy [n]
-/grip debug capture on|off [max]
-/grip debug status
-
-/grip zones diag|reseed|deep|export
-/grip tracegate on|off|toggle
+/grip export bl|templates
+/grip import
+/grip templates list|add|remove|rotation
+/grip set <key> <value>
+/grip debug on|off|dump|clear|copy|capture|status
 ```
-
----
-
-## Support
-
-Join our Discord for help, feedback, or feature requests:
-
-**[discord.gg/temptingus](https://discord.gg/temptingus)**
 
 ---
 
 ## Important Notes
 
-- **Silence penalties:** If players report your whispers as spam, Blizzard may
-  apply a Silence penalty to your account. Use conservative intervals and
-  personalized messages to minimize risk.
-- **Guild Finder listing:** The `{guildlink}` template token only works if your
-  guild has an active listing in the Guild Finder. Without one, GRIP falls back
-  to your guild name.
-- **Opt-out detection:** GRIP automatically detects rejection replies ("no thanks",
-  "stop", etc.) in English, French, German, and Spanish and blacklists those players.
-  Configure active languages in Settings.
-- **Raider.IO:** The M+ score filter requires the Raider.IO addon to be installed
-  separately. Without it, the filter is simply skipped.
-- **Officer sync:** Blacklist sync requires at least two guild officers running GRIP.
-  Uses the GUILD addon channel — no external servers.
-- **Not affiliated with Blizzard:** GRIP is a third-party addon. Use at your
-  own discretion.
+- **Hardware events:** `/who`, guild invites, and channel posts require a mouse click or key press. This is a Blizzard restriction — GRIP queues the actions, you trigger them.
+- **Guild Finder link:** The `{guildlink}` token needs an active Guild Finder listing. Falls back to guild name.
+- **Raider.IO:** Requires the [Raider.IO](https://www.curseforge.com/wow/addons/raiderio) addon separately. Without it, the filter is skipped.
+- **Officer sync:** Requires 2+ officers running GRIP. Uses GUILD addon channel — no external servers.
+- **Localization:** English fully supported. DE/FR/ES translations welcome via CurseForge localization portal.
+- **Not affiliated with Blizzard.** Use at your own discretion.
 
 ---
 
-## Technical Notes
-
-- `/who` results are server-throttled; GRIP enforces a minimum delay between scans.
-- Whispers are not hardware-restricted but are server rate-limited.
-- Instance/battleground/scenario characters are excluded by default.
-- Blacklist entries expire automatically based on configuration.
-- Blacklists and no-response counters are account-wide (shared across all characters). Config, potential list, and filters are per-character.
-- Ghost Mode is experimental and disabled by default. Enable in Settings, then `/grip ghost start`.
-- Officer blacklist sync uses AceComm + LibSerialize + LibDeflate over the GUILD addon channel. Set-union merge only (entries are added, never removed). Sync failures are pcall-wrapped and cannot break core functionality.
+**Feedback & Support:** [discord.gg/temptingus](https://discord.gg/temptingus)
