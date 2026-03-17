@@ -30,6 +30,9 @@ externals:
   Libs/LibDeflate:
     url: https://github.com/SafeteeWoW/LibDeflate
     tag: latest
+  Libs/WagoAnalyticsShim:
+    url: https://github.com/wagoio/WagoAnalyticsShim.git
+    branch: main
 
 ignore:
   - "*.md"

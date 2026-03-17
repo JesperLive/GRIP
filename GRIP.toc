@@ -12,6 +12,7 @@
 ## X-Curse-Project-ID: 1477526
 ## X-Wago-ID: L6J97yNv
 ## X-WoWI-ID: 27072
+## OptionalDeps: WagoAnalytics
 
 # -- Libraries (loaded before addon code)
 Libs/LibStub/LibStub.lua
@@ -21,6 +22,7 @@ Libs/AceComm-3.0/AceComm-3.0.lua
 Libs/LibSerialize/lib.xml
 Libs/LibDeflate/lib.xml
 Libs/AceLocale-3.0/AceLocale-3.0.xml
+Libs/WagoAnalyticsShim/Shim.lua
 
 # -- Locales (after AceLocale, before Core)
 Locale/enUS.lua

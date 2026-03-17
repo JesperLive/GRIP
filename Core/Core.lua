@@ -8,6 +8,17 @@ GRIP.VERSION = "1.5.4"
 -- Optional global for debugging in /run
 _G.GRIP = GRIP
 
+-- Wago Analytics (install tracking)
+do
+    local ok, shim = pcall(LibStub.GetLibrary, LibStub, "WagoAnalyticsShim")
+    if ok and shim then
+        local analytics = shim:RegisterAddon("GRIP")
+        if analytics then
+            GRIP.analytics = analytics
+        end
+    end
+end
+
 -- Shared constants (referenced by multiple modules)
 GRIP.MAX_CHAT_MSG_LEN    = 250   -- WoW chat message hard limit
 GRIP.MAX_SCAN_LEVEL      = 90    -- Midnight level cap
