@@ -23,6 +23,9 @@ L["Campaign cooldown reset after %d min idle."] = true
 -- Core/GhostMode.lua — Ghost Mode messages
 -- =========================================================================
 
+L["Ghost Mode is disabled. Enable with: /grip set ghostmode on"] = true
+L["Ghost Mode on cooldown. %d minute(s) remaining."] = true
+L["Ghost Mode auto-stopped after %d minutes."] = true
 L["Ghost session timed out after %d min (%d actions). Cooldown: %d min."] = true
 L["Ghost: overlay hidden (combat). Will resume after combat."] = true
 L["Ghost: overlay restored (combat ended)."] = true

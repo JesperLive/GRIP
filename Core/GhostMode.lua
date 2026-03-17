@@ -2,6 +2,7 @@
 -- Universal action queue with invisible overlay frame for hardware-event gated execution.
 
 local ADDON_NAME, GRIP = ...
+local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
@@ -240,7 +241,7 @@ function Ghost:StartSession()
   local cfg = GRIP:GetCfg()
   if not cfg then return false, "no_config" end
   if not cfg.ghostModeEnabled then
-    GRIP:Print("Ghost Mode is disabled. Enable with: /grip set ghostmode on")
+    GRIP:Print(L["Ghost Mode is disabled. Enable with: /grip set ghostmode on"])
     return false, "disabled"
   end
 
@@ -248,7 +249,7 @@ function Ghost:StartSession()
   local cooldownUntil = tonumber(cfg.ghostCooldownUntil) or 0
   if now < cooldownUntil then
     local remaining = math.ceil((cooldownUntil - now) / 60)
-    GRIP:Print(("Ghost Mode on cooldown. %d minute(s) remaining."):format(remaining))
+    GRIP:Print(L["Ghost Mode on cooldown. %d minute(s) remaining."]:format(remaining))
     return false, "cooldown"
   end
 
@@ -340,7 +341,7 @@ function Ghost:CheckSessionTimeout()
   local elapsed = time() - (state.ghost.sessionStartedAt or time())
   if elapsed >= (maxMin * 60) then
     self:StopSession("timeout")
-    GRIP:Print(("Ghost Mode auto-stopped after %d minutes."):format(maxMin))
+    GRIP:Print(L["Ghost Mode auto-stopped after %d minutes."]:format(maxMin))
   end
 end
 
