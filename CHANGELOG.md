@@ -8,6 +8,27 @@ Dates are in **YYYY-MM-DD**.
 
 ---
 
+## [1.5.5] - 2026-03-18
+
+### Fixed
+- Scan button cooldown bypass via spam-click and keybind — cooldown enforcement
+  moved from UI button handler into SendNextWho() so it applies to both button
+  clicks and keybind presses. Immediate button disable prevents same-frame
+  re-entry. Ghost Mode queue now sets lastWhoSentAt at queue time to prevent
+  spam-queuing multiple ghost actions
+
+### Added
+- WagoAnalytics tracking shim (Libs/WagoAnalyticsShim) — enables Wago install
+  metrics. OptionalDeps: WagoAnalytics
+- GhostMode.lua hardcoded strings localized via AceLocale L[] keys
+
+### Changed
+- License changed from MIT to GPL v2 (all bundled libraries are GPL-compatible)
+- CHANGELOG.md moved to repo root (was Docs/CHANGELOG.md)
+- Repository tooling: added .mcp.json, lane_sync_refresh.py, settings.local.json
+
+---
+
 ## [1.5.4] - 2026-03-07
 
 ### Added
