@@ -39,13 +39,6 @@ local HasDB = function() return GRIP:HomeHasDB() end
 
 local ClampFontString = function(fs, w) GRIP:ClampFontString(fs, w) end
 
-local function GetScanCooldown()
-  local cfg = (GRIPDB_CHAR and GRIPDB_CHAR.config) or nil
-  local v = tonumber(cfg and cfg.minWhoInterval) or 15
-  if v < 15 then v = 15 end
-  return v
-end
-
 -- Unified recruit (whisper+invite) cooldown comes from shared state + UI mirror.
 local function GetRecruitCooldownUntil()
   local uiUntil = (state.ui and state.ui._actionCooldownUntil) or 0
@@ -845,12 +838,10 @@ function GRIP:UI_CreateHome(parent)
       GRIP:Print(L["Home unavailable yet (DB not initialized)."])
       return
     end
-
+    -- Immediate disable to prevent same-frame spam clicks
+    home.btnScan:Disable()
     GRIP:Debug("UI: Scan pressed")
-    local did = GRIP:SendNextWho()
-    if did and state.ui then
-      state.ui._scanCooldownUntil = GetTime() + GetScanCooldown()
-    end
+    GRIP:SendNextWho()
     GRIP:UpdateUI()
   end)
   home.btnScan:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -44)

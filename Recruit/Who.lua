@@ -344,6 +344,17 @@ function GRIP:SendNextWho()
     return false
   end
 
+  -- Scan cooldown gate (applies to both UI button clicks and keybinds)
+  if state.ui and state.ui._scanCooldownUntil then
+    local scanLeft = (state.ui._scanCooldownUntil or 0) - GetTime()
+    if scanLeft > 0 then
+      if ThrottlePrint("scan_cooldown", 1.5) then
+        self:Print((L["Please wait %.1fs before sending the next /who."]):format(scanLeft))
+      end
+      return false
+    end
+  end
+
   if #state.whoQueue == 0 then
     self:BuildWhoQueue()
   end
@@ -379,6 +390,7 @@ function GRIP:SendNextWho()
 
   -- Ghost Mode: queue scan instead of executing directly
   if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
+    state.lastWhoSentAt = now  -- prevent spam-queuing before callback fires
     state.pendingWho = { filter = filter, sentAt = 0, ghostQueued = true }
     local capturedPending = state.pendingWho
     GRIP.Ghost:QueueAction("scan", function()
@@ -413,6 +425,14 @@ function GRIP:SendNextWho()
     end, { filter = filter })
     self:Print((L["Queued /who (Ghost): %s (%d/%d)"]):format(
       filter, state.whoIndex - 1, #state.whoQueue))
+
+    -- Set scan cooldown for UI + keybind enforcement
+    if state.ui then
+      local cd = tonumber(cfg.minWhoInterval) or MIN_WHO_INTERVAL
+      if cd < MIN_WHO_INTERVAL then cd = MIN_WHO_INTERVAL end
+      state.ui._scanCooldownUntil = GetTime() + cd
+    end
+
     self:UpdateUI()
     return true
   end
@@ -446,6 +466,14 @@ function GRIP:SendNextWho()
   end)
 
   self:Print((L["Sent /who: %s (%d/%d)"]):format(filter, state.whoIndex - 1, #state.whoQueue))
+
+  -- Set scan cooldown for UI + keybind enforcement
+  if state.ui then
+    local cd = tonumber(cfg.minWhoInterval) or MIN_WHO_INTERVAL
+    if cd < MIN_WHO_INTERVAL then cd = MIN_WHO_INTERVAL end
+    state.ui._scanCooldownUntil = GetTime() + cd
+  end
+
   self:UpdateUI()
   return true
 end
