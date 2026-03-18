@@ -545,3 +545,83 @@ function GRIP:DumpDebugLog(n)
 end
 
 function GRIP:UpdateUI() end
+
+-- ------------------------------------------------------------
+-- GM-Forced Settings helpers (FP-2)
+-- ------------------------------------------------------------
+
+-- Forceable setting keys (whitelist). Only these can be GM-overridden.
+-- Value = expected type string for future validation.
+GRIP.FORCEABLE_SETTINGS = {
+  whisperMessages     = "table",   -- string[]
+  whisperRotation     = "string",  -- "sequential" | "random"
+  postMessageGeneral  = "string",
+  postMessageTrade    = "string",
+  postIntervalMinutes = "number",
+  scanMinLevel        = "number",
+  scanMaxLevel        = "number",
+  ghostModeEnabled    = "boolean",
+  minWhoInterval      = "number",
+}
+
+--- Check if the current player is the Guild Master.
+-- @return boolean
+function GRIP:IsGuildLeader()
+  return IsInGuild() and IsGuildLeader() and true or false
+end
+
+--- Get the effective value for a config setting, respecting GM force flags.
+-- If the GM has forced a setting and the current player is NOT the GM,
+-- the forced value overrides the per-character config.
+-- @param key string - the config key (e.g. "whisperMessages", "postIntervalMinutes")
+-- @return value - the effective value (forced or local)
+function GRIP:GetEffectiveSetting(key)
+  local charCfg = _G.GRIPDB_CHAR and GRIPDB_CHAR.config
+  if not charCfg then return nil end
+
+  -- Determine which gmConfig to read
+  local gmc
+  if self:IsGuildLeader() then
+    -- GM sees their own force settings (so they can test)
+    gmc = _G.GRIPDB and GRIPDB.gmConfig
+  else
+    -- Officers see received config
+    gmc = _G.GRIPDB and GRIPDB.gmConfigReceived
+  end
+
+  -- If GM has forced this key, return the forced value
+  if gmc and type(gmc.force) == "table" and gmc.force[key]
+     and type(gmc.values) == "table" and gmc.values[key] ~= nil then
+    return gmc.values[key]
+  end
+
+  -- Fall back to per-character config
+  return charCfg[key]
+end
+
+--- (GM only) Set a force flag and value.
+-- @param key string
+-- @param forced boolean - whether to force this setting
+-- @param value any - the value to force (ignored if forced=false)
+function GRIP:SetGMForceSetting(key, forced, value)
+  if not self:IsGuildLeader() then
+    self:Debug("SetGMForceSetting: not guild leader, ignoring")
+    return false
+  end
+  if not _G.GRIPDB or type(GRIPDB.gmConfig) ~= "table" then return false end
+
+  -- Only allow whitelisted keys
+  if not self.FORCEABLE_SETTINGS[key] then
+    self:Debug("SetGMForceSetting: key not in whitelist:", key)
+    return false
+  end
+
+  GRIPDB.gmConfig.force[key] = forced and true or nil
+  if forced then
+    GRIPDB.gmConfig.values[key] = value
+  else
+    GRIPDB.gmConfig.values[key] = nil
+  end
+  GRIPDB.gmConfig.version = time()
+  return true
+end

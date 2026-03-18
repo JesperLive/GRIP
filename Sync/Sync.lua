@@ -282,13 +282,89 @@ local function MergeTemplates(remoteData, sender)
 end
 
 -- =========================================================================
--- V2 protocol handler
+-- GM Config hash, serialize, merge (FP-2 -- V3 extension)
 -- =========================================================================
 
-local function HandleV2(cmd, payload, sender)
+local function ComputeGMConfigHash()
+  local gmc = _G.GRIPDB and GRIPDB.gmConfig
+  if not gmc or type(gmc.version) ~= "number" or gmc.version == 0 then
+    return "empty"
+  end
+  return tostring(gmc.version)
+end
+
+local function SerializeGMConfig()
+  local gmc = _G.GRIPDB and GRIPDB.gmConfig
+  if not gmc or gmc.version == 0 then return nil end
+  -- Only send if we're the GM
+  if not (GRIP.IsGuildLeader and GRIP:IsGuildLeader()) then return nil end
+  local payload = {
+    version = gmc.version,
+    force = gmc.force,
+    values = gmc.values,
+  }
+  return EncodeForAddonChannel(payload)
+end
+
+local function MergeGMConfig(remoteData, sender)
+  if type(remoteData) ~= "table" then return false end
+  if type(remoteData.version) ~= "number" then return false end
+  if remoteData.version == 0 then return false end
+
+  -- Don't accept GM config if WE are the GM
+  if GRIP.IsGuildLeader and GRIP:IsGuildLeader() then return false end
+
+  if not _G.GRIPDB then return false end
+  local received = GRIPDB.gmConfigReceived
+  if not received then return false end
+
+  local localVersion = tonumber(received.version) or 0
+  -- LWW: only accept if remote is newer
+  if remoteData.version <= localVersion then
+    GRIP:Debug("Sync: CFG from", sender, "not newer (remote=",
+      remoteData.version, "local=", localVersion, ")")
+    return false
+  end
+
+  -- Validate force table: only accept whitelisted keys
+  local validForce = {}
+  local validValues = {}
+  if type(remoteData.force) == "table" and type(remoteData.values) == "table" then
+    for key, _ in pairs(remoteData.force) do
+      if GRIP.FORCEABLE_SETTINGS and GRIP.FORCEABLE_SETTINGS[key] then
+        validForce[key] = true
+        validValues[key] = remoteData.values[key]
+      end
+    end
+  end
+
+  received.version = remoteData.version
+  received.force = validForce
+  received.values = validValues
+  GRIPDB.gmConfigReceivedAt = time()
+
+  GRIP:Debug("Sync: CFG merged from", sender, "version=", remoteData.version)
+  return true
+end
+
+-- =========================================================================
+-- Sync protocol handler (V2 + V3)
+-- protocolVersion: 2 or 3 (determines which collections are in scope)
+-- =========================================================================
+
+local function HandleSync(cmd, payload, sender, protocolVersion)
   if cmd == "HASH" then
-    -- payload = "<bl_hash>:<tpl_hash>"
-    local remoteBlHash, remoteTplHash = payload:match("^([^:]+):([^:]+)$")
+    -- V3 payload = "<bl_hash>:<tpl_hash>:<cfg_hash>"
+    -- V2 payload = "<bl_hash>:<tpl_hash>"
+    local remoteBlHash, remoteTplHash, remoteCfgHash
+    if protocolVersion >= 3 then
+      remoteBlHash, remoteTplHash, remoteCfgHash = payload:match("^([^:]+):([^:]+):([^:]+)$")
+    end
+    if not remoteBlHash then
+      -- V2 format (or V3 parse failed — fall back)
+      remoteBlHash, remoteTplHash = payload:match("^([^:]+):([^:]+)")
+      remoteCfgHash = nil
+    end
     if not remoteBlHash then return end
 
     local localBlHash = ComputeBlacklistHash()
@@ -297,40 +373,67 @@ local function HandleV2(cmd, payload, sender)
 
     local needBl = (remoteBlHash ~= localBlHash)
     local needTpl = (remoteTplHash ~= localTplHash) and (cfg and cfg.syncTemplates ~= false)
+    local needCfg = false
+    if protocolVersion >= 3 and remoteCfgHash then
+      local localCfgHash = ComputeGMConfigHash()
+      needCfg = (remoteCfgHash ~= localCfgHash)
+    end
 
-    GRIP:Debug("Sync: V2:HASH from", sender,
+    local prefix = protocolVersion >= 3 and "V3" or "V2"
+    GRIP:Debug("Sync:", prefix, ":HASH from", sender,
       "bl:", remoteBlHash, "vs", localBlHash, needBl and "DIFF" or "same",
-      "tpl:", remoteTplHash, "vs", localTplHash, needTpl and "DIFF" or "same")
+      "tpl:", remoteTplHash, "vs", localTplHash, needTpl and "DIFF" or "same",
+      remoteCfgHash and ("cfg: " .. remoteCfgHash .. " " .. (needCfg and "DIFF" or "same")) or "")
 
-    if needBl and needTpl then
-      AceComm:SendCommMessage(SYNC_PREFIX, "V2:REQ:ALL", "GUILD", nil, SYNC_PRIORITY)
+    -- Build request using the sender's protocol version
+    local reqPrefix = prefix .. ":REQ:"
+    if needBl and needTpl and needCfg then
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "ALL", "GUILD", nil, SYNC_PRIORITY)
+    elseif needBl and needTpl then
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "ALL", "GUILD", nil, SYNC_PRIORITY)
+    elseif needBl and needCfg then
+      -- Request both individually
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "BL", "GUILD", nil, SYNC_PRIORITY)
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "CFG", "GUILD", nil, SYNC_PRIORITY)
+    elseif needTpl and needCfg then
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "TPL", "GUILD", nil, SYNC_PRIORITY)
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "CFG", "GUILD", nil, SYNC_PRIORITY)
     elseif needBl then
-      AceComm:SendCommMessage(SYNC_PREFIX, "V2:REQ:BL", "GUILD", nil, SYNC_PRIORITY)
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "BL", "GUILD", nil, SYNC_PRIORITY)
     elseif needTpl then
-      AceComm:SendCommMessage(SYNC_PREFIX, "V2:REQ:TPL", "GUILD", nil, SYNC_PRIORITY)
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "TPL", "GUILD", nil, SYNC_PRIORITY)
+    elseif needCfg then
+      AceComm:SendCommMessage(SYNC_PREFIX, reqPrefix .. "CFG", "GUILD", nil, SYNC_PRIORITY)
     end
     return
   end
 
   if cmd == "REQ" then
-    -- payload = "BL" | "TPL" | "ALL"
+    -- payload = "BL" | "TPL" | "CFG" | "ALL"
+    local prefix = protocolVersion >= 3 and "V3" or "V2"
     if payload == "BL" or payload == "ALL" then
       local encoded = SerializeBlacklist()
       if encoded then
-        AceComm:SendCommMessage(SYNC_PREFIX, "V2:DATA:BL:" .. encoded, "GUILD", nil, SYNC_PRIORITY)
+        AceComm:SendCommMessage(SYNC_PREFIX, prefix .. ":DATA:BL:" .. encoded, "GUILD", nil, SYNC_PRIORITY)
       end
     end
     if payload == "TPL" or payload == "ALL" then
       local encoded = SerializeTemplates()
       if encoded then
-        AceComm:SendCommMessage(SYNC_PREFIX, "V2:DATA:TPL:" .. encoded, "GUILD", nil, SYNC_PRIORITY)
+        AceComm:SendCommMessage(SYNC_PREFIX, prefix .. ":DATA:TPL:" .. encoded, "GUILD", nil, SYNC_PRIORITY)
+      end
+    end
+    if (payload == "CFG" or payload == "ALL") and protocolVersion >= 3 then
+      local encoded = SerializeGMConfig()
+      if encoded then
+        AceComm:SendCommMessage(SYNC_PREFIX, prefix .. ":DATA:CFG:" .. encoded, "GUILD", nil, SYNC_PRIORITY)
       end
     end
     return
   end
 
   if cmd == "DATA" then
-    -- payload = "BL:<encoded>" or "TPL:<encoded>"
+    -- payload = "BL:<encoded>" or "TPL:<encoded>" or "CFG:<encoded>"
     local collection, encoded = payload:match("^(%u+):(.*)")
     if not collection then return end
 
@@ -349,6 +452,15 @@ local function HandleV2(cmd, payload, sender)
         local ok = MergeTemplates(remoteData, sender)
         if ok then
           GRIP:Info("Sync: updated whisper templates from", sender)
+          GRIP:UpdateUI()
+        end
+      end
+    elseif collection == "CFG" and protocolVersion >= 3 then
+      local remoteData = DecodeFromAddonChannel(encoded)
+      if remoteData then
+        local ok = MergeGMConfig(remoteData, sender)
+        if ok then
+          GRIP:Info("Sync: updated GM forced settings from", sender)
           GRIP:UpdateUI()
         end
       end
@@ -375,10 +487,17 @@ local function OnCommReceived(prefix, message, distribution, sender)
 
   GRIP:Debug("Sync: received from", sender, "len=", #message)
 
-  -- Try v2 first
+  -- Try V3 first
+  local v3cmd, v3payload = message:match("^V3:(%u+):(.*)")
+  if v3cmd then
+    HandleSync(v3cmd, v3payload, sender, 3)
+    return
+  end
+
+  -- Try V2
   local v2cmd, v2payload = message:match("^V2:(%u+):(.*)")
   if v2cmd then
-    HandleV2(v2cmd, v2payload, sender)
+    HandleSync(v2cmd, v2payload, sender, 2)
     return
   end
 
@@ -429,7 +548,7 @@ local function OnCommReceived(prefix, message, distribution, sender)
 end
 
 -- =========================================================================
--- Broadcast our hash to GUILD (v2 format)
+-- Broadcast our hash to GUILD (V3 + V2 fallback)
 -- =========================================================================
 function GRIP:SyncBroadcastHash()
   if not AceComm then return end
@@ -446,12 +565,17 @@ function GRIP:SyncBroadcastHash()
 
   local blHash = ComputeBlacklistHash()
   local tplHash = ComputeTemplateHash()
+  local cfgHash = ComputeGMConfigHash()
 
-  -- Send v2 format
-  local msg = format("V2:HASH:%s:%s", blHash, tplHash)
-  self:Debug("Sync: broadcasting", msg)
+  -- V3 broadcast (for V3-aware clients)
+  local v3msg = format("V3:HASH:%s:%s:%s", blHash, tplHash, cfgHash)
+  self:Debug("Sync: broadcasting", v3msg)
+  AceComm:SendCommMessage(SYNC_PREFIX, v3msg, "GUILD", nil, SYNC_PRIORITY)
 
-  AceComm:SendCommMessage(SYNC_PREFIX, msg, "GUILD", nil, SYNC_PRIORITY)
+  -- V2 broadcast (backward compat for older GRIP clients)
+  local v2msg = format("V2:HASH:%s:%s", blHash, tplHash)
+  AceComm:SendCommMessage(SYNC_PREFIX, v2msg, "GUILD", nil, SYNC_PRIORITY)
+
   GRIPDB.lastSyncAt = now
 end
 
@@ -548,6 +672,10 @@ function GRIP:GetSyncStatus()
     inGuild = IsInGuild and IsInGuild() or false,
     blHash = ComputeBlacklistHash(),
     tplHash = ComputeTemplateHash(),
+    cfgHash = ComputeGMConfigHash(),
     syncTemplates = cfg and cfg.syncTemplates ~= false or false,
+    isGM = GRIP.IsGuildLeader and GRIP:IsGuildLeader() or false,
+    gmConfigVersion = (_G.GRIPDB and GRIPDB.gmConfig and tonumber(GRIPDB.gmConfig.version)) or 0,
+    gmConfigReceivedVersion = (_G.GRIPDB and GRIPDB.gmConfigReceived and tonumber(GRIPDB.gmConfigReceived.version)) or 0,
   }
 end

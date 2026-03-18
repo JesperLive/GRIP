@@ -41,6 +41,13 @@ local DEFAULT_DB_ACCOUNT = {
   syncEnabled = true,
   lastSyncAt = 0,
 
+  -- GM-forced settings (FP-2). Only the GM writes these; officers read via sync.
+  gmConfig = {
+    version = 0,          -- bumped on every GM edit (epoch timestamp)
+    force = {},           -- [settingKey] = true/false (which settings are forced)
+    values = {},          -- [settingKey] = value (the forced value)
+  },
+
   schemaVersion = SCHEMA_VERSION_ACCOUNT,
 }
 
@@ -474,6 +481,18 @@ function GRIP:EnsureDB()
   -- Sync defaults (FE4)
   if type(GRIPDB.syncEnabled) ~= "boolean" then GRIPDB.syncEnabled = true end
   if type(GRIPDB.lastSyncAt) ~= "number" then GRIPDB.lastSyncAt = 0 end
+
+  -- GM config (FP-2)
+  if type(GRIPDB.gmConfig) ~= "table" then GRIPDB.gmConfig = {} end
+  if type(GRIPDB.gmConfig.version) ~= "number" then GRIPDB.gmConfig.version = 0 end
+  if type(GRIPDB.gmConfig.force) ~= "table" then GRIPDB.gmConfig.force = {} end
+  if type(GRIPDB.gmConfig.values) ~= "table" then GRIPDB.gmConfig.values = {} end
+  -- Received GM config from sync (officer-side)
+  if type(GRIPDB.gmConfigReceived) ~= "table" then GRIPDB.gmConfigReceived = {} end
+  if type(GRIPDB.gmConfigReceived.version) ~= "number" then GRIPDB.gmConfigReceived.version = 0 end
+  if type(GRIPDB.gmConfigReceived.force) ~= "table" then GRIPDB.gmConfigReceived.force = {} end
+  if type(GRIPDB.gmConfigReceived.values) ~= "table" then GRIPDB.gmConfigReceived.values = {} end
+  if type(GRIPDB.gmConfigReceivedAt) ~= "number" then GRIPDB.gmConfigReceivedAt = 0 end
 
   -- Migrate legacy blacklist string values to blacklistPerm
   MigrateLegacyBlacklistStrings(self)
