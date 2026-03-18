@@ -702,6 +702,7 @@ L["Force General post template"] = true
 L["Force Trade post template"] = true
 L["Force post interval"] = true
 L["Force scan levels"] = true
+L["Force scan levels (max)"] = true
 L["Force Ghost Mode"] = true
 L["Force /who interval"] = true
 L["Forced by GM"] = true
