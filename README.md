@@ -153,4 +153,12 @@ Keybindings satisfy hardware-event requirements for restricted actions.
 
 ---
 
+## License
+
+![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)
+
+GRIP is licensed under the [GNU General Public License v2](LICENSE).
+
+---
+
 **Feedback & Support:** [discord.gg/temptingus](https://discord.gg/temptingus)
