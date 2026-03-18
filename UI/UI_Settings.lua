@@ -213,6 +213,14 @@ local function UpdateScrollContentHeight(settings)
   consider(settings.whisperSF)
   consider(settings.whisperHdr)
 
+  consider(settings.gmStatus)
+  if settings._gmCheckboxes then
+    for _, cb in ipairs(settings._gmCheckboxes) do consider(cb) end
+  end
+  consider(settings.gmDesc)
+  consider(settings.gmHdr)
+  consider(settings.sepGM)
+
   consider(settings.ghostCooldownSlider)
   consider(settings.ghostSessionSlider)
   consider(settings.ghostEnabled)
@@ -1072,6 +1080,110 @@ function GRIP:UI_CreateSettings(parent)
   end)
   settings.ghostCooldownSlider:SetPoint("TOPLEFT", settings.ghostSessionSlider, "BOTTOMLEFT", 0, -24)
 
+  -- ---------------------------------------------------------------
+  -- GM Overrides section (FP-2) — only visible to Guild Master
+  -- ---------------------------------------------------------------
+  settings.sepGM = s:CreateTexture(nil, "ARTWORK")
+  settings.sepGM:SetHeight(1)
+  settings.sepGM:SetPoint("TOPLEFT", settings.ghostCooldownSlider, "BOTTOMLEFT", -16, -24)
+  settings.sepGM:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
+  settings.sepGM:SetColorTexture(1, 0.82, 0, 0.2)
+
+  settings.gmHdr = s:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  settings.gmHdr:SetPoint("TOPLEFT", settings.sepGM, "BOTTOMLEFT", 0, -8)
+  settings.gmHdr:SetText(L["GM Overrides"])
+  settings.gmHdr:SetTextColor(1, 0.82, 0)
+
+  settings.gmDesc = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  settings.gmDesc:SetPoint("TOPLEFT", settings.gmHdr, "BOTTOMLEFT", 0, -4)
+  settings.gmDesc:SetPoint("RIGHT", s, "RIGHT", -PAD_R, 0)
+  settings.gmDesc:SetJustifyH("LEFT")
+  if settings.gmDesc.SetWordWrap then settings.gmDesc:SetWordWrap(true) end
+  settings.gmDesc:SetText(L["As Guild Master, you can force specific settings on all officers running GRIP.\n" ..
+    "Forced settings override each officer's personal config."])
+
+  -- One checkbox per forceable key
+  local gmForceKeys = {
+    { key = "whisperMessages",     label = L["Force whisper templates"] },
+    { key = "whisperRotation",     label = L["Force whisper rotation"] },
+    { key = "postMessageGeneral",  label = L["Force General post template"] },
+    { key = "postMessageTrade",    label = L["Force Trade post template"] },
+    { key = "postIntervalMinutes", label = L["Force post interval"] },
+    { key = "scanMinLevel",        label = L["Force scan levels"] },
+    { key = "scanMaxLevel",        label = L["Force scan levels (max)"] or L["Force scan levels"] },
+    { key = "ghostModeEnabled",    label = L["Force Ghost Mode"] },
+    { key = "minWhoInterval",      label = L["Force /who interval"] },
+  }
+
+  settings._gmCheckboxes = {}
+  local prevGM = settings.gmDesc
+  for i, entry in ipairs(gmForceKeys) do
+    local cb = W.CreateCheckbox(s, entry.label, function(btn)
+      if not GRIP:IsGuildLeader() then
+        btn:SetChecked(false)
+        GRIP:Print(L["Only the Guild Master can modify these settings."])
+        return
+      end
+      if not _G.GRIPDB or not _G.GRIPDB_CHAR then
+        btn:SetChecked(false)
+        return
+      end
+      local checked = btn:GetChecked() and true or false
+      local currentVal = GRIPDB_CHAR.config[entry.key]
+      -- For scanMinLevel + scanMaxLevel, force both together
+      if entry.key == "scanMinLevel" then
+        GRIP:SetGMForceSetting("scanMinLevel", checked, GRIPDB_CHAR.config.scanMinLevel)
+        GRIP:SetGMForceSetting("scanMaxLevel", checked, GRIPDB_CHAR.config.scanMaxLevel)
+      elseif entry.key == "scanMaxLevel" then
+        -- Handled by scanMinLevel checkbox; this one is hidden
+      else
+        GRIP:SetGMForceSetting(entry.key, checked, currentVal)
+      end
+      GRIP:Print(L["GM overrides updated. Officers will receive changes on next sync."])
+    end)
+    cb:SetPoint("TOPLEFT", prevGM, "BOTTOMLEFT", i == 1 and 0 or 0, i == 1 and -8 or -2)
+    cb._gmForceKey = entry.key
+    settings._gmCheckboxes[i] = cb
+    prevGM = cb
+  end
+
+  -- Hide the scanMaxLevel checkbox (paired with scanMinLevel)
+  for _, cb in ipairs(settings._gmCheckboxes) do
+    if cb._gmForceKey == "scanMaxLevel" then
+      cb:Hide()
+      cb:SetHeight(1)
+    end
+  end
+
+  settings.gmStatus = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  settings.gmStatus:SetPoint("TOPLEFT", prevGM, "BOTTOMLEFT", 0, -6)
+  settings.gmStatus:SetTextColor(0.5, 0.5, 0.5)
+  settings.gmStatus:SetText(L["GM overrides updated. Officers will receive changes on next sync."])
+
+  -- GM Override indicator FontStrings on existing settings (Part 4)
+  -- These are small red "(GM Override active)" labels placed next to forceable widgets.
+  settings._gmIndicators = {}
+  local indicatorTargets = {
+    { key = "whisperMessages",     anchor = settings.whisperHdr,     dx = 160 },
+    { key = "whisperRotation",     anchor = settings.whisperRotLbl,  dx = 0, dy = -14 },
+    { key = "postMessageGeneral",  anchor = nil },  -- handled in Ads page, skip here
+    { key = "postMessageTrade",    anchor = nil },  -- handled in Ads page, skip here
+    { key = "postIntervalMinutes", anchor = nil },  -- handled in Ads page, skip here
+    { key = "scanMinLevel",        anchor = settings.levelLabel,     dx = 200 },
+    { key = "ghostModeEnabled",    anchor = settings.ghostHdr,       dx = 200 },
+    { key = "minWhoInterval",      anchor = nil },  -- no direct widget on settings page
+  }
+  for _, it in ipairs(indicatorTargets) do
+    if it.anchor then
+      local ind = s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+      ind:SetPoint("TOPLEFT", it.anchor, "TOPRIGHT", it.dx or 8, it.dy or 0)
+      ind:SetText(L["(GM Override active)"])
+      ind:SetTextColor(1, 0.3, 0.3)
+      ind:Hide()
+      settings._gmIndicators[it.key] = ind
+    end
+  end
+
   -- Button accent underlines
   W.AddButtonAccent(settings.applyLevels, 1, 0.82, 0)
   W.AddButtonAccent(settings.whisperSave, 1, 0.82, 0)
@@ -1149,6 +1261,14 @@ function GRIP:UI_UpdateSettings()
     W.SetEnabledSafe(s.ghostEnabled, false)
     W.SetEnabledSafe(s.ghostSessionSlider, false)
     W.SetEnabledSafe(s.ghostCooldownSlider, false)
+
+    -- Hide GM section when DB not ready
+    if s.sepGM then s.sepGM:Hide() end
+    if s.gmHdr then s.gmHdr:Hide() end
+    if s.gmDesc then s.gmDesc:Hide() end
+    if s.gmStatus then s.gmStatus:Hide() end
+    if s._gmCheckboxes then for _, cb in ipairs(s._gmCheckboxes) do cb:Hide() end end
+    if s._gmIndicators then for _, ind in pairs(s._gmIndicators) do ind:Hide() end end
 
     if s.whisperRemaining then s.whisperRemaining:SetText("") end
     pcall(function() GRIP:UI_LayoutSettings() end)
@@ -1317,6 +1437,46 @@ function GRIP:UI_UpdateSettings()
   W.SetEnabledSafe(s.ghostCooldownSlider, ghostOn)
   if s.ghostSessionSlider then s.ghostSessionSlider:SetValue(GRIPDB_CHAR.config.ghostSessionMaxMinutes or 60) end
   if s.ghostCooldownSlider then s.ghostCooldownSlider:SetValue(GRIPDB_CHAR.config.ghostCooldownMinutes or 10) end
+
+  -- GM Overrides section (FP-2) — visibility + state
+  local isGM = GRIP:IsGuildLeader()
+  local gmVisible = isGM and true or false
+
+  -- Show/hide GM section elements
+  local gmElements = { s.sepGM, s.gmHdr, s.gmDesc, s.gmStatus }
+  for _, el in ipairs(gmElements) do
+    if el then if gmVisible then el:Show() else el:Hide() end end
+  end
+  if s._gmCheckboxes then
+    for _, cb in ipairs(s._gmCheckboxes) do
+      if cb._gmForceKey == "scanMaxLevel" then
+        cb:Hide()  -- always hidden (paired with scanMinLevel)
+      elseif gmVisible then
+        cb:Show()
+        W.SetEnabledSafe(cb, true)
+        -- Reflect current force state
+        local gmc = _G.GRIPDB and GRIPDB.gmConfig
+        local forced = gmc and type(gmc.force) == "table" and gmc.force[cb._gmForceKey] and true or false
+        cb:SetChecked(forced)
+      else
+        cb:Hide()
+      end
+    end
+  end
+
+  -- GM Override indicators (Part 4) — show on non-GM when setting is forced
+  if s._gmIndicators then
+    for key, ind in pairs(s._gmIndicators) do
+      local showInd = false
+      if not isGM then
+        local gmc = _G.GRIPDB and GRIPDB.gmConfigReceived
+        if gmc and type(gmc.force) == "table" and gmc.force[key] then
+          showInd = true
+        end
+      end
+      if showInd then ind:Show() else ind:Hide() end
+    end
+  end
 
   -- Keep layout responsive (UI.lua calls it too, but this makes Settings robust if called directly).
   pcall(function() GRIP:UI_LayoutSettings() end)

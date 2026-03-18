@@ -691,6 +691,24 @@ L["Last sync: just now"] = true
 L["Last sync: %d min ago"] = true
 L["Last sync: %d hr ago"] = true
 
+-- GM Overrides (FP-2)
+L["GM Overrides"] = true
+L["GM Override Settings"] = true
+L["As Guild Master, you can force specific settings on all officers running GRIP.\n" ..
+  "Forced settings override each officer's personal config."] = true
+L["Force whisper templates"] = true
+L["Force whisper rotation"] = true
+L["Force General post template"] = true
+L["Force Trade post template"] = true
+L["Force post interval"] = true
+L["Force scan levels"] = true
+L["Force Ghost Mode"] = true
+L["Force /who interval"] = true
+L["Forced by GM"] = true
+L["(GM Override active)"] = true
+L["GM overrides updated. Officers will receive changes on next sync."] = true
+L["Only the Guild Master can modify these settings."] = true
+
 -- Ghost Mode section
 L["Ghost Mode (Experimental)"] = true
 L["Enable Ghost Mode"] = true

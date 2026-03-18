@@ -128,13 +128,13 @@ local function IsOptOutMessage(text)
 end
 
 local function PickWhisperTemplate(cfg)
-  local msgs = cfg.whisperMessages
+  local msgs = GRIP:GetEffectiveSetting("whisperMessages") or cfg.whisperMessages
   if not msgs or #msgs == 0 then
     return cfg.whisperMessage or ""
   end
   if #msgs == 1 then return msgs[1] end
 
-  if cfg.whisperRotation == "random" then
+  if (GRIP:GetEffectiveSetting("whisperRotation") or cfg.whisperRotation) == "random" then
     return msgs[math.random(1, #msgs)]
   end
 

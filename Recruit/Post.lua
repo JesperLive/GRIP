@@ -160,8 +160,8 @@ function GRIP:QueuePostCycle(reason)
   if not cfg or not cfg.postEnabled then return end
 
   local changed = false
-  if EnqueuePost("GENERAL", cfg.postMessageGeneral, reason or "auto") then changed = true end
-  if EnqueuePost("TRADE", cfg.postMessageTrade, reason or "auto") then changed = true end
+  if EnqueuePost("GENERAL", GRIP:GetEffectiveSetting("postMessageGeneral") or cfg.postMessageGeneral, reason or "auto") then changed = true end
+  if EnqueuePost("TRADE", GRIP:GetEffectiveSetting("postMessageTrade") or cfg.postMessageTrade, reason or "auto") then changed = true end
 
   -- Also purge any now-blocked targets from queue (covers blacklist changes after enqueue).
   if PurgeBlacklistedFromPostQueue() then
@@ -236,7 +236,7 @@ function GRIP:StartPostScheduler()
 
   if state.postTicker then return end
 
-  local interval = self:Clamp(tonumber(cfg.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
+  local interval = self:Clamp(tonumber(GRIP:GetEffectiveSetting("postIntervalMinutes") or cfg.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
   local nextAt = GetTime() + interval
 
   self:Print((L["Post scheduler enabled: every %d min (queues messages; click Post Next to send)."]):format(interval / 60))
@@ -298,8 +298,8 @@ function GRIP:PostNext()
 
   -- If queue empty, create a one-shot manual cycle
   if #state.postQueue == 0 then
-    if EnqueuePost("GENERAL", cfg.postMessageGeneral, "manual") then didChange = true end
-    if EnqueuePost("TRADE", cfg.postMessageTrade, "manual") then didChange = true end
+    if EnqueuePost("GENERAL", GRIP:GetEffectiveSetting("postMessageGeneral") or cfg.postMessageGeneral, "manual") then didChange = true end
+    if EnqueuePost("TRADE", GRIP:GetEffectiveSetting("postMessageTrade") or cfg.postMessageTrade, "manual") then didChange = true end
   end
 
   -- Purge again in case manual enqueue created something that is now blocked.

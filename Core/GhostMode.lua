@@ -240,7 +240,9 @@ end
 function Ghost:StartSession()
   local cfg = GRIP:GetCfg()
   if not cfg then return false, "no_config" end
-  if not cfg.ghostModeEnabled then
+  local ghostVal = GRIP:GetEffectiveSetting("ghostModeEnabled")
+  if ghostVal == nil then ghostVal = cfg.ghostModeEnabled end
+  if not ghostVal then
     GRIP:Print(L["Ghost Mode is disabled. Enable with: /grip set ghostmode on"])
     return false, "disabled"
   end

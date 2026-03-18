@@ -301,8 +301,8 @@ function GRIP:BuildWhoQueue()
     return
   end
 
-  local minL = self:Clamp(cfg.scanMinLevel or GRIP.MIN_SCAN_LEVEL, GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
-  local maxL = self:Clamp(cfg.scanMaxLevel or GRIP.MAX_SCAN_LEVEL, minL, GRIP.MAX_SCAN_LEVEL)
+  local minL = self:Clamp(GRIP:GetEffectiveSetting("scanMinLevel") or cfg.scanMinLevel or GRIP.MIN_SCAN_LEVEL, GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
+  local maxL = self:Clamp(GRIP:GetEffectiveSetting("scanMaxLevel") or cfg.scanMaxLevel or GRIP.MAX_SCAN_LEVEL, minL, GRIP.MAX_SCAN_LEVEL)
   local step = self:Clamp(cfg.scanStep or 5, 1, 20)
 
   local zoneFilter = ""
@@ -372,7 +372,7 @@ function GRIP:SendNextWho()
   end
 
   local now = GetTime()
-  local minInterval = tonumber(cfg.minWhoInterval) or MIN_WHO_INTERVAL
+  local minInterval = tonumber(GRIP:GetEffectiveSetting("minWhoInterval") or cfg.minWhoInterval) or MIN_WHO_INTERVAL
   if minInterval < MIN_WHO_INTERVAL then
     minInterval = MIN_WHO_INTERVAL
   end
@@ -428,7 +428,7 @@ function GRIP:SendNextWho()
 
     -- Set scan cooldown for UI + keybind enforcement
     if state.ui then
-      local cd = tonumber(cfg.minWhoInterval) or MIN_WHO_INTERVAL
+      local cd = tonumber(GRIP:GetEffectiveSetting("minWhoInterval") or cfg.minWhoInterval) or MIN_WHO_INTERVAL
       if cd < MIN_WHO_INTERVAL then cd = MIN_WHO_INTERVAL end
       state.ui._scanCooldownUntil = GetTime() + cd
     end
@@ -469,7 +469,7 @@ function GRIP:SendNextWho()
 
   -- Set scan cooldown for UI + keybind enforcement
   if state.ui then
-    local cd = tonumber(cfg.minWhoInterval) or MIN_WHO_INTERVAL
+    local cd = tonumber(GRIP:GetEffectiveSetting("minWhoInterval") or cfg.minWhoInterval) or MIN_WHO_INTERVAL
     if cd < MIN_WHO_INTERVAL then cd = MIN_WHO_INTERVAL end
     state.ui._scanCooldownUntil = GetTime() + cd
   end
@@ -565,7 +565,7 @@ function GRIP:OnWhoListUpdate()
     -- Ghost Mode auto-chain: queue next scan after interval
     if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
       local cfg = (GRIPDB_CHAR and GRIPDB_CHAR.config) or {}
-      local interval = math.max(tonumber(cfg.minWhoInterval) or 15, 15)
+      local interval = math.max(tonumber(GRIP:GetEffectiveSetting("minWhoInterval") or cfg.minWhoInterval) or 15, 15)
       C_Timer.After(interval, function()
         if GRIP.Ghost and GRIP.Ghost:IsSessionActive() and not state.pendingWho then
           GRIP:SendNextWho()
