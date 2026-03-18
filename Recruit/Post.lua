@@ -248,7 +248,7 @@ function GRIP:StartPostScheduler()
       return
     end
 
-    interval = GRIP:Clamp(tonumber(cfg2.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
+    interval = GRIP:Clamp(tonumber(GRIP:GetEffectiveSetting("postIntervalMinutes") or cfg2.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
     if GetTime() >= nextAt then
       GRIP:QueuePostCycle("scheduled")
       -- Phase 2e: auto-drain through Ghost if session active
