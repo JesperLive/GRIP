@@ -427,7 +427,7 @@ end
 function GRIP:CreateUI()
   if state.ui then return end
 
-  local f = CreateFrame("Frame", "GRIPFrame", UIParent, "BasicFrameTemplateWithInset")
+  local f = CreateFrame("Frame", "GRIPFrame", UIParent, "BasicFrameTemplateWithInset,BackdropTemplate")
 
   EnsureDBSafe()
 
@@ -464,6 +464,8 @@ function GRIP:CreateUI()
   f:SetBackdropColor(unpack(GRIP.COLORS.bgDeep))
   f:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
   if f.Inset then
+    Mixin(f.Inset, BackdropTemplateMixin)
+    f.Inset:OnBackdropLoaded()
     f.Inset:SetBackdrop(GRIP.BACKDROPS.panelNoBorder)
     f.Inset:SetBackdropColor(unpack(GRIP.COLORS.bgMain))
   end

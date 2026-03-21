@@ -28,7 +28,7 @@ stds.wow = {
         ---------------------------------------------------------------
         -- Frame creation and UI fundamentals
         ---------------------------------------------------------------
-        "CreateFrame", "CreateColor",
+        "CreateFrame", "CreateColor", "Mixin", "BackdropTemplateMixin",
         "UIParent",
         "GameTooltip", "GameFontHighlightSmall",
         "DEFAULT_CHAT_FRAME",
