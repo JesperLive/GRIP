@@ -418,7 +418,20 @@ function GRIP:SendNextWho()
           state.pendingWho = nil
           self:UpdateUI()
           if GRIP.Ghost and GRIP.Ghost:IsSessionActive() then
-            self:SendNextWho()
+            local cdRemain = 0
+            if state.ui and state.ui._scanCooldownUntil then
+              cdRemain = math.max((state.ui._scanCooldownUntil - GetTime()), 0)
+            end
+            local mwi = math.max(tonumber(GRIP:GetEffectiveSetting("minWhoInterval")
+              or (cfg and cfg.minWhoInterval)) or MIN_WHO_INTERVAL, MIN_WHO_INTERVAL)
+            local whoRemain = math.max(mwi - (GetTime() - (state.lastWhoSentAt or 0)), 0)
+            local wait = math.max(cdRemain, whoRemain, 1)
+            self:Debug("Ghost: WHO timeout, retry in", ("%.1f"):format(wait), "s")
+            C_Timer.After(wait, function()
+              if GRIP.Ghost and GRIP.Ghost:IsSessionActive() and not state.pendingWho then
+                GRIP:SendNextWho()
+              end
+            end)
           end
         end
       end)
