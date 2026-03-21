@@ -5,10 +5,7 @@ local ADDON_NAME, GRIP = ...
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
-local pairs, pcall, wipe, strsplit = pairs, pcall, wipe, strsplit
-local gsub, sub, find, match = string.gsub, string.sub, string.find, string.match
-local tremove, tsort = table.remove, table.sort
-local floor = math.floor
+local pairs, pcall = pairs, pcall
 local time = time
 
 -- WoW API
@@ -336,7 +333,8 @@ function GRIP:ApplyTemplate(tpl, targetFullName)
         if not state._gripGuildLinkFallbackNotified then
           state._gripGuildLinkFallbackNotified = true
           self:Print("Note: {guildlink} couldn't resolve a clickable Guild Finder link — using guild name instead.")
-          self:Print("To fix: Open your Communities window (J) once per session, or ensure your guild has an active Guild Finder listing.")
+          self:Print("To fix: Open your Communities window (J) once per session,"
+              .. " or ensure your guild has an active Guild Finder listing.")
           self:Print("Use /grip link for diagnostics.")
         end
       else
@@ -461,10 +459,8 @@ function GRIP:BuildNameKeyVariants(fullName)
   local base, realm = fullName:match("^([^%-]+)%-(.+)$")
   if base and realm then
     add(base)
-  else
-    base = fullName
   end
-  local playerName, playerRealm = UnitFullName("player")
+  local _, playerRealm = UnitFullName("player")
   if playerRealm and playerRealm ~= "" then
     if not fullName:find("%-") then
       add(fullName .. "-" .. playerRealm)
@@ -516,7 +512,8 @@ function GRIP:SortPotentialNames()
 end
 
 local function GateTraceEnabled()
-  return (_G.GRIPDB_CHAR and type(GRIPDB_CHAR.config) == "table" and GRIPDB_CHAR.config.traceExecutionGate == true) and true or false
+  return (_G.GRIPDB_CHAR and type(GRIPDB_CHAR.config) == "table"
+      and GRIPDB_CHAR.config.traceExecutionGate == true) and true or false
 end
 
 local function PreviewForTrace(msg)

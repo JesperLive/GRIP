@@ -4,17 +4,14 @@
 local ADDON_NAME, GRIP = ...
 
 -- Lua
-local type, tostring, tonumber = type, tostring, tonumber
+local type, tonumber = type, tonumber
 local pairs, ipairs, next = pairs, ipairs, next
 local pcall, wipe = pcall, wipe
-local find, format = string.find, string.format
-local tsort, concat = table.sort, table.concat
-local max = math.max
+local tsort = table.sort
 local date = date
 
 -- WoW API
 local GetTime = GetTime
-local GetRealZoneText = GetRealZoneText
 local GetNumBattlegroundTypes, GetBattlegroundInfo = GetNumBattlegroundTypes, GetBattlegroundInfo
 local IsAddOnLoaded, LoadAddOn = IsAddOnLoaded, LoadAddOn
 local EJ_GetInstanceByIndex, EJ_GetNumTiers, EJ_SelectTier = EJ_GetInstanceByIndex, EJ_GetNumTiers, EJ_SelectTier
@@ -383,7 +380,9 @@ function GRIP:GetBestZonesListForUI()
   local base, method
   if type(GRIP.STATIC_ZONES) == "table" and #GRIP.STATIC_ZONES > 0 then
     base, method = GRIP.STATIC_ZONES, "static"
-  elseif _G.GRIPDB_CHAR and GRIPDB_CHAR.lists and type(GRIPDB_CHAR.lists.zonesAll) == "table" and #GRIPDB_CHAR.lists.zonesAll > 0 then
+  elseif _G.GRIPDB_CHAR and GRIPDB_CHAR.lists
+      and type(GRIPDB_CHAR.lists.zonesAll) == "table"
+      and #GRIPDB_CHAR.lists.zonesAll > 0 then
     base, method = GRIPDB_CHAR.lists.zonesAll, "zonesAll"
   else
     local z, stats = self:GatherAllZoneNames(true)

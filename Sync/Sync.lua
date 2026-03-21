@@ -5,7 +5,7 @@ local ADDON_NAME, GRIP = ...
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
-local pairs, pcall, wipe = pairs, pcall, wipe
+local pairs, pcall = pairs, pcall
 local format = string.format
 local time = time
 
@@ -676,6 +676,7 @@ function GRIP:GetSyncStatus()
     syncTemplates = cfg and cfg.syncTemplates ~= false or false,
     isGM = GRIP.IsGuildLeader and GRIP:IsGuildLeader() or false,
     gmConfigVersion = (_G.GRIPDB and GRIPDB.gmConfig and tonumber(GRIPDB.gmConfig.version)) or 0,
-    gmConfigReceivedVersion = (_G.GRIPDB and GRIPDB.gmConfigReceived and tonumber(GRIPDB.gmConfigReceived.version)) or 0,
+    gmConfigReceivedVersion = (_G.GRIPDB and GRIPDB.gmConfigReceived
+        and tonumber(GRIPDB.gmConfigReceived.version)) or 0,
   }
 end

@@ -6,7 +6,6 @@ local ADDON_NAME, GRIP = ...
 -- Lua
 local type = type
 local pairs, ipairs = pairs, ipairs
-local tsort = table.sort
 
 GRIP.DBUtil = GRIP.DBUtil or {}
 local U = GRIP.DBUtil

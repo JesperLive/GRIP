@@ -5,16 +5,12 @@ local ADDON_NAME, GRIP = ...
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
-local pairs, ipairs, next = pairs, ipairs, next
-local wipe, strsplit = wipe, strsplit
-local gsub, match, find, lower, format = string.gsub, string.match, string.find, string.lower, string.format
-local tinsert, tremove, tsort = table.insert, table.remove, table.sort
-local min = math.min
+local pairs, ipairs = pairs, ipairs
+local wipe = wipe
 
 -- WoW API
 local GetTime = GetTime
 local InCombatLockdown = InCombatLockdown
-local GetNormalizedRealmName = GetNormalizedRealmName
 local GetRealZoneText = GetRealZoneText
 local C_FriendList = C_FriendList
 local C_Timer = C_Timer
@@ -301,8 +297,14 @@ function GRIP:BuildWhoQueue()
     return
   end
 
-  local minL = self:Clamp(GRIP:GetEffectiveSetting("scanMinLevel") or cfg.scanMinLevel or GRIP.MIN_SCAN_LEVEL, GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
-  local maxL = self:Clamp(GRIP:GetEffectiveSetting("scanMaxLevel") or cfg.scanMaxLevel or GRIP.MAX_SCAN_LEVEL, minL, GRIP.MAX_SCAN_LEVEL)
+  local minL = self:Clamp(
+      GRIP:GetEffectiveSetting("scanMinLevel") or cfg.scanMinLevel
+          or GRIP.MIN_SCAN_LEVEL,
+      GRIP.MIN_SCAN_LEVEL, GRIP.MAX_SCAN_LEVEL)
+  local maxL = self:Clamp(
+      GRIP:GetEffectiveSetting("scanMaxLevel") or cfg.scanMaxLevel
+          or GRIP.MAX_SCAN_LEVEL,
+      minL, GRIP.MAX_SCAN_LEVEL)
   local step = self:Clamp(cfg.scanStep or 5, 1, 20)
 
   local zoneFilter = ""
@@ -323,7 +325,8 @@ function GRIP:BuildWhoQueue()
   self:Print((L["Built /who queue: %d queries (%d-%d, step %d)%s"]):format(
     #state.whoQueue, minL, maxL, step, cfg.scanZoneOnly and " + zone" or ""
   ))
-  self:Debug("WhoQueue built:", "#=", #state.whoQueue, "min=", minL, "max=", maxL, "step=", step, "zoneOnly=", tostring(cfg.scanZoneOnly))
+  self:Debug("WhoQueue built:", "#=", #state.whoQueue, "min=", minL,
+      "max=", maxL, "step=", step, "zoneOnly=", tostring(cfg.scanZoneOnly))
   self:UpdateUI()
 end
 

@@ -4,11 +4,8 @@
 local ADDON_NAME, GRIP = ...
 
 -- Lua
-local type, tostring, tonumber = type, tostring, tonumber
-local pairs, ipairs, pcall, strsplit = pairs, ipairs, pcall, strsplit
-local gsub = string.gsub
-local tinsert, tremove = table.insert, table.remove
-local min = math.min
+local tostring, tonumber = tostring, tonumber
+local pairs, ipairs = pairs, ipairs
 
 -- WoW API
 local GetTime = GetTime
@@ -52,7 +49,8 @@ local function PickNextInviteTarget()
   local names = GRIP:SortPotentialNames()
   for _, name in ipairs(names) do
     local entry = pot[name]
-    if entry and not entry.inviteAttempted and not entry.invitePending and not IsInviteBlocked(name, GateCtx("pick")) then
+    if entry and not entry.inviteAttempted and not entry.invitePending
+       and not IsInviteBlocked(name, GateCtx("pick")) then
       return name
     end
   end
@@ -223,7 +221,7 @@ function GRIP:InviteNext()
   local entry = pot[name]
   if not entry then return end
 
-  local didUIChange = false
+  local didUIChange = false -- luacheck: ignore 311
 
   -- Whisper (not #hwevent restricted, but we do it here so one click = one candidate)
   if cfg.whisperEnabled and not entry.whisperAttempted and not cfg.inviteFirst then
@@ -261,7 +259,7 @@ function GRIP:InviteNext()
       StartWhisperConfirmTimeout(name)
     end
 
-    didUIChange = true
+    didUIChange = true -- luacheck: ignore 311
   end
 
   -- Invite (#hwevent restricted) – must be called from a click/keybind/slash.
@@ -406,7 +404,8 @@ function GRIP:AutoQueueGhostInvite(name)
           GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", count, "-> blacklistDays")
         else
           GRIP:BlacklistForSeconds(inviteName, NO_RESPONSE_SECONDS)
-          GRIP:Debug("Invite no response (ghost-auto):", inviteName, "count=", tostring(count or "?"), "-> 24h temp blacklist")
+          GRIP:Debug("Invite no response (ghost-auto):", inviteName,
+              "count=", tostring(count or "?"), "-> 24h temp blacklist")
         end
         GRIP:RemovePotential(inviteName)
         GRIP:UpdateUI()
@@ -496,7 +495,8 @@ function GRIP:OnInviteSystemFail(targetName, reason)
   state.pendingInvite = state.pendingInvite or {}
 
   -- If blocked, ensure pending is cleared and exit (no further pipeline side effects).
-  if InviteBlacklistGate(full, pot, cfg, "invite_fail", GateCtx("system:fail", { target = targetName, reason = reason })) then
+  if InviteBlacklistGate(full, pot, cfg, "invite_fail",
+       GateCtx("system:fail", { target = targetName, reason = reason })) then
     self:UpdateUI()
     return
   end

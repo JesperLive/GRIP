@@ -6,12 +6,10 @@ local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
 local type, tostring = type, tostring
-local pairs, ipairs, pcall = pairs, ipairs, pcall
+local ipairs, pcall = ipairs, pcall
 local tinsert = table.insert
-local floor, max = math.floor, math.max
+local max = math.max
 
--- WoW API
-local GetTime = GetTime
 local C_Timer = C_Timer
 
 local state = GRIP.state

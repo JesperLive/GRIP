@@ -380,7 +380,8 @@ function GRIP:UpdateBlacklistRows(home)
   if total == 0 then
     if bl.empty then
       if tempCount > 0 then
-        bl.empty:SetText((L["No permanent blacklist entries.\nTemp blacklist active: %d.\nTip: right-click a Potential entry to add a permanent entry."]):format(tempCount))
+        local emptyFmt = L["No permanent blacklist entries.\nTemp blacklist active: %d.\nTip: right-click a Potential entry to add a permanent entry."] -- luacheck: ignore 631
+        bl.empty:SetText(emptyFmt:format(tempCount))
       else
         bl.empty:SetText(L["Permanent blacklist is empty.\nTip: right-click a Potential entry to add it."])
       end

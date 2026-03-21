@@ -5,10 +5,8 @@ local ADDON_NAME, GRIP = ...
 local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
-local type, tostring, tonumber = type, tostring, tonumber
-local ipairs = ipairs
-local cos, sin, rad, deg, atan = math.cos, math.sin, math.rad, math.deg, math.atan
-local floor = math.floor
+local type, tonumber = type, tonumber
+local cos, sin, rad = math.cos, math.sin, math.rad
 
 -- WoW API
 local GetTime = GetTime

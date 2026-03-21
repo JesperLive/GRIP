@@ -3,7 +3,7 @@
 
 local ADDON_NAME, GRIP = ...
 
-local type, tostring, pairs, ipairs = type, tostring, pairs, ipairs
+local type, tostring, pairs = type, tostring, pairs
 local time = time
 
 -- Constants

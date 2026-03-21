@@ -6,7 +6,7 @@ local ADDON_NAME, GRIP = ...
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
-local pairs, ipairs, wipe, strsplit = pairs, ipairs, wipe, strsplit
+local pairs, ipairs, wipe = pairs, ipairs, wipe
 local tsort = table.sort
 local upper, sub = string.upper, string.sub
 local floor, max, ceil = math.floor, math.max, math.ceil
@@ -452,11 +452,21 @@ local function EnsurePotentialTable(home)
           GameTooltip:AddLine((L["M+ Score: %s"]):format(tostring(e.rioScore)), 0.6, 0.8, 1.0)
         end
         if e.whisperAttempted then
-          local ws = e.whisperSuccess == true and "|cff00ff00" .. L["Sent"] .. "|r" or e.whisperSuccess == false and "|cffff0000" .. L["Failed"] .. "|r" or "|cffffff00" .. L["Pending"] .. "|r"
+          local ws = e.whisperSuccess == true
+              and "|cff00ff00" .. L["Sent"] .. "|r"
+              or e.whisperSuccess == false
+              and "|cffff0000" .. L["Failed"] .. "|r"
+              or "|cffffff00" .. L["Pending"] .. "|r"
           GameTooltip:AddLine((L["Whisper: %s"]):format(ws), 0.8, 0.8, 0.8)
         end
         if e.inviteAttempted then
-          local is = e.invitePending and "|cffffff00" .. L["Pending"] .. "|r" or e.inviteSuccess == true and "|cff00ff00" .. L["Accepted"] .. "|r" or e.inviteSuccess == false and "|cffff0000" .. L["Declined"] .. "|r" or "|cff888888" .. L["Unknown"] .. "|r"
+          local is = e.invitePending
+              and "|cffffff00" .. L["Pending"] .. "|r"
+              or e.inviteSuccess == true
+              and "|cff00ff00" .. L["Accepted"] .. "|r"
+              or e.inviteSuccess == false
+              and "|cffff0000" .. L["Declined"] .. "|r"
+              or "|cff888888" .. L["Unknown"] .. "|r"
           GameTooltip:AddLine((L["Invite: %s"]):format(is), 0.8, 0.8, 0.8)
         end
         GameTooltip:AddLine(" ")
@@ -533,7 +543,9 @@ local function EnsurePotentialTable(home)
     row.name:SetText(nameKey)
 
     local token = ClassTokenFromEntryClass(e.class)
-    local cc = token and (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token] or RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
+    local cc = token
+        and (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[token]
+        or RAID_CLASS_COLORS and RAID_CLASS_COLORS[token])
     if cc then
       row.name:SetTextColor(cc.r, cc.g, cc.b)
     else
@@ -915,12 +927,15 @@ function GRIP:UI_CreateHome(parent)
     if state.pendingInvite and type(state.pendingInvite) == "table" then
       for _ in pairs(state.pendingInvite) do pending = pending + 1 end
     end
-    return (L["Whisper the next candidate, then queue\na guild invite.\nRequires keybind or button click.\nWhisper queue: %d  |  Pending invites: %d"]):format(wq, pending)
+    local fmt = L["Whisper the next candidate, then queue\na guild invite.\nRequires keybind or button click.\nWhisper queue: %d  |  Pending invites: %d"] -- luacheck: ignore 631
+    return fmt:format(wq, pending)
   end)
   GRIP:AttachTooltip(home.btnPostNext, L["Post Next"], function()
-    return (L["Send next Trade/General channel post.\nRequires keybind or button click.\nQueue: %d posts remaining"]):format(#state.postQueue)
+    return (L["Send next Trade/General channel post.\nRequires keybind or button click.\nQueue: %d posts remaining"])
+        :format(#state.postQueue)
   end)
-  GRIP:AttachTooltip(home.btnClear, L["Clear Potential List"], L["Remove all candidates from the Potential list.\nDoes NOT affect blacklists or whisper history."])
+  GRIP:AttachTooltip(home.btnClear, L["Clear Potential List"],
+      L["Remove all candidates from the Potential list.\nDoes NOT affect blacklists or whisper history."])
 
   -- Button accent underlines
   W.AddButtonAccent(home.btnScan, 1, 0.82, 0)
@@ -1150,15 +1165,16 @@ function GRIP:UI_UpdateHome()
   if cap > 0 then
     capLine = ("   |   Sent: %s%d/%d%s"):format(capColor, sent, cap, capEnd)
   end
+  local statusFmt = L["Potential: |cffffffff%d|r   |   BL: |cff888888perm %d|r  %stemp %d|r\nWho: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"] -- luacheck: ignore 631
   home.status:SetText(
-    (L["Potential: |cffffffff%d|r   |   BL: |cff888888perm %d|r  %stemp %d|r\nWho: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"]):format(
+    statusFmt:format(
       pot, blPerm, blTempColor, blTemp,
       whoPos, whoTotal, whoPending, wq, whisperLabel, pq, capLine
     )
   )
 
   -- Contextual hint
-  local hintText = nil
+  local hintText
   local Ghost = GRIP.Ghost
   if Ghost and Ghost.IsEnabled and Ghost:IsEnabled() and Ghost.IsSessionActive and Ghost:IsSessionActive() then
     hintText = nil  -- Ghost strip takes over

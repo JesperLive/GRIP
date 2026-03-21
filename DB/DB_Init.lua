@@ -6,8 +6,7 @@ local ADDON_NAME, GRIP = ...
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
 local pairs, ipairs, pcall, wipe = pairs, ipairs, pcall, wipe
-local format = string.format
-local tremove, tsort = table.remove, table.sort
+local tremove = table.remove
 local time, date = time, date
 
 -- WoW API
@@ -87,8 +86,10 @@ local DEFAULT_DB_CHAR = {
     -- Trade/General posts (queued; click to send)
     postEnabled = true,
     postIntervalMinutes = 20,
-    postMessageGeneral = "{guild} recruiting! Friendly, active, and helpful. Whisper me for info \240\159\153\130 {guildlink}",
-    postMessageTrade = "{guild} recruiting! PvE/PvP/social \226\128\147 whisper for details \240\159\153\130 {guildlink}",
+    postMessageGeneral = "{guild} recruiting! Friendly, active, and helpful."
+        .. " Whisper me for info \240\159\153\130 {guildlink}",
+    postMessageTrade = "{guild} recruiting! PvE/PvP/social \226\128\147 whisper for details"
+        .. " \240\159\153\130 {guildlink}",
     postQueueMax = 20,
 
     -- Daily whisper cap (0 = unlimited)
@@ -382,7 +383,7 @@ local function MigrateLegacyBlacklistStrings(self)
 
       toRemove[#toRemove + 1] = name
       moved = moved + 1
-    elseif type(v) == "number" then
+    elseif type(v) == "number" then -- luacheck: ignore 542
       -- keep numeric expiry entries unchanged
     else
       toRemove[#toRemove + 1] = name
@@ -547,7 +548,9 @@ function GRIP:EnsureDB()
   local cfg = GRIPDB_CHAR.config
   if type(cfg.whisperDailyCap) ~= "number" then cfg.whisperDailyCap = DEFAULT_DB_CHAR.config.whisperDailyCap end
   if type(cfg.optOutDetection) ~= "boolean" then cfg.optOutDetection = DEFAULT_DB_CHAR.config.optOutDetection end
-  if type(cfg.optOutAggressiveEnabled) ~= "boolean" then cfg.optOutAggressiveEnabled = DEFAULT_DB_CHAR.config.optOutAggressiveEnabled end
+  if type(cfg.optOutAggressiveEnabled) ~= "boolean" then
+    cfg.optOutAggressiveEnabled = DEFAULT_DB_CHAR.config.optOutAggressiveEnabled
+  end
 
   if type(cfg.rioMinScore) ~= "number" then cfg.rioMinScore = DEFAULT_DB_CHAR.config.rioMinScore end
   if type(cfg.rioShowColumn) ~= "boolean" then cfg.rioShowColumn = DEFAULT_DB_CHAR.config.rioShowColumn end
@@ -559,7 +562,9 @@ function GRIP:EnsureDB()
 
   if type(cfg.soundEnabled) ~= "boolean" then cfg.soundEnabled = DEFAULT_DB_CHAR.config.soundEnabled end
   if type(cfg.soundWhisperDone) ~= "boolean" then cfg.soundWhisperDone = DEFAULT_DB_CHAR.config.soundWhisperDone end
-  if type(cfg.soundInviteAccepted) ~= "boolean" then cfg.soundInviteAccepted = DEFAULT_DB_CHAR.config.soundInviteAccepted end
+  if type(cfg.soundInviteAccepted) ~= "boolean" then
+    cfg.soundInviteAccepted = DEFAULT_DB_CHAR.config.soundInviteAccepted
+  end
   if type(cfg.soundScanComplete) ~= "boolean" then cfg.soundScanComplete = DEFAULT_DB_CHAR.config.soundScanComplete end
   if type(cfg.soundCapWarning) ~= "boolean" then cfg.soundCapWarning = DEFAULT_DB_CHAR.config.soundCapWarning end
 

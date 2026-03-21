@@ -7,9 +7,7 @@ local ADDON_NAME, GRIP = ...
 local type, tostring, tonumber = type, tostring, tonumber
 local pairs, ipairs, strsplit = pairs, ipairs, strsplit
 local wipe = wipe
-local tsort, concat = table.sort, table.concat
-local floor, max = math.floor, math.max
-local time, date = time, date
+local date = date
 
 -- WoW API
 local GetNormalizedRealmName = GetNormalizedRealmName

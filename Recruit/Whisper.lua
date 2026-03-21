@@ -6,13 +6,7 @@ local ADDON_NAME, GRIP = ...
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
 local pairs, ipairs, wipe = pairs, ipairs, wipe
-local gsub, lower, find, format = string.gsub, string.lower, string.find, string.format
-local tremove, tsort = table.remove, table.sort
-local random = math.random
-local time, date = time, date
-
--- WoW API
-local GetTime = GetTime
+local date = date
 local InCombatLockdown = InCombatLockdown
 local C_DateAndTime = C_DateAndTime
 local C_Timer = C_Timer
@@ -412,7 +406,7 @@ function GRIP:WhisperTick()
     end
   end
 
-  local didUIChange = false
+  local didUIChange = false -- luacheck: ignore 311
 
   local name = table.remove(state.whisperQueue, 1)
   local entry = pot[name]
@@ -468,7 +462,8 @@ function GRIP:WhisperTick()
     -- Soft warning at ~80% of cap
     local ratio = GRIPDB_CHAR.counters.whispersSent / cfg.whisperDailyCap
     if ratio >= 0.8 and ratio < 0.85 then
-      self:Print((L["Approaching daily whisper limit: %d/%d"]):format(GRIPDB_CHAR.counters.whispersSent, cfg.whisperDailyCap))
+      self:Print((L["Approaching daily whisper limit: %d/%d"]):format(
+          GRIPDB_CHAR.counters.whispersSent, cfg.whisperDailyCap))
       if cfg.soundCapWarning ~= false then
         self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
       end

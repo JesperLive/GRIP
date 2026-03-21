@@ -6,9 +6,6 @@ local ADDON_NAME, GRIP = ...
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
 local pairs, pcall, wipe = pairs, pcall, wipe
-local lower, match, gsub, find = string.lower, string.match, string.gsub, string.find
-local tremove, tsort = table.remove, table.sort
-local floor, min, max, ceil = math.floor, math.min, math.max, math.ceil
 local time = time
 
 -- WoW API
@@ -283,7 +280,8 @@ local function DebugStatus()
     dropped = tonumber(GRIPDB_CHAR.debugLog.dropped) or 0
   end
 
-  GRIP:Print((L["Debug capture: %s (max=%d, stored=%d, dropped=%d)"]):format(on and L["ON"] or L["OFF"], max, stored, dropped))
+  GRIP:Print((L["Debug capture: %s (max=%d, stored=%d, dropped=%d)"]):format(
+      on and L["ON"] or L["OFF"], max, stored, dropped))
 end
 
 local function TraceGateStatus()
@@ -312,7 +310,8 @@ local function HandleTraceGate(rest)
     return
   end
 
-  if sub == "on" or sub == "off" or sub == "1" or sub == "0" or sub == "true" or sub == "false" or sub == "yes" or sub == "no" then
+  if sub == "on" or sub == "off" or sub == "1" or sub == "0"
+      or sub == "true" or sub == "false" or sub == "yes" or sub == "no" then
     cfg.traceExecutionGate = BoolFromWord(sub) and true or false
     TraceGateStatus()
     return
@@ -385,7 +384,7 @@ function GRIP:HandleSlash(msg)
   if cmd == "ghost" then
     local sub = (rest or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
     if sub == "start" then
-      local ok, reason = GRIP.Ghost:StartSession()
+      local ok, _ = GRIP.Ghost:StartSession()
       if ok then
         self:Print(L["Ghost Mode session started. Queue actions will execute from any input."])
       end
@@ -415,7 +414,7 @@ function GRIP:HandleSlash(msg)
         GRIP.Ghost:StopSession("manual")
         self:Print(L["Ghost Mode session stopped."])
       else
-        local ok, reason = GRIP.Ghost:StartSession()
+        local ok, _ = GRIP.Ghost:StartSession()
         if ok then
           self:Print(L["Ghost Mode session started. Queue actions will execute from any input."])
         end
@@ -768,7 +767,7 @@ function GRIP:HandleSlash(msg)
       return val and ("%.3f ms"):format(val) or L["N/A"]
     end
     local function fmtCount(val)
-      return val and floor(val) or 0
+      return val and math.floor(val) or 0
     end
     self:Print(L["GRIP Performance Baseline:"])
     self:Print((L["  Session avg: %s | Recent avg: %s"]):format(
@@ -1005,7 +1004,8 @@ function GRIP:HandleSlash(msg)
     subrest = GRIP:Trim(subrest)
 
     -- Back-compat: "/grip debug on|off"
-    if sub == "on" or sub == "off" or sub == "1" or sub == "0" or sub == "true" or sub == "false" or sub == "yes" or sub == "no" then
+    if sub == "on" or sub == "off" or sub == "1" or sub == "0"
+        or sub == "true" or sub == "false" or sub == "yes" or sub == "no" then
       local val = sub
       GRIPDB_CHAR.config.debug = (val == "on" or val == "1" or val == "true" or val == "yes")
       self:Print(L["Debug: "] .. (GRIPDB_CHAR.config.debug and L["ON"] or L["OFF"]))

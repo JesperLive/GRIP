@@ -5,11 +5,9 @@ local ADDON_NAME, GRIP = ...
 local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
-local type, tostring, tonumber, select = type, tostring, tonumber, select
+local type, tostring, tonumber = type, tostring, tonumber
 local pairs, ipairs, pcall, wipe = pairs, ipairs, pcall, wipe
-local gsub, find, sub, rep = string.gsub, string.find, string.sub, string.rep
-local tremove, tsort = table.remove, table.sort
-local floor, ceil, min, max = math.floor, math.ceil, math.min, math.max
+local floor = math.floor
 
 -- WoW API
 local UnitName = UnitName
@@ -22,7 +20,6 @@ local MAX_WHISPER_BYTES = 255
 local MAX_WHISPER_TEMPLATES = 10
 local GUILDLINK_BUDGET_BYTES = 120  -- worst-case clickable link length
 
-local PAD_L = 4
 local PAD_R = 24 -- leave room from right edge inside scroll content
 
 local function HasDB()
@@ -532,13 +529,17 @@ function GRIP:UI_CreateSettings(parent)
     W.ClearDirty(settings.minEdit, settings.maxEdit, settings.stepEdit)
 
     GRIP:BuildWhoQueue()
-    GRIP:Print((L["Scan levels set: %d-%d step %d"]):format(GRIPDB_CHAR.config.scanMinLevel, GRIPDB_CHAR.config.scanMaxLevel, GRIPDB_CHAR.config.scanStep))
+    GRIP:Print((L["Scan levels set: %d-%d step %d"]):format(
+        GRIPDB_CHAR.config.scanMinLevel, GRIPDB_CHAR.config.scanMaxLevel,
+        GRIPDB_CHAR.config.scanStep))
     GRIP:UpdateUI()
   end)
   settings.applyLevels:SetPoint("LEFT", settings.stepEdit, "RIGHT", 14, 0)
 
-  GRIP:AttachTooltip(settings.zoneOnly, L["Zone Only"], L["When checked, appends your current zone name to every\n/who query. Narrows results to your zone only."])
-  GRIP:AttachTooltip(settings.applyLevels, L["Apply + Rebuild"], L["Applies level range + step and rebuilds the /who scan queue."])
+  GRIP:AttachTooltip(settings.zoneOnly, L["Zone Only"],
+      L["When checked, appends your current zone name to every\n/who query. Narrows results to your zone only."])
+  GRIP:AttachTooltip(settings.applyLevels, L["Apply + Rebuild"],
+      L["Applies level range + step and rebuilds the /who scan queue."])
 
   -- Separator: level/zone controls → filter checklists
   settings.sep1 = s:CreateTexture(nil, "ARTWORK")
@@ -549,7 +550,8 @@ function GRIP:UI_CreateSettings(parent)
 
   settings.filtersHelp = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   settings.filtersHelp:SetPoint("TOPLEFT", settings.sep1, "BOTTOMLEFT", 0, -6)
-  settings.filtersHelp:SetText(L["Filters are allowlists. If nothing is checked in a category, that category allows ALL."])
+  settings.filtersHelp:SetText(
+      L["Filters are allowlists. If nothing is checked in a category, that category allows ALL."])
 
   settings.zoneList = W.CreateGroupedChecklist(s, L["Zones"], 250, 200)
   settings.zoneList:SetPoint("TOPLEFT", settings.filtersHelp, "BOTTOMLEFT", 0, -8)
@@ -639,7 +641,8 @@ function GRIP:UI_CreateSettings(parent)
     wipe(GRIPDB_CHAR.filters.classes); GRIP:UpdateUI()
   end)
   settings.classNone:SetPoint("LEFT", settings.classAll, "RIGHT", 4, 0)
-  GRIP:AttachTooltip(settings.classNone, L["Deselect All Classes"], L["Deselect all classes (allows all classes when empty)."])
+  GRIP:AttachTooltip(settings.classNone, L["Deselect All Classes"],
+      L["Deselect all classes (allows all classes when empty)."])
 
   settings.clearFilters = W.CreateUIButton(s, L["Clear Selections"], 120, 22, function()
     if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
@@ -650,8 +653,12 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:UpdateUI()
   end)
   settings.clearFilters:SetPoint("TOPLEFT", settings.classList, "TOPRIGHT", 12, -2)
-  GRIP:AttachTooltip(settings.clearFilters, L["Clear Selections"], L["Deselect all zones, races, and classes.\nEmpty filters = allow all."])
-  do local fs = settings.clearFilters:GetFontString(); if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end end
+  GRIP:AttachTooltip(settings.clearFilters, L["Clear Selections"],
+      L["Deselect all zones, races, and classes.\nEmpty filters = allow all."])
+  do
+    local fs = settings.clearFilters:GetFontString()
+    if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end
+  end
 
   -- Separator: filter checklists → whisper templates
   settings.sep2 = s:CreateTexture(nil, "ARTWORK")
@@ -714,7 +721,10 @@ function GRIP:UI_CreateSettings(parent)
   end)
   settings.whisperRemove:SetPoint("LEFT", settings.whisperAdd, "RIGHT", 4, 0)
   GRIP:AttachTooltip(settings.whisperRemove, L["Remove Template"], L["Remove the current template (min 1)."])
-  do local fs = settings.whisperRemove:GetFontString(); if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end end
+  do
+    local fs = settings.whisperRemove:GetFontString()
+    if fs then fs:SetTextColor(unpack(GRIP.COLORS.DANGER_RED)) end
+  end
 
   -- Edit box (anchored to navigation bar; layout hook re-anchors + sizes it)
   settings.whisperSF, settings.whisperEdit = W.CreateMultilineEdit(s, 1, 60)
@@ -752,7 +762,8 @@ function GRIP:UI_CreateSettings(parent)
     if not ok then GRIP:Print(L["No room to insert {guildlink} (max 255 after expansion)."]) end
   end)
   settings.whisperAppendLink:SetPoint("TOPLEFT", settings.whisperSF, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(settings.whisperAppendLink, L["Insert {guildlink}"], L["Inserts a clickable Guild Finder link at cursor.\nBudgets ~120 bytes for the link payload."])
+  GRIP:AttachTooltip(settings.whisperAppendLink, L["Insert {guildlink}"],
+      L["Inserts a clickable Guild Finder link at cursor.\nBudgets ~120 bytes for the link payload."])
 
   settings.whisperInsertGuild = W.CreateUIButton(s, L["Insert {guild}"], 110, 20, function()
     if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
@@ -768,7 +779,8 @@ function GRIP:UI_CreateSettings(parent)
     if not ok then GRIP:Print(L["No room to insert {player} (max 255 after expansion)."]) end
   end)
   settings.whisperInsertPlayer:SetPoint("LEFT", settings.whisperInsertGuild, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(settings.whisperInsertPlayer, L["Insert {player}"], L["Inserts the target player's name at cursor."])
+  GRIP:AttachTooltip(settings.whisperInsertPlayer, L["Insert {player}"],
+      L["Inserts the target player's name at cursor."])
 
   settings.whisperSave = W.CreateUIButton(s, L["Save All"], 70, 20, function()
     if not HasDB() then GRIP:Print(L["Settings unavailable yet (DB not initialized)."]) return end
@@ -812,7 +824,8 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:Print(L["Preview: "] .. msg)
   end)
   settings.whisperPreview:SetPoint("LEFT", settings.whisperSave, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(settings.whisperPreview, L["Preview"], L["Expands tokens and prints the result to chat.\nUses your name as the {player} stand-in."])
+  GRIP:AttachTooltip(settings.whisperPreview, L["Preview"],
+      L["Expands tokens and prints the result to chat.\nUses your name as the {player} stand-in."])
 
   -- Rotation mode selector
   settings.whisperRotLbl = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -843,7 +856,8 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.hideOutgoingWhispers = v
   end)
   settings.hideWhisperEcho:SetPoint("TOPLEFT", settings.whisperSave, "BOTTOMLEFT", 0, -6)
-  GRIP:AttachTooltip(settings.hideWhisperEcho, L["Hide Whisper Echoes"], L["Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment."])
+  GRIP:AttachTooltip(settings.hideWhisperEcho, L["Hide Whisper Echoes"],
+      L["Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment."]) -- luacheck: ignore 631
 
   -- NH-11: Invite-first mode checkbox
   settings.inviteFirst = W.CreateCheckbox(s, L["Invite first (safer)"], function(btn)
@@ -851,7 +865,8 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.inviteFirst = btn:GetChecked() and true or false
   end)
   settings.inviteFirst:SetPoint("TOPLEFT", settings.hideWhisperEcho, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.inviteFirst, L["Invite First"], L["Send guild invite before whisper. Only whispers players\nwho successfully receive the invite.\nReduces risk of reports from players who block invites."])
+  GRIP:AttachTooltip(settings.inviteFirst, L["Invite First"],
+      L["Send guild invite before whisper. Only whispers players\nwho successfully receive the invite.\nReduces risk of reports from players who block invites."]) -- luacheck: ignore 631
 
   -- Separator: whisper templates → sound feedback
   settings.sep3 = s:CreateTexture(nil, "ARTWORK")
@@ -878,14 +893,16 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.soundWhisperDone = btn:GetChecked() and true or false
   end)
   settings.soundWhisperDone:SetPoint("TOPLEFT", settings.soundEnabled, "BOTTOMLEFT", 16, -2)
-  GRIP:AttachTooltip(settings.soundWhisperDone, L["Whisper Complete"], L["Play a sound when the whisper queue is fully drained."])
+  GRIP:AttachTooltip(settings.soundWhisperDone, L["Whisper Complete"],
+      L["Play a sound when the whisper queue is fully drained."])
 
   settings.soundInviteAccepted = W.CreateCheckbox(s, L["Invite accepted"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.soundInviteAccepted = btn:GetChecked() and true or false
   end)
   settings.soundInviteAccepted:SetPoint("TOPLEFT", settings.soundWhisperDone, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.soundInviteAccepted, L["Invite Accepted"], L["Play a sound when a guild invite is accepted."])
+  GRIP:AttachTooltip(settings.soundInviteAccepted, L["Invite Accepted"],
+      L["Play a sound when a guild invite is accepted."])
 
   settings.soundScanComplete = W.CreateCheckbox(s, L["Scan results found"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
@@ -899,7 +916,8 @@ function GRIP:UI_CreateSettings(parent)
     GRIPDB_CHAR.config.soundCapWarning = btn:GetChecked() and true or false
   end)
   settings.soundCapWarning:SetPoint("TOPLEFT", settings.soundScanComplete, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.soundCapWarning, L["Cap Warning"], L["Play a sound when approaching the daily whisper cap."])
+  GRIP:AttachTooltip(settings.soundCapWarning, L["Cap Warning"],
+      L["Play a sound when approaching the daily whisper cap."])
 
   -- Separator: sound feedback → opt-out languages
   settings.sep5 = s:CreateTexture(nil, "ARTWORK")
@@ -918,28 +936,38 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:Print(L["English is always enabled for opt-out detection."])
   end)
   settings.optOutEN:SetPoint("TOPLEFT", settings.optOutHdr, "BOTTOMLEFT", 0, -4)
-  GRIP:AttachTooltip(settings.optOutEN, L["English (Required)"], L["English opt-out phrases are always active and cannot be disabled."])
+  GRIP:AttachTooltip(settings.optOutEN, L["English (Required)"],
+      L["English opt-out phrases are always active and cannot be disabled."])
 
   settings.optOutFR = W.CreateCheckbox(s, L["Français (French)"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     ToggleOptOutLanguage("fr", btn:GetChecked() and true or false)
   end)
   settings.optOutFR:SetPoint("TOPLEFT", settings.optOutEN, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.optOutFR, L["French Opt-Out Phrases"], L["Enable French opt-out phrase detection for EU-FR realms.\nPhrases: non merci, pas intéressé, déjà dans une guilde, etc."])
+  do
+    local tip = L["Enable French opt-out phrase detection for EU-FR realms.\nPhrases: non merci, pas intéressé, déjà dans une guilde, etc."] -- luacheck: ignore 631
+    GRIP:AttachTooltip(settings.optOutFR, L["French Opt-Out Phrases"], tip)
+  end
 
   settings.optOutDE = W.CreateCheckbox(s, L["Deutsch (German)"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     ToggleOptOutLanguage("de", btn:GetChecked() and true or false)
   end)
   settings.optOutDE:SetPoint("TOPLEFT", settings.optOutFR, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.optOutDE, L["German Opt-Out Phrases"], L["Enable German opt-out phrase detection for EU-DE realms.\nPhrases: nein danke, nicht interessiert, hab schon ne gilde, etc."])
+  do
+    local tip = L["Enable German opt-out phrase detection for EU-DE realms.\nPhrases: nein danke, nicht interessiert, hab schon ne gilde, etc."] -- luacheck: ignore 631
+    GRIP:AttachTooltip(settings.optOutDE, L["German Opt-Out Phrases"], tip)
+  end
 
   settings.optOutES = W.CreateCheckbox(s, L["Español (Spanish)"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     ToggleOptOutLanguage("es", btn:GetChecked() and true or false)
   end)
   settings.optOutES:SetPoint("TOPLEFT", settings.optOutDE, "BOTTOMLEFT", 0, -2)
-  GRIP:AttachTooltip(settings.optOutES, L["Spanish Opt-Out Phrases"], L["Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc."])
+  do
+    local tip = L["Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc."] -- luacheck: ignore 631
+    GRIP:AttachTooltip(settings.optOutES, L["Spanish Opt-Out Phrases"], tip)
+  end
 
   settings.optOutAggressive = W.CreateCheckbox(s, L["Aggressive language detection"], function(btn)
     if not _G.GRIPDB_CHAR then return end
@@ -1001,7 +1029,8 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:UpdateUI()
   end)
   settings.rioShowColumn:SetPoint("TOPLEFT", settings.rioMinScoreLabel, "BOTTOMLEFT", 0, -8)
-  GRIP:AttachTooltip(settings.rioShowColumn, L["M+ Column"], L["Show the M+ score column in the Home page Potential list.\nOnly visible when Raider.IO addon is installed."])
+  GRIP:AttachTooltip(settings.rioShowColumn, L["M+ Column"],
+      L["Show the M+ score column in the Home page Potential list.\nOnly visible when Raider.IO addon is installed."])
 
   -- Separator: Raider.IO → sync
   settings.sep4 = s:CreateTexture(nil, "ARTWORK")
@@ -1066,7 +1095,8 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:UpdateUI()
   end)
   settings.ghostEnabled:SetPoint("TOPLEFT", settings.ghostHdr, "BOTTOMLEFT", 0, -4)
-  GRIP:AttachTooltip(settings.ghostEnabled, L["Ghost Mode"], L["Enables the Ghost overlay that captures hardware events\nto automatically drain whisper/invite/post queues."])
+  GRIP:AttachTooltip(settings.ghostEnabled, L["Ghost Mode"],
+      L["Enables the Ghost overlay that captures hardware events\nto automatically drain whisper/invite/post queues."])
 
   settings.ghostSessionSlider = W.CreateSlider(s, L["Ghost Session Max (minutes)"], 5, 120, 5, 60, 160, function(v)
     if not HasDB() then return end
@@ -1134,7 +1164,7 @@ function GRIP:UI_CreateSettings(parent)
       if entry.key == "scanMinLevel" then
         GRIP:SetGMForceSetting("scanMinLevel", checked, GRIPDB_CHAR.config.scanMinLevel)
         GRIP:SetGMForceSetting("scanMaxLevel", checked, GRIPDB_CHAR.config.scanMaxLevel)
-      elseif entry.key == "scanMaxLevel" then
+      elseif entry.key == "scanMaxLevel" then -- luacheck: ignore 542
         -- Handled by scanMinLevel checkbox; this one is hidden
       else
         GRIP:SetGMForceSetting(entry.key, checked, currentVal)

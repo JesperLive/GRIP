@@ -4,10 +4,8 @@
 local ADDON_NAME, GRIP = ...
 
 -- Lua
-local type, tostring, tonumber, select = type, tostring, tonumber, select
-local pairs, ipairs, pcall = pairs, ipairs, pcall
-local gsub, sub = string.gsub, string.sub
-local ceil = math.ceil
+local tostring, tonumber = tostring, tonumber
+local pcall = pcall
 
 -- WoW API
 local GetTime = GetTime
@@ -396,7 +394,8 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.apply:SetPoint("TOPLEFT", ads.intLbl, "BOTTOMLEFT", 0, -8)
-  GRIP:AttachTooltip(ads.enabled, L["Enable Scheduler"], L["Automatically queues one General + one Trade post\nevery interval. Posts still require a hardware event to send."])
+  GRIP:AttachTooltip(ads.enabled, L["Enable Scheduler"],
+      L["Automatically queues one General + one Trade post\nevery interval. Posts still require a hardware event to send."]) -- luacheck: ignore 631
   GRIP:AttachTooltip(ads.apply, L["Apply Interval"], L["Save the post interval."])
 
   -- Separator: enable/interval → General editor
@@ -531,7 +530,8 @@ function GRIP:UI_CreateAds(parent)
     end
   end)
   ads.tradeInsertLink:SetPoint("LEFT", ads.tradeInsertGuild, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.tradeInsertLink, L["Insert {guildlink}"], L["Inserts a clickable Guild Finder link at cursor."])
+  GRIP:AttachTooltip(ads.tradeInsertLink, L["Insert {guildlink}"],
+      L["Inserts a clickable Guild Finder link at cursor."])
 
   ads.tradePreview = W.CreateUIButton(a, L["Preview"], 80, 20, function()
     if not HasCfg() then GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."]) return end
@@ -593,7 +593,8 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.queueNow:SetPoint("LEFT", ads.save, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.queueNow, L["Queue Now"], L["Immediately queues one General + one Trade post.\nUse Post Next to send them."])
+  GRIP:AttachTooltip(ads.queueNow, L["Queue Now"],
+      L["Immediately queues one General + one Trade post.\nUse Post Next to send them."])
 
   ads.postNext = W.CreateUIButton(a, L["Post Next"], 90, 20, function()
     if not HasCfg() then
@@ -618,7 +619,8 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.postNext:SetPoint("LEFT", ads.queueNow, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.postNext, L["Post Next"], L["Sends the next queued channel post.\nRequires a keybind or button click (hardware event)."])
+  GRIP:AttachTooltip(ads.postNext, L["Post Next"],
+      L["Sends the next queued channel post.\nRequires a keybind or button click (hardware event)."])
 
   -- Button accent underlines
   W.AddButtonAccent(ads.apply, 1, 0.82, 0)

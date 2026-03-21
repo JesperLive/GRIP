@@ -6,16 +6,12 @@ local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
-local pairs, pcall, wipe = pairs, pcall, wipe
-local gsub = string.gsub
-local tremove = table.remove
-local floor, ceil = math.floor, math.ceil
+local pcall = pcall
 local time = time
 
 -- WoW API
 local GetTime = GetTime
 local InCombatLockdown = InCombatLockdown
-local IsInGuild, CanGuildInvite = IsInGuild, CanGuildInvite
 local C_Timer = C_Timer
 
 local state = GRIP.state
@@ -224,7 +220,9 @@ end
 
 function Ghost:GetSessionMaxSeconds()
   local cfg = GRIP:GetCfg()
-  local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, SESSION_MIN_MINUTES, SESSION_MAX_MINUTES)
+  local maxMin = GRIP:Clamp(
+      tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60,
+      SESSION_MIN_MINUTES, SESSION_MAX_MINUTES)
   return maxMin * 60
 end
 
@@ -339,7 +337,9 @@ function Ghost:CheckSessionTimeout()
   if not self:IsSessionActive() then return end
 
   local cfg = GRIP:GetCfg()
-  local maxMin = GRIP:Clamp(tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60, SESSION_MIN_MINUTES, SESSION_MAX_MINUTES)
+  local maxMin = GRIP:Clamp(
+      tonumber(cfg and cfg.ghostSessionMaxMinutes) or 60,
+      SESSION_MIN_MINUTES, SESSION_MAX_MINUTES)
   local elapsed = time() - (state.ghost.sessionStartedAt or time())
   if elapsed >= (maxMin * 60) then
     self:StopSession("timeout")

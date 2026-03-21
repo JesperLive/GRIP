@@ -5,8 +5,6 @@ local ADDON_NAME, GRIP = ...
 
 -- Lua
 local type, tostring, tonumber, select = type, tostring, tonumber, select
-local tremove, concat = table.remove, table.concat
-local max = math.max
 local date = date
 
 local Logger = GRIP.Logger or {}

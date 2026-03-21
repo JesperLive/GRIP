@@ -27,8 +27,6 @@ GRIP.MIN_SCAN_LEVEL      = 1
 -- Lua
 local type, tostring, tonumber, select = type, tostring, tonumber, select
 local pairs, pcall, wipe = pairs, pcall, wipe
-local concat = table.concat
-local floor, max = math.floor, math.max
 local time, date = time, date
 
 local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
@@ -220,7 +218,9 @@ function GRIP:RecordCampaignAction(actionType)
   -- Hard pause at 2x threshold
   if cfg.campaignHardPauseEnabled and elapsed >= (threshold * 2) and not st.campaignHardPaused then
     st.campaignHardPaused = true
-    self:Print((L["Whisper queue auto-paused after %d minutes of continuous recruiting. Take a break, then /grip whisper to resume."]):format(math.floor(elapsed / 60)))
+    self:Print((L["Whisper queue auto-paused after %d minutes of continuous recruiting."
+        .. " Take a break, then /grip whisper to resume."]):format(
+        math.floor(elapsed / 60)))
     if cfg.soundCapWarning ~= false then
       self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or SOUNDKIT_FALLBACK)
     end
@@ -236,7 +236,9 @@ function GRIP:RecordCampaignAction(actionType)
   -- Soft warning at 1x threshold
   if elapsed >= threshold and not st.campaignSoftWarned then
     st.campaignSoftWarned = true
-    self:Print((L["You've been recruiting for %d minutes (%d actions). Consider taking a 5-minute break to reduce Silence risk."]):format(math.floor(elapsed / 60), st.campaignActionCount))
+    self:Print((L["You've been recruiting for %d minutes (%d actions)."
+        .. " Consider taking a 5-minute break to reduce Silence risk."]):format(
+        math.floor(elapsed / 60), st.campaignActionCount))
     if cfg.soundCapWarning ~= false then
       self:PlayAlertSound(SOUNDKIT and SOUNDKIT.RAID_WARNING or SOUNDKIT_FALLBACK)
     end
@@ -376,7 +378,6 @@ if not Logger._gripFallbackInstalled then
   function Logger:Log(level, ...)
     if not self:IsEnabled(level) then return end
 
-    local cfg = self:GetConfig()
     local frame = self:ResolveFrame(false)
 
     local ts = date("%H:%M:%S")
@@ -530,7 +531,9 @@ function GRIP:DumpDebugLog(n)
   local total = #lines
   local start = math.max(1, total - n + 1)
 
-  self:Print(("Debug dump: showing %d/%d (dropped=%d). Full log is in WTF/SavedVariables/GRIP.lua under GRIPDB_CHAR.debugLog.lines"):format(
+  self:Print(("Debug dump: showing %d/%d (dropped=%d)."
+      .. " Full log is in WTF/SavedVariables/GRIP.lua"
+      .. " under GRIPDB_CHAR.debugLog.lines"):format(
     (total - start + 1),
     total,
     tonumber(GRIPDB_CHAR.debugLog.dropped) or 0

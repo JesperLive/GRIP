@@ -259,7 +259,9 @@ local function EnsureBlacklistAddPopup()
       if GRIP and type(GRIP.BlacklistPermanent) == "function" then
         pcall(function() GRIP:BlacklistPermanent(n, reason) end)
       else
-        GRIPDB.blacklistPerm[n] = { at = (GRIP and GRIP.Now and GRIP:Now()) or (time and time() or 0), reason = tostring(reason or "") }
+        local now = (GRIP and GRIP.Now and GRIP:Now())
+            or (time and time() or 0)
+        GRIPDB.blacklistPerm[n] = { at = now, reason = tostring(reason or "") }
       end
 
       -- If this name was also in temp blacklist, clear the exact key to avoid confusing counts.

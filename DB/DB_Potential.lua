@@ -96,7 +96,8 @@ function GRIP:MaybeFinalize(fullName)
   -- If blacklisted, always finalize (but still avoid racing a pending state).
   if self:IsBlacklisted(fullName) then
     -- If something is actively pending, defer; the caller can finalize after the outcome.
-    if (state and state.pendingWhisper and state.pendingWhisper[fullName]) or (state and state.pendingInvite and state.pendingInvite[fullName]) then
+    if (state and state.pendingWhisper and state.pendingWhisper[fullName])
+        or (state and state.pendingInvite and state.pendingInvite[fullName]) then
       if self:IsDebugEnabled(3) then
         self:Trace("Finalize deferred (blacklisted but pending):", fullName)
       end

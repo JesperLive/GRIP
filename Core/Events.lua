@@ -6,11 +6,8 @@ local ADDON_NAME, GRIP = ...
 -- Lua
 local type, tostring = type, tostring
 local pairs, pcall = pairs, pcall
-local gsub, match, lower, find = string.gsub, string.match, string.lower, string.find
-local floor = math.floor
 
 -- WoW API
-local GetGuildInfo = GetGuildInfo
 local C_Timer = C_Timer
 local C_Club = C_Club
 local C_ClubFinder = C_ClubFinder
@@ -193,7 +190,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
     if GRIPDB_CHAR.config and GRIPDB_CHAR.config.debug then
       GRIP:ResolveDebugFrame(true)
-      GRIP:Debug("Loaded. Debug window=", GRIPDB_CHAR.config.debugWindowName, "verbosity=", GRIPDB_CHAR.config.debugVerbosity)
+      GRIP:Debug("Loaded. Debug window=",
+          GRIPDB_CHAR.config.debugWindowName,
+          "verbosity=", GRIPDB_CHAR.config.debugVerbosity)
     end
 
     GRIP:BuildWhoQueue()
@@ -328,7 +327,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
           ticker:Cancel()
           GRIP.state._gripGuildLinkTicker = nil
           if not resolved and GRIP:IsDebugEnabled(1) then
-            GRIP:Info(L["Guild link could not resolve after 2 min. Open Guild & Communities to prime cache, or check /grip link"])
+            GRIP:Info(L["Guild link could not resolve after 2 min."
+                .. " Open Guild & Communities to prime cache, or check /grip link"])
           end
         end
       end)
@@ -544,7 +544,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
       if single then
         local low = msg:lower()
         if low:find("guild", 1, true) and (low:find("invite", 1, true) or low:find("invitation", 1, true)) then
-          if low:find("can't", 1, true) or low:find("cannot", 1, true) or low:find("error", 1, true) or low:find("failed", 1, true) then
+          if low:find("can't", 1, true) or low:find("cannot", 1, true)
+              or low:find("error", 1, true) or low:find("failed", 1, true) then
             InviteFailFor(single, "blocked")
             return
           end

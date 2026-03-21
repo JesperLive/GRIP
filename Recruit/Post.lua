@@ -5,9 +5,6 @@ local ADDON_NAME, GRIP = ...
 
 -- Lua
 local type, tostring, tonumber = type, tostring, tonumber
-local pairs, wipe = pairs, wipe
-local gsub, match, lower, find = string.gsub, string.match, string.lower, string.find
-local tremove = table.remove
 
 -- WoW API
 local GetTime = GetTime
@@ -160,8 +157,16 @@ function GRIP:QueuePostCycle(reason)
   if not cfg or not cfg.postEnabled then return end
 
   local changed = false
-  if EnqueuePost("GENERAL", GRIP:GetEffectiveSetting("postMessageGeneral") or cfg.postMessageGeneral, reason or "auto") then changed = true end
-  if EnqueuePost("TRADE", GRIP:GetEffectiveSetting("postMessageTrade") or cfg.postMessageTrade, reason or "auto") then changed = true end
+  if EnqueuePost("GENERAL",
+      GRIP:GetEffectiveSetting("postMessageGeneral") or cfg.postMessageGeneral,
+      reason or "auto") then
+    changed = true
+  end
+  if EnqueuePost("TRADE",
+      GRIP:GetEffectiveSetting("postMessageTrade") or cfg.postMessageTrade,
+      reason or "auto") then
+    changed = true
+  end
 
   -- Also purge any now-blocked targets from queue (covers blacklist changes after enqueue).
   if PurgeBlacklistedFromPostQueue() then
@@ -200,9 +205,9 @@ function GRIP:AutoDrainPostQueueGhost()
 
     table.remove(state.postQueue, 1)
 
-    if GRIP:IsBlank(task.msg) then
+    if GRIP:IsBlank(task.msg) then -- luacheck: ignore 542
       -- skip blank
-    elseif PostBlacklistGate(task.msg, GateCtx("ghost-auto", { channel = task.channelToken })) then
+    elseif PostBlacklistGate(task.msg, GateCtx("ghost-auto", { channel = task.channelToken })) then -- luacheck: ignore 542
       -- skip blacklisted target
     else
       local postMsg = task.msg
@@ -236,10 +241,14 @@ function GRIP:StartPostScheduler()
 
   if state.postTicker then return end
 
-  local interval = self:Clamp(tonumber(GRIP:GetEffectiveSetting("postIntervalMinutes") or cfg.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
+  local interval = self:Clamp(
+      tonumber(GRIP:GetEffectiveSetting("postIntervalMinutes")
+          or cfg.postIntervalMinutes) or 15,
+      POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
   local nextAt = GetTime() + interval
 
-  self:Print((L["Post scheduler enabled: every %d min (queues messages; click Post Next to send)."]):format(interval / 60))
+  self:Print((L["Post scheduler enabled: every %d min (queues messages; click Post Next to send)."]):format(
+      interval / 60))
 
   state.postTicker = C_Timer.NewTicker(1, function()
     local cfg2 = GRIP:GetCfg()
@@ -248,7 +257,10 @@ function GRIP:StartPostScheduler()
       return
     end
 
-    interval = GRIP:Clamp(tonumber(GRIP:GetEffectiveSetting("postIntervalMinutes") or cfg2.postIntervalMinutes) or 15, POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
+    interval = GRIP:Clamp(
+        tonumber(GRIP:GetEffectiveSetting("postIntervalMinutes")
+            or cfg2.postIntervalMinutes) or 15,
+        POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
     if GetTime() >= nextAt then
       GRIP:QueuePostCycle("scheduled")
       -- Phase 2e: auto-drain through Ghost if session active
@@ -298,8 +310,16 @@ function GRIP:PostNext()
 
   -- If queue empty, create a one-shot manual cycle
   if #state.postQueue == 0 then
-    if EnqueuePost("GENERAL", GRIP:GetEffectiveSetting("postMessageGeneral") or cfg.postMessageGeneral, "manual") then didChange = true end
-    if EnqueuePost("TRADE", GRIP:GetEffectiveSetting("postMessageTrade") or cfg.postMessageTrade, "manual") then didChange = true end
+    if EnqueuePost("GENERAL",
+        GRIP:GetEffectiveSetting("postMessageGeneral") or cfg.postMessageGeneral,
+        "manual") then
+      didChange = true
+    end
+    if EnqueuePost("TRADE",
+        GRIP:GetEffectiveSetting("postMessageTrade") or cfg.postMessageTrade,
+        "manual") then
+      didChange = true
+    end
   end
 
   -- Purge again in case manual enqueue created something that is now blocked.

@@ -7,7 +7,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 -- Lua
 local type, tostring = type, tostring
 local ipairs = ipairs
-local max, abs, floor = math.max, math.abs, math.floor
+local floor = math.floor
 
 GRIP.UIW = GRIP.UIW or {}
 local W = GRIP.UIW
@@ -829,4 +829,4 @@ function W.AddButtonAccent(btn, r, g, b)
   btn._accent = accent
 end
 
--- ── End shared UI helpers ──────────────────────────────────────────────
+-- End shared UI helpers

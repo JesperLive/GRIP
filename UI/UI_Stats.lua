@@ -4,12 +4,11 @@
 local ADDON_NAME, GRIP = ...
 
 -- Lua
-local type, tostring, tonumber = type, tostring, tonumber
+local type, tostring = type, tostring
 local ipairs, pairs = ipairs, pairs
 local format = string.format
-local max, floor = math.max, math.floor
+local max = math.max
 
-local W = GRIP.UIW
 local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
 
 -- =========================================================================
@@ -52,11 +51,9 @@ local function SumDays(days, n, today)
     end
   end
 
-  -- Sum most recent n entries from days array (newest at end)
-  local startIdx = max(1, #days - n + 1)
-  -- But if today is counted, we already have 1 day, so take n-1 from history
+  -- Sum most recent n-1 entries from days array (today already counted above)
   local historyCount = n - 1
-  startIdx = max(1, #days - historyCount + 1)
+  local startIdx = max(1, #days - historyCount + 1)
 
   for i = startIdx, #days do
     local day = days[i]
