@@ -548,12 +548,8 @@ function W.CreateGroupedChecklist(parent, titleText, w, h)
       local btns = self._groupBtns[hdrIdx]
       if not btns then
         btns = {}
-        btns.all = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
-        btns.all:SetSize(32, 18)
-        btns.all:SetText(L["All"])
-        btns.none = CreateFrame("Button", nil, child, "UIPanelButtonTemplate")
-        btns.none:SetSize(38, 18)
-        btns.none:SetText(L["None"])
+        btns.all = W.CreateUIButton(child, L["All"], 32, 18)
+        btns.none = W.CreateUIButton(child, L["None"], 38, 18)
         self._groupBtns[hdrIdx] = btns
       end
 
