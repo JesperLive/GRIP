@@ -111,11 +111,38 @@ end
 -- Basic widgets
 -- ---------------------------
 function W.CreateUIButton(parent, label, w, h, onClick)
-  local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-  b:SetSize(w, h)
-  b:SetText(label)
-  b:SetScript("OnClick", onClick)
-  return b
+  local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
+  btn:SetSize(w, h)
+  btn:SetBackdrop(GRIP.BACKDROPS.panel)
+  btn:SetBackdropColor(unpack(GRIP.COLORS.bgButton))
+  btn:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
+  local fs = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  fs:SetPoint("CENTER")
+  fs:SetTextColor(unpack(GRIP.COLORS.textPrimary))
+  btn:SetFontString(fs)
+  btn:SetText(label or "")
+  btn:SetScript("OnEnter", function(self)
+    if not self:IsEnabled() then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.bgButtonHover))
+    self:SetBackdropBorderColor(unpack(GRIP.COLORS.borderFocus))
+  end)
+  btn:SetScript("OnLeave", function(self)
+    if not self:IsEnabled() then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.bgButton))
+    self:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
+  end)
+  btn:SetScript("OnMouseDown", function(self)
+    if not self:IsEnabled() then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.accent))
+  end)
+  btn:SetScript("OnMouseUp", function(self)
+    if not self:IsEnabled() then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.bgButtonHover))
+  end)
+  if onClick then
+    btn:SetScript("OnClick", onClick)
+  end
+  return btn
 end
 
 function W.CreateCheckbox(parent, label, onClick)
