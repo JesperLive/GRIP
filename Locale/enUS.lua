@@ -377,8 +377,16 @@ L["Home"] = true
 L["Settings"] = true
 L["Ads"] = true
 L["Stats"] = true
+L["Advertisements"] = true
+L["Statistics"] = true
 L["Press Ctrl+C to copy:"] = true
 L["Discord Support"] = true
+
+-- Tab tooltips
+L["Scan results, whisper queue, and recruitment controls."] = true
+L["Scan filters, whisper templates, and addon configuration."] = true
+L["Trade and General channel recruitment messages."] = true
+L["Session and lifetime recruitment statistics."] = true
 
 -- Error/fallback messages
 L["UI page missing: %s (file not loaded?)"] = true

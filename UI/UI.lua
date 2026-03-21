@@ -33,10 +33,23 @@ end
 
 local function TabStyle(btn, active)
   if not btn then return end
+  btn._gripTabActive = active
   if active then
     if btn.Disable then btn:Disable() end
+    if btn.SetBackdropColor then
+      btn:SetBackdropColor(unpack(GRIP.COLORS.accent))
+    end
+    if btn.SetBackdropBorderColor then
+      btn:SetBackdropBorderColor(unpack(GRIP.COLORS.borderFocus))
+    end
   else
     if btn.Enable then btn:Enable() end
+    if btn.SetBackdropColor then
+      btn:SetBackdropColor(unpack(GRIP.COLORS.bgButton))
+    end
+    if btn.SetBackdropBorderColor then
+      btn:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
+    end
   end
 end
 
@@ -448,38 +461,76 @@ function GRIP:CreateUI()
 
   RestoreFrameGeometry(f)
 
+  -- Dark theme: override BasicFrameTemplateWithInset backdrop
+  f:SetBackdrop(GRIP.BACKDROPS.panel)
+  f:SetBackdropColor(unpack(GRIP.COLORS.bgDeep))
+  f:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
+  if f.Inset then
+    f.Inset:SetBackdrop(GRIP.BACKDROPS.panelNoBorder)
+    f.Inset:SetBackdropColor(unpack(GRIP.COLORS.bgMain))
+  end
+
+  -- Dark title bar
+  if f.TitleBg then
+    f.TitleBg:SetColorTexture(unpack(GRIP.COLORS.bgDeep))
+  end
+
   f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   f.title:SetPoint("LEFT", f.TitleBg, "LEFT", 8, 0)
   f.title:SetText(L["GRIP"])
+  f.title:SetTextColor(unpack(GRIP.COLORS.textPrimary))
 
-  f.btnHome = W.CreateUIButton(f, L["Home"], 70, 20, function() GRIP:ShowPage("home") end)
+  -- Close button tinting
+  if f.CloseButton then
+    f.CloseButton:HookScript("OnEnter", function(self)
+      if self.SetAlpha then self:SetAlpha(1.0) end
+    end)
+    f.CloseButton:HookScript("OnLeave", function(self)
+      if self.SetAlpha then self:SetAlpha(0.7) end
+    end)
+    f.CloseButton:SetAlpha(0.7)
+  end
+
+  -- Themed tab buttons
+  f.btnHome = W.CreateThemedButton(f, L["Home"], 70, 20, function() GRIP:ShowPage("home") end)
   f.btnHome:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -30)
 
-  f.btnSettings = W.CreateUIButton(f, L["Settings"], 80, 20, function() GRIP:ShowPage("settings") end)
+  f.btnSettings = W.CreateThemedButton(f, L["Settings"], 80, 20, function() GRIP:ShowPage("settings") end)
   f.btnSettings:SetPoint("LEFT", f.btnHome, "RIGHT", 6, 0)
 
-  f.btnAds = W.CreateUIButton(f, L["Ads"], 70, 20, function() GRIP:ShowPage("ads") end)
+  f.btnAds = W.CreateThemedButton(f, L["Ads"], 70, 20, function() GRIP:ShowPage("ads") end)
   f.btnAds:SetPoint("LEFT", f.btnSettings, "RIGHT", 6, 0)
 
-  f.btnStats = W.CreateUIButton(f, L["Stats"], 70, 20, function() GRIP:ShowPage("stats") end)
+  f.btnStats = W.CreateThemedButton(f, L["Stats"], 70, 20, function() GRIP:ShowPage("stats") end)
   f.btnStats:SetPoint("LEFT", f.btnAds, "RIGHT", 6, 0)
 
-  -- Active tab underline (gold accent)
+  -- Tab tooltips
+  GRIP:AttachTooltip(f.btnHome, L["Home"],
+    L["Scan results, whisper queue, and recruitment controls."])
+  GRIP:AttachTooltip(f.btnSettings, L["Settings"],
+    L["Scan filters, whisper templates, and addon configuration."])
+  GRIP:AttachTooltip(f.btnAds, L["Advertisements"],
+    L["Trade and General channel recruitment messages."])
+  GRIP:AttachTooltip(f.btnStats, L["Statistics"],
+    L["Session and lifetime recruitment statistics."])
+
+  -- Active tab underline (accent red)
   f.tabUnderline = f:CreateTexture(nil, "ARTWORK")
   f.tabUnderline:SetHeight(2)
-  f.tabUnderline:SetColorTexture(1, 0.82, 0, 0.9)
+  f.tabUnderline:SetColorTexture(unpack(GRIP.COLORS.accent))
 
   f.page = CreateFrame("Frame", nil, f)
   f.page:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -56)
   f.page:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 10)
   f.page:SetClipsChildren(true)
 
-  -- Content accent line (subtle gold divider below tabs)
+  -- Content accent line (subtle divider below tabs)
   f.contentAccent = f:CreateTexture(nil, "ARTWORK")
   f.contentAccent:SetHeight(1)
   f.contentAccent:SetPoint("TOPLEFT", f.page, "TOPLEFT", 0, 1)
   f.contentAccent:SetPoint("TOPRIGHT", f.page, "TOPRIGHT", 0, 1)
-  f.contentAccent:SetColorTexture(1, 0.82, 0, 0.15)
+  f.contentAccent:SetColorTexture(GRIP.COLORS.border[1],
+    GRIP.COLORS.border[2], GRIP.COLORS.border[3], 0.3)
 
   f.home = SafeCreatePage("UI_CreateHome", f.page)
   f.settings = SafeCreatePage("UI_CreateSettings", f.page)

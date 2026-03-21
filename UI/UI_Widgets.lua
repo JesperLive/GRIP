@@ -14,11 +14,46 @@ local W = GRIP.UIW
 
 -- Shared UI color palette (use unpack() when passing to SetTextColor etc.)
 GRIP.COLORS = {
+  -- Backgrounds
+  bgDeep        = { 0.051, 0.051, 0.102, 1 },    -- #0d0d1a  (deepest bg)
+  bgMain        = { 0.102, 0.102, 0.180, 1 },    -- #1a1a2e  (main panels)
+  bgPanel       = { 0.086, 0.129, 0.243, 1 },    -- #16213e  (raised panels)
+  bgInput       = { 0.059, 0.090, 0.161, 1 },    -- #0f1729  (edit boxes)
+  bgRowHover    = { 0.059, 0.204, 0.376, 1 },    -- #0f3460  (list hover)
+  bgRowSelected = { 0.325, 0.204, 0.514, 1 },    -- #533483  (list selected)
+  bgButton      = { 0.118, 0.176, 0.290, 1 },    -- #1e2d4a  (button face)
+  bgButtonHover = { 0.059, 0.204, 0.376, 1 },    -- #0f3460  (button hover)
+  -- Accent & branding
+  accent        = { 0.914, 0.271, 0.376, 1 },    -- #e94560  (GRIP red)
+  gripGreen     = { 0.000, 0.800, 0.400, 1 },    -- #00cc66
+  gripGold      = { 1.000, 0.820, 0.000, 1 },    -- #ffd100  (GRIP gold)
+  -- Text
+  textPrimary   = { 0.933, 0.933, 1.000, 1 },    -- #eeeeff
+  textSecondary = { 0.533, 0.533, 0.667, 1 },    -- #8888aa
+  textMuted     = { 0.333, 0.333, 0.467, 1 },    -- #555577
+  textWarning   = { 1.000, 0.800, 0.000, 1 },    -- #ffcc00
+  textError     = { 1.000, 0.267, 0.267, 1 },    -- #ff4444
+  textSuccess   = { 0.000, 0.800, 0.400, 1 },    -- #00cc66
+  -- Borders
+  border        = { 0.200, 0.200, 0.333, 1 },    -- #333355
+  borderFocus   = { 0.333, 0.333, 0.667, 1 },    -- #5555aa
+  -- Legacy aliases (keep backward compat for any existing references)
   GOLD       = { 1, 0.82, 0, 1 },
   LIGHT_GREY = { 0.8, 0.8, 0.8, 1 },
   DANGER_RED = { 1, 0.6, 0.6, 1 },
   GREEN      = { 0.4, 1, 0.4, 1 },
   LIGHT_BLUE = { 0.6, 0.8, 1, 1 },
+}
+
+GRIP.BACKDROPS = {
+  panel = {
+    bgFile   = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Buttons\\WHITE8x8",
+    edgeSize = 1,
+  },
+  panelNoBorder = {
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+  },
 }
 
 -- UIPanelScrollFrameTemplate’s scrollbar is anchored to the RIGHT of the scrollframe (outside it).
@@ -699,6 +734,89 @@ function GRIP:AttachTooltip(frame, titleOrFunc, bodyOrFunc)
         frame:SetScript("OnEnter", OnEnter)
         frame:SetScript("OnLeave", OnLeave)
     end
+end
+
+-- ---------------------------
+-- Themed widget factories (dark-theme)
+-- ---------------------------
+
+function W.CreateThemedButton(parent, label, w, h, onClick)
+  local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
+  btn:SetSize(w, h)
+  btn:SetBackdrop(GRIP.BACKDROPS.panel)
+  btn:SetBackdropColor(unpack(GRIP.COLORS.bgButton))
+  btn:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
+
+  local text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  text:SetPoint("CENTER")
+  text:SetTextColor(unpack(GRIP.COLORS.textPrimary))
+  text:SetText(label or "")
+  btn._gripLabel = text
+
+  btn:SetScript("OnEnter", function(self)
+    if self._gripTabActive then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.bgButtonHover))
+    self:SetBackdropBorderColor(unpack(GRIP.COLORS.borderFocus))
+  end)
+  btn:SetScript("OnLeave", function(self)
+    if self._gripTabActive then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.bgButton))
+    self:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
+  end)
+  btn:SetScript("OnMouseDown", function(self)
+    if self._gripTabActive then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.accent))
+  end)
+  btn:SetScript("OnMouseUp", function(self)
+    if self._gripTabActive then return end
+    self:SetBackdropColor(unpack(GRIP.COLORS.bgButtonHover))
+  end)
+
+  if onClick then
+    btn:SetScript("OnClick", onClick)
+  end
+
+  return btn
+end
+
+function W.CreateThemedPanel(parent, title)
+  local panel = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+  panel:SetBackdrop(GRIP.BACKDROPS.panel)
+  panel:SetBackdropColor(unpack(GRIP.COLORS.bgPanel))
+  panel:SetBackdropBorderColor(unpack(GRIP.COLORS.border))
+
+  if title then
+    local t = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    t:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8)
+    t:SetTextColor(unpack(GRIP.COLORS.gripGold))
+    t:SetText(title)
+    panel._gripTitle = t
+  end
+
+  return panel
+end
+
+function W.CreateSectionHeader(parent, text)
+  local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  header:SetTextColor(unpack(GRIP.COLORS.gripGold))
+  header:SetText(text or "")
+
+  local divider = parent:CreateTexture(nil, "ARTWORK")
+  divider:SetHeight(1)
+  divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
+  divider:SetPoint("RIGHT", parent, "RIGHT", -8, 0)
+  divider:SetColorTexture(GRIP.COLORS.gripGold[1], GRIP.COLORS.gripGold[2],
+    GRIP.COLORS.gripGold[3], 0.3)
+
+  return header, divider
+end
+
+function W.CreateThemedCheckbox(parent, label, tooltip, onClick)
+  local cb = W.CreateCheckbox(parent, label, onClick)
+  if tooltip and GRIP.AttachTooltip then
+    GRIP:AttachTooltip(cb, label, tooltip)
+  end
+  return cb
 end
 
 function W.AddButtonAccent(btn, r, g, b)
