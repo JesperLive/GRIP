@@ -338,7 +338,7 @@ function GRIP:UI_LayoutSettings()
   local narrowTopRow = pageW < 520
   local narrowWhisperBtns = innerW < 430
 
-  -- Top "Apply + Rebuild" reflow if narrow.
+  -- Top "Apply" reflow if narrow.
   if settings.applyLevels then
     settings.applyLevels:ClearAllPoints()
     if narrowTopRow then
@@ -504,7 +504,7 @@ function GRIP:UI_CreateSettings(parent)
   end)
   settings.zoneOnly:SetPoint("TOPLEFT", settings.minLbl, "BOTTOMLEFT", 0, -10)
 
-  settings.applyLevels = W.CreateUIButton(s, L["Apply + Rebuild"], 120, 22, function()
+  settings.applyLevels = W.CreateUIButton(s, L["Apply"], 70, 22, function()
     if not HasDB() then
       GRIP:Print(L["Settings unavailable yet (DB not initialized)."])
       return
@@ -538,8 +538,12 @@ function GRIP:UI_CreateSettings(parent)
 
   GRIP:AttachTooltip(settings.zoneOnly, L["Zone Only"],
       L["When checked, appends your current zone name to every\n/who query. Narrows results to your zone only."])
-  GRIP:AttachTooltip(settings.applyLevels, L["Apply + Rebuild"],
+  GRIP:AttachTooltip(settings.applyLevels, L["Apply"],
       L["Applies level range + step and rebuilds the /who scan queue."])
+
+  -- Step label tooltip
+  GRIP:AttachTooltip(settings.stepLbl, L["Step"],
+      L["How many levels each /who query covers.\nStep 5 means queries like 1-5, 6-10, 11-15."])
 
   -- Separator: level/zone controls → filter checklists
   settings.sep1 = s:CreateTexture(nil, "ARTWORK")
@@ -860,7 +864,7 @@ function GRIP:UI_CreateSettings(parent)
       L["Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment."]) -- luacheck: ignore 631
 
   -- NH-11: Invite-first mode checkbox
-  settings.inviteFirst = W.CreateCheckbox(s, L["Invite first (safer)"], function(btn)
+  settings.inviteFirst = W.CreateCheckbox(s, L["Invite first"], function(btn)
     if not HasDB() then btn:SetChecked(false) return end
     GRIPDB_CHAR.config.inviteFirst = btn:GetChecked() and true or false
   end)
@@ -969,14 +973,14 @@ function GRIP:UI_CreateSettings(parent)
     GRIP:AttachTooltip(settings.optOutES, L["Spanish Opt-Out Phrases"], tip)
   end
 
-  settings.optOutAggressive = W.CreateCheckbox(s, L["Aggressive language detection"], function(btn)
+  settings.optOutAggressive = W.CreateCheckbox(s, L["Hostile phrase detection"], function(btn)
     if not _G.GRIPDB_CHAR then return end
     GRIPDB_CHAR.config.optOutAggressiveEnabled = btn:GetChecked() and true or false
     GRIP:RebuildOptOutPhrases()
   end)
   settings.optOutAggressive:SetPoint("TOPLEFT", settings.optOutES, "BOTTOMLEFT", 0, -8)
   GRIP:AttachTooltip(settings.optOutAggressive,
-    L["Aggressive Language Detection"],
+    L["Hostile Phrase Detection"],
     L["Enable detection of explicit/hostile rejection phrases as opt-outs.\n" ..
     "Phrases: fuck off, piss off, go away, bugger off, screw off, sod off.\n" ..
     "These are unambiguous rejections with near-zero false positive risk.\n" ..

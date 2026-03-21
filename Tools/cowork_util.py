@@ -11,7 +11,7 @@ Usage (from DC start_process, always via cmd /c to avoid PS mangling):
 
 Commands:
   lines <file> <start> <end>          Show lines start-end from a file
-  search <pattern> <glob> [--context N]  Grep for pattern in files matching glob
+  search <pattern> <glob|file> [-C N]    Grep (case-insensitive, OR via commas)
   luacheck [--summary] [--category CAT]  Run luacheck and parse/categorize output
   count <file> <pattern>              Count occurrences of pattern in file
   diff <file1> <file2>                Side-by-side diff of two files
@@ -60,37 +60,74 @@ def cmd_lines(args):
         print("%4d: %s" % (i + 1, all_lines[i].rstrip()))
 
 
-def cmd_search(args):
-    """Grep for pattern in files matching glob."""
+def _resolve_file_targets(glob_arg):
+    """Resolve the glob/file argument into a list of (abs_path, rel_path) tuples.
+
+    If glob_arg contains a path separator (/ or \\) or points to an existing
+    file relative to REPO_ROOT, treat it as a specific file path.
+    Otherwise, walk the repo tree matching filenames against the glob pattern.
+    """
     import fnmatch
-    pattern = re.compile(args.pattern, re.IGNORECASE if args.ignore_case else 0)
-    ctx = args.context or 0
-    matches = 0
+
+    # Check if it looks like a specific file path
+    norm = glob_arg.replace('\\', '/')
+    candidate = REPO_ROOT / norm
+    if os.sep in glob_arg or '/' in glob_arg or candidate.is_file():
+        if candidate.is_file():
+            return [(str(candidate), norm)]
+        else:
+            print("File not found: %s (resolved to %s)" % (glob_arg, candidate))
+            return []
+
+    # Walk the tree with glob matching on filenames
+    targets = []
     for root, dirs, files in os.walk(REPO_ROOT):
-        # Skip excluded dirs
         dirs[:] = [d for d in dirs if d not in ('Libs', '.git', '__pycache__', 'Tools')]
         rel_root = os.path.relpath(root, REPO_ROOT)
         for fname in files:
-            if not fnmatch.fnmatch(fname, args.glob):
+            if not fnmatch.fnmatch(fname, glob_arg):
                 continue
             fpath = os.path.join(root, fname)
             rel_path = os.path.join(rel_root, fname) if rel_root != '.' else fname
-            try:
-                with open(fpath, encoding='utf-8', errors='replace') as f:
-                    lines = f.readlines()
-            except Exception:
-                continue
-            for i, line in enumerate(lines):
-                if pattern.search(line):
-                    matches += 1
-                    print("--- %s:%d ---" % (rel_path, i + 1))
-                    start = max(0, i - ctx)
-                    end = min(len(lines), i + ctx + 1)
-                    for j in range(start, end):
-                        marker = ">>>" if j == i else "   "
-                        print("%s %4d: %s" % (marker, j + 1, lines[j].rstrip()))
+            targets.append((fpath, rel_path))
+    return targets
+
+
+def cmd_search(args):
+    """Grep for pattern in files matching glob or a specific file path.
+
+    Case-INSENSITIVE by default (use -s for case-sensitive).
+    Supports OR patterns via comma separator: "pat1,pat2,pat3"
+    (avoids CMD pipe-eating issues with regex |).
+    """
+    # Build regex: replace commas with | for OR matching (CMD-safe alternative)
+    raw_pattern = args.pattern.replace(',', '|') if ',' in args.pattern else args.pattern
+    flags = 0 if args.case_sensitive else re.IGNORECASE
+    pattern = re.compile(raw_pattern, flags)
+    ctx = args.context or 0
+    matches = 0
+
+    targets = _resolve_file_targets(args.glob)
+    if not targets:
+        return
+
+    for fpath, rel_path in targets:
+        try:
+            with open(fpath, encoding='utf-8', errors='replace') as f:
+                lines = f.readlines()
+        except Exception:
+            continue
+        for i, line in enumerate(lines):
+            if pattern.search(line):
+                matches += 1
+                print("--- %s:%d ---" % (rel_path, i + 1))
+                start = max(0, i - ctx)
+                end = min(len(lines), i + ctx + 1)
+                for j in range(start, end):
+                    marker = ">>>" if j == i else "   "
+                    print("%s %4d: %s" % (marker, j + 1, lines[j].rstrip()))
     if matches == 0:
-        print("No matches for /%s/ in %s" % (args.pattern, args.glob))
+        print("No matches for /%s/ in %s" % (raw_pattern, args.glob))
     else:
         print("\n%d match(es) found." % matches)
 
@@ -305,11 +342,11 @@ def main():
     p.add_argument('end', type=int, help='End line number')
 
     # search
-    p = sub.add_parser('search', help='Grep for pattern in files matching glob')
-    p.add_argument('pattern', help='Regex pattern to search for')
-    p.add_argument('glob', help='File glob pattern (e.g. *.lua)')
+    p = sub.add_parser('search', help='Grep for pattern in files matching glob or file path')
+    p.add_argument('pattern', help='Regex pattern (use commas for OR: "pat1,pat2,pat3")')
+    p.add_argument('glob', help='File glob (e.g. *.lua) or specific file path (e.g. UI/UI_Home.lua)')
     p.add_argument('--context', '-C', type=int, default=0, help='Context lines')
-    p.add_argument('--ignore-case', '-i', action='store_true')
+    p.add_argument('--case-sensitive', '-s', action='store_true', help='Case-sensitive (default: insensitive)')
 
     # luacheck
     p = sub.add_parser('luacheck', help='Run and parse luacheck output')

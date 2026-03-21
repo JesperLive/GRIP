@@ -324,9 +324,9 @@ function GRIP:UI_LayoutAds()
     ads.save:SetPoint("TOPLEFT", ads.sep3 or tradeLastBtn, "BOTTOMLEFT", 0, -6)
   end
 
-  -- Bottom action row: Save + Queue Now + Post Next
-  -- Save(70) + Queue Now(90) + Post Next(90) + gaps(16) = ~266px
-  local narrow2 = usable < 280
+  -- Bottom action row: Save + Refill Queue + Send Next Post
+  -- Save(70) + Refill Queue(100) + Send Next Post(110) + gaps(16) = ~296px
+  local narrow2 = usable < 310
   if ads.save and ads.queueNow and ads.postNext then
     ads.queueNow:ClearAllPoints()
     ads.postNext:ClearAllPoints()
@@ -354,7 +354,7 @@ function GRIP:UI_CreateAds(parent)
 
   ads.title = a:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   ads.title:SetPoint("TOPLEFT", a, "TOPLEFT", PAD_L, -2)
-  ads.title:SetText(L["Advertisement Config"])
+  ads.title:SetText(L["Recruitment Posts"])
 
   ads.enabled = W.CreateCheckbox(a, L["Enable scheduler (queues messages every interval)"], function(btn)
     local cfg = GRIP:GetCfg()
@@ -583,20 +583,20 @@ function GRIP:UI_CreateAds(parent)
   ads.save:SetPoint("TOPLEFT", ads.sep3, "BOTTOMLEFT", 0, -6)
   GRIP:AttachTooltip(ads.save, L["Save"], L["Save both General and Trade messages to SavedVariables."])
 
-  ads.queueNow = W.CreateUIButton(a, L["Queue Now"], 90, 20, function()
+  ads.queueNow = W.CreateUIButton(a, L["Refill Queue"], 100, 20, function()
     if not HasCfg() then
       GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."])
       return
     end
     GRIP:QueuePostCycle("manual-ui")
-    GRIP:Print(L["Queued one General + one Trade message. Use Post Next to send."])
+    GRIP:Print(L["Queued one General + one Trade message. Use Send Next Post to send."])
     GRIP:UpdateUI()
   end)
   ads.queueNow:SetPoint("LEFT", ads.save, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.queueNow, L["Queue Now"],
-      L["Immediately queues one General + one Trade post.\nUse Post Next to send them."])
+  GRIP:AttachTooltip(ads.queueNow, L["Refill Queue"],
+      L["Immediately queues one General + one Trade post.\nUse Send Next Post to send them."])
 
-  ads.postNext = W.CreateUIButton(a, L["Post Next"], 90, 20, function()
+  ads.postNext = W.CreateUIButton(a, L["Send Next Post"], 110, 20, function()
     if not HasCfg() then
       GRIP:Print(L["Ads settings unavailable yet (DB not initialized)."])
       return
@@ -619,7 +619,7 @@ function GRIP:UI_CreateAds(parent)
     GRIP:UpdateUI()
   end)
   ads.postNext:SetPoint("LEFT", ads.queueNow, "RIGHT", 8, 0)
-  GRIP:AttachTooltip(ads.postNext, L["Post Next"],
+  GRIP:AttachTooltip(ads.postNext, L["Send Next Post"],
       L["Sends the next queued channel post.\nRequires a keybind or button click (hardware event)."])
 
   -- Button accent underlines
@@ -673,7 +673,7 @@ function GRIP:UI_UpdateAds()
     a.postNext:SetText((L["Post (%.0fs)"]):format(math.ceil(left)))
   else
     a.postNext:Enable()
-    a.postNext:SetText(L["Post Next"])
+    a.postNext:SetText(L["Send Next Post"])
   end
 
   -- Clear remaining counters if editors are empty (visual polish).

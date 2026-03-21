@@ -247,7 +247,7 @@ function GRIP:StartPostScheduler()
       POST_INTERVAL_MIN, POST_INTERVAL_MAX) * 60
   local nextAt = GetTime() + interval
 
-  self:Print((L["Post scheduler enabled: every %d min (queues messages; click Post Next to send)."]):format(
+  self:Print((L["Post scheduler enabled: every %d min (queues messages; click Send Next Post to send)."]):format(
       interval / 60))
 
   state.postTicker = C_Timer.NewTicker(1, function()

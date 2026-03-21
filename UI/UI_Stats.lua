@@ -10,6 +10,9 @@ local format = string.format
 local max = math.max
 
 local L = LibStub("AceLocale-3.0"):GetLocale("GRIP")
+local abs = math.abs
+
+local W = GRIP.UIW
 
 -- =========================================================================
 -- Helpers
@@ -121,68 +124,77 @@ function GRIP:CreateStatsPage(parent)
   local page = CreateFrame("Frame", nil, parent)
   page:SetAllPoints(parent)
 
+  local _, content = W.CreateScrollPage(page)
+
   local Y_START = -8
   local ROW_HEIGHT = 18
-  local SECTION_GAP = 14
-  local LABEL_X = 12
-  local VALUE_X = 110
+  local PANEL_X = 4
+  local PANEL_HEIGHT = 196
+  local SECTION_GAP = 12
+  local INNER_LABEL_X = 16
+  local INNER_VALUE_X = 114
 
   -- Title
-  local title = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  title:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X, Y_START)
+  local title = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  title:SetPoint("TOPLEFT", content, "TOPLEFT", 12, Y_START)
   title:SetText(L["Recruitment Statistics"])
 
   local y = Y_START - 28
 
-  -- Helper: create a stat section (title + 7 stat rows + accept rate)
+  -- Helper: create a stat section inside a themed panel card
   local function CreateSection(sectionTitle)
     local section = {}
 
-    section.header = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    section.header:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X, y)
-    section.header:SetText(sectionTitle)
-    section.header:SetTextColor(unpack(GRIP.COLORS.GOLD))
-    y = y - ROW_HEIGHT - 2
+    local panel = W.CreateThemedPanel(content, sectionTitle)
+    panel:SetPoint("TOPLEFT", content, "TOPLEFT", PANEL_X, y)
+    panel:SetPoint("RIGHT", content, "RIGHT", -PANEL_X, 0)
+    panel:SetHeight(PANEL_HEIGHT)
+    section._panel = panel
+
+    local innerY = -28
 
     section.rows = {}
     for _, key in ipairs(STAT_KEYS) do
       local row = {}
-      row.label = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-      row.label:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X + 8, y)
+      row.label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+      row.label:SetPoint("TOPLEFT", panel, "TOPLEFT", INNER_LABEL_X, innerY)
       row.label:SetText(STAT_LABELS[key] or key)
       row.label:SetTextColor(unpack(GRIP.COLORS.LIGHT_GREY))
 
-      row.value = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-      row.value:SetPoint("TOPLEFT", page, "TOPLEFT", VALUE_X, y)
+      row.value = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+      row.value:SetPoint("TOPLEFT", panel, "TOPLEFT", INNER_VALUE_X, innerY)
       row.value:SetText("0")
 
       section.rows[key] = row
-      y = y - ROW_HEIGHT
+      innerY = innerY - ROW_HEIGHT
     end
 
     -- Accept rate row
-    section.rateLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    section.rateLabel:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X + 8, y)
+    section.rateLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    section.rateLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", INNER_LABEL_X, innerY)
     section.rateLabel:SetText(L["Accept Rate"])
     section.rateLabel:SetTextColor(unpack(GRIP.COLORS.GREEN))
 
-    section.rateValue = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    section.rateValue:SetPoint("TOPLEFT", page, "TOPLEFT", VALUE_X, y)
+    section.rateValue = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    section.rateValue:SetPoint("TOPLEFT", panel, "TOPLEFT", INNER_VALUE_X, innerY)
     section.rateValue:SetText(L["N/A"])
 
-    y = y - ROW_HEIGHT
+    innerY = innerY - ROW_HEIGHT
 
     -- Peak Hour row
-    section.peakLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    section.peakLabel:SetPoint("TOPLEFT", page, "TOPLEFT", LABEL_X + 8, y)
+    section.peakLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    section.peakLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", INNER_LABEL_X, innerY)
     section.peakLabel:SetText(L["Peak Hour"])
     section.peakLabel:SetTextColor(unpack(GRIP.COLORS.LIGHT_BLUE))
 
-    section.peakValue = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    section.peakValue:SetPoint("TOPLEFT", page, "TOPLEFT", VALUE_X, y)
+    section.peakValue = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    section.peakValue:SetPoint("TOPLEFT", panel, "TOPLEFT", INNER_VALUE_X, innerY)
     section.peakValue:SetText(L["N/A"])
 
-    y = y - ROW_HEIGHT - SECTION_GAP
+    GRIP:AttachTooltip(section.peakLabel, L["Peak Hour"],
+        L["GRIP_STATS_PEAK_TOOLTIP"])
+
+    y = y - (PANEL_HEIGHT + SECTION_GAP)
 
     function section:Update(data, peakHour, peakCount)
       for _, key in ipairs(STAT_KEYS) do
@@ -206,8 +218,10 @@ function GRIP:CreateStatsPage(parent)
   page._section7d    = CreateSection(L["Last 7 Days"])
   page._section30d   = CreateSection(L["Last 30 Days"])
 
-  -- LayoutForWidth hook (no-op for now — vertical layout fits fine)
-  function page:LayoutForWidth(w) end
+  content:SetHeight(abs(y) + 8)
+
+  -- LayoutForWidth hook (no-op — vertical layout fits fine)
+  function page:LayoutForWidth(_w) end
 
   return page
 end

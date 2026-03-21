@@ -349,7 +349,7 @@ L["Invited (attempt): %s"] = true
 -- =========================================================================
 
 L["Posted (ghost) to %s"] = true
-L["Post scheduler enabled: every %d min (queues messages; click Post Next to send)."] = true
+L["Post scheduler enabled: every %d min (queues messages; click Send Next Post to send)."] = true
 L["Post scheduler stopped."] = true
 L["Cannot post: GRIPDB not initialized yet."] = true
 L["Cannot post to public channels while in combat."] = true
@@ -443,16 +443,16 @@ L["Initializing… (database not ready yet)"] = true
 
 -- Buttons
 L["Scan"] = true
-L["Whisper+Invite Next"] = true
-L["Post Next"] = true
+L["Recruit Next"] = true
+L["Post Ad"] = true
 L["Clear"] = true
 
 -- Button tooltips
 L["Scan (Send Next /who)"] = true
 L["Send the next /who query from the scan queue.\nRequires a click or keybind (hardware event)."] = true
-L["Whisper + Invite Next"] = true
+-- (tooltip title reuses L["Recruit Next"] defined above)
 L["Whisper the next candidate, then send a guild invite.\nRequires a click or keybind (hardware event)."] = true
--- "Send Next Post" already defined in keybindings section
+-- (tooltip title reuses L["Post Ad"] defined above)
 L["Send the next queued Trade/General post.\nRequires a click or keybind (hardware event)."] = true
 L["Clear Potential List"] = true
 L["Remove all candidates from the Potential list.\nDoes NOT affect blacklists or whisper history."] = true
@@ -468,6 +468,8 @@ L["Start"] = true
 L["|cff00ff00Ghost: Active|r  %s / %s  |  Queue: %d  |  Actions: %d"] = true
 L["|cffff8800Ghost: Cooldown|r  %s remaining"] = true
 L["|cff888888Ghost: Ready|r"] = true
+-- L["Ghost Mode"] already defined in Settings section
+L["Automated scanning mode. Runs /who queries on a timer\nso you don't have to click Scan manually.\nConfigure session length and cooldown in Settings."] = true
 
 -- Hint bar
 L["Tip: /grip help  \194\183  None selected in filters = allow all"] = true
@@ -483,7 +485,7 @@ L["Send next Trade/General channel post.\nRequires keybind or button click.\nQue
 
 -- Dynamic hints
 L["Click Scan or press your Scan keybind to find unguilded players"] = true
-L["Whisper queue has %d candidates — click Whisper+Invite to start"] = true
+L["Whisper queue has %d candidates — click Recruit Next to start"] = true
 L["%d temp-blacklisted players will expire in ~%d days"] = true
 L["Tip: /grip help  ·  Right-click rows for options"] = true
 
@@ -499,7 +501,7 @@ L["Initializing…"] = true
 
 -- Status bar
 L[" (waiting…)"] = true
-L["Potential: |cffffffff%d|r   |   BL: |cff888888perm %d|r  %stemp %d|r\nWho: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"] = true
+L["Candidates: |cffffffff%d|r   |   Blacklist: |cff888888perm %d|r  %stemp %d|r\nScan: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"] = true
 
 -- Onboarding
 L["Welcome to GRIP!"] = true
@@ -526,7 +528,8 @@ L["Scan Levels (min / max / step)"] = true
 L["Min"] = true
 L["Max"] = true
 L["Step"] = true
-L["Apply + Rebuild"] = true
+L["How many levels each /who query covers.\nStep 5 means queries like 1-5, 6-10, 11-15."] = true
+-- (Apply button reuses L["Apply"] defined in Ads section)
 L["Levels must be numbers."] = true
 L["Settings unavailable yet (DB not initialized)."] = true
 
@@ -625,7 +628,7 @@ L["Hide outgoing whisper echoes"] = true
 L["Hide Whisper Echoes"] = true
 L["Prevents your outgoing whisper messages from appearing\nin your chat window. Useful to reduce chat spam\nduring recruitment."] = true
 
-L["Invite first (safer)"] = true
+L["Invite first"] = true
 L["Invite First"] = true
 L["Send guild invite before whisper. Only whispers players\nwho successfully receive the invite.\nReduces risk of reports from players who block invites."] = true
 
@@ -665,8 +668,8 @@ L["Español (Spanish)"] = true
 L["Spanish Opt-Out Phrases"] = true
 L["Enable Spanish opt-out phrase detection for EU-ES realms.\nPhrases: no gracias, no me interesa, ya tengo gremio, etc."] = true
 
-L["Aggressive language detection"] = true
-L["Aggressive Language Detection"] = true
+L["Hostile phrase detection"] = true
+L["Hostile Phrase Detection"] = true
 L["Enable detection of explicit/hostile rejection phrases as opt-outs.\n" ..
   "Phrases: fuck off, piss off, go away, bugger off, screw off, sod off.\n" ..
   "These are unambiguous rejections with near-zero false positive risk.\n" ..
@@ -731,7 +734,7 @@ L["Ghost Cooldown (minutes)"] = true
 -- =========================================================================
 
 -- Page title
-L["Advertisement Config"] = true
+L["Recruitment Posts"] = true
 
 -- Checkbox + tooltip
 L["Enable scheduler (queues messages every interval)"] = true
@@ -755,12 +758,12 @@ L["Expands tokens and prints the message to chat."] = true
 
 -- Bottom row buttons
 L["Save"] = true
-L["Queue Now"] = true
--- ("Post Next" already defined in UI_Home section)
+L["Refill Queue"] = true
+L["Send Next Post"] = true
 
 -- Bottom row tooltips
 L["Save both General and Trade messages to SavedVariables."] = true
-L["Immediately queues one General + one Trade post.\nUse Post Next to send them."] = true
+L["Immediately queues one General + one Trade post.\nUse Send Next Post to send them."] = true
 L["Sends the next queued channel post.\nRequires a keybind or button click (hardware event)."] = true
 
 -- Print feedback messages
@@ -774,7 +777,7 @@ L["General preview: %s"] = true
 L["Trade preview: %s"] = true
 L["One or both messages exceed 255 bytes after token expansion. Please shorten them first."] = true
 L["Ad messages saved."] = true
-L["Queued one General + one Trade message. Use Post Next to send."] = true
+L["Queued one General + one Trade message. Use Send Next Post to send."] = true
 -- L["Please wait %.1fs before posting again."] — defined in Recruit/Post.lua section (shared)
 
 -- Post cooldown label
@@ -799,6 +802,7 @@ L["Accept Rate"] = true
 L["Peak Hour"] = true
 L["N/A"] = true
 L["%s (%d actions)"] = true
+L["GRIP_STATS_PEAK_TOOLTIP"] = "The hour with the most recruitment activity (whispers and invites combined) during this time period."
 
 -- =========================================================================
 -- UI/UI_Home_Popups.lua — Popup dialogs

@@ -858,19 +858,19 @@ function GRIP:UI_CreateHome(parent)
   end)
   home.btnScan:SetPoint("TOPLEFT", home, "TOPLEFT", 4, -44)
 
-  home.btnWhisperInvite = W.CreateUIButton(home, L["Whisper+Invite Next"], 160, 24, function()
+  home.btnWhisperInvite = W.CreateUIButton(home, L["Recruit Next"], 120, 24, function()
     if not HasDB() then
       GRIP:Print(L["Home unavailable yet (DB not initialized)."])
       return
     end
 
-    GRIP:Debug("UI: Whisper+Invite Next pressed")
+    GRIP:Debug("UI: Recruit Next pressed")
     GRIP:InviteNext()
     GRIP:UpdateUI()
   end)
   home.btnWhisperInvite:SetPoint("LEFT", home.btnScan, "RIGHT", 8, 0)
 
-  home.btnPostNext = W.CreateUIButton(home, L["Post Next"], 90, 24, function()
+  home.btnPostNext = W.CreateUIButton(home, L["Post Ad"], 75, 24, function()
     if not HasDB() then
       GRIP:Print(L["Home unavailable yet (DB not initialized)."])
       return
@@ -921,7 +921,7 @@ function GRIP:UI_CreateHome(parent)
     local total = #state.whoQueue
     return (L["Send next /who query.\nRequires keybind or button click.\nQueue: %d/%d remaining"]):format(pos, total)
   end)
-  GRIP:AttachTooltip(home.btnWhisperInvite, L["Whisper+Invite Next"], function()
+  GRIP:AttachTooltip(home.btnWhisperInvite, L["Recruit Next"], function()
     local wq = #state.whisperQueue
     local pending = 0
     if state.pendingInvite and type(state.pendingInvite) == "table" then
@@ -930,7 +930,7 @@ function GRIP:UI_CreateHome(parent)
     local fmt = L["Whisper the next candidate, then queue\na guild invite.\nRequires keybind or button click.\nWhisper queue: %d  |  Pending invites: %d"] -- luacheck: ignore 631
     return fmt:format(wq, pending)
   end)
-  GRIP:AttachTooltip(home.btnPostNext, L["Post Next"], function()
+  GRIP:AttachTooltip(home.btnPostNext, L["Post Ad"], function()
     return (L["Send next Trade/General channel post.\nRequires keybind or button click.\nQueue: %d posts remaining"])
         :format(#state.postQueue)
   end)
@@ -975,6 +975,8 @@ function GRIP:UI_CreateHome(parent)
     GRIP:UpdateUI()
   end)
   home.ghostBtn:SetPoint("LEFT", home.ghostLabel, "RIGHT", 8, 0)
+  GRIP:AttachTooltip(home.ghostStrip, L["Ghost Mode"],
+      L["Automated scanning mode. Runs /who queries on a timer\nso you don't have to click Scan manually.\nConfigure session length and cooldown in Settings."]) -- luacheck: ignore 631
 
   home.ghostStrip._lastUpdate = 0
   home.ghostStrip:SetScript("OnUpdate", function(self, elapsed)
@@ -1163,9 +1165,9 @@ function GRIP:UI_UpdateHome()
   end
   local capLine = ""
   if cap > 0 then
-    capLine = ("   |   Sent: %s%d/%d%s"):format(capColor, sent, cap, capEnd)
+    capLine = ("   |   Daily: %s%d/%d%s"):format(capColor, sent, cap, capEnd)
   end
-  local statusFmt = L["Potential: |cffffffff%d|r   |   BL: |cff888888perm %d|r  %stemp %d|r\nWho: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"] -- luacheck: ignore 631
+  local statusFmt = L["Candidates: |cffffffff%d|r   |   Blacklist: |cff888888perm %d|r  %stemp %d|r\nScan: %d/%d%s   |   Whisper: %d (%s)   |   Post: %d%s"] -- luacheck: ignore 631
   home.status:SetText(
     statusFmt:format(
       pot, blPerm, blTempColor, blTemp,
@@ -1181,7 +1183,7 @@ function GRIP:UI_UpdateHome()
   elseif pot == 0 and whoTotal == 0 then
     hintText = L["Click Scan or press your Scan keybind to find unguilded players"]
   elseif wq > 0 and not state.whisperTicker then
-    hintText = (L["Whisper queue has %d candidates — click Whisper+Invite to start"]):format(wq)
+    hintText = (L["Whisper queue has %d candidates — click Recruit Next to start"]):format(wq)
   elseif blTemp > 20 then
     local days = tonumber(GRIPDB_CHAR and GRIPDB_CHAR.config and GRIPDB_CHAR.config.blacklistDays) or 14
     hintText = (L["%d temp-blacklisted players will expire in ~%d days"]):format(blTemp, days)

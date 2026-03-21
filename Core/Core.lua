@@ -42,8 +42,8 @@ BINDING_HEADER_GRIP = "GRIP"
 BINDING_HEADER_GRIP_BINDINGS = "GRIP"
 BINDING_NAME_GRIP_TOGGLE = "Toggle GRIP window"
 BINDING_NAME_GRIP_WHO_NEXT = "Send next /who scan"
-BINDING_NAME_GRIP_INVITE_NEXT = "Send next guild invite"
-BINDING_NAME_GRIP_POST_NEXT = "Send next Trade/General post"
+BINDING_NAME_GRIP_INVITE_NEXT = "Whisper and invite next"
+BINDING_NAME_GRIP_POST_NEXT = "Send next recruitment post"
 
 -- Binding entry points (called from Bindings.xml)
 function GRIP_ToggleUI()
