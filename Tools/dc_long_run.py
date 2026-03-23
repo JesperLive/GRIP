@@ -1,10 +1,13 @@
-# GRIP: Long-Running Process Helper for Desktop Commander
+# GRIP Family: Long-Running Process Helper for Desktop Commander
+#
+# CANONICAL LOCATION: C:\Users\dries\Hub\GRIP\Tools\dc_long_run.py
+# Hard-linked into each repo's Tools/ folder via setup-addon-junctions.ps1.
 #
 # DC MCP transport has a 60-second timeout ceiling that cannot be configured.
 # This helper wraps long-running Python commands so they work reliably via DC.
 #
 # Usage (from DC start_process):
-#   cd C:\Users\dries\Documents\GRIP\Tools
+#   cd C:\Users\dries\Hub\GRIP\<REPO>\Tools
 #   python dc_long_run.py "python some_script.py --args"
 #   python dc_long_run.py --inline "import something; something.run()"
 #

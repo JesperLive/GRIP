@@ -1,6 +1,6 @@
 # GRIP – Guild Recruitment Automation
 
-**Retail / Midnight 12.0.1+** · **v1.5.4** · **Localized (EN/DE/FR/ES)**
+**Retail / Midnight 12.0.1+** · **v1.5.5** · **Localized (EN/DE/FR/ES)**
 
 [![Discord](https://img.shields.io/badge/Discord-Tempting%20Us-7289da?logo=discord&logoColor=white)](https://discord.gg/temptingus) [![Sponsor](https://img.shields.io/badge/Sponsor-♥-ea4aaa)](https://paypal.me/jesperlive)
 
